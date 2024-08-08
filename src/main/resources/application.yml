@@ -11,5 +11,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: validate
   flyway:
     baseline-on-migrate: true
