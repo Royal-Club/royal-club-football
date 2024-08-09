@@ -2,11 +2,13 @@ package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
+import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -25,5 +27,21 @@ public class PlayerServiceImpl implements PlayerService {
                 .createdDate(LocalDateTime.now())
                 .build();
         playerRepository.save(player);
+    }
+
+    @Override
+    public List<PlayerResponse> getAllPlayers() {
+        List<Player> players = playerRepository.findAll();
+        return players.stream()
+                .map(this::convertToDto)
+                .toList();
+    }
+
+    private PlayerResponse convertToDto(Player player) {
+        return PlayerResponse.builder()
+                .id(player.getId())
+                .name(player.getName())
+                .email(player.getEmail())
+                .build();
     }
 }
