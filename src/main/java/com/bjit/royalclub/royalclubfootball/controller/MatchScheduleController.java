@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
+import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.getSuccessResponse;
+
 @RestController
 @AllArgsConstructor
 @RequestMapping("/matches-schedule")
@@ -23,14 +27,14 @@ public class MatchScheduleController {
     private final MatchScheduleService matchScheduleService;
 
     @GetMapping("/upcoming")
-    public ResponseEntity<List<MatchScheduleResponse>> getUpcomingMatches() {
+    public ResponseEntity<Object> getUpcomingMatches() {
         List<MatchScheduleResponse> matches = matchScheduleService.getUpcomingMatches();
-        return ResponseEntity.ok(matches);
+        return getSuccessResponse(HttpStatus.OK, FETCH_OK, matches);
     }
 
     @PostMapping
-    public ResponseEntity<MatchScheduleResponse> saveMatch(@Valid @RequestBody MatchScheduleRequest matchScheduleRequest) {
+    public ResponseEntity<Object> saveMatch(@Valid @RequestBody MatchScheduleRequest matchScheduleRequest) {
         MatchScheduleResponse matchScheduleResponse = matchScheduleService.saveMatch(matchScheduleRequest);
-        return new ResponseEntity<>(matchScheduleResponse, HttpStatus.CREATED);
+        return getSuccessResponse(HttpStatus.OK, CREATE_OK, matchScheduleResponse);
     }
 }

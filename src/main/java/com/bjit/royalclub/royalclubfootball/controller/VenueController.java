@@ -14,6 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
+import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.getSuccessResponse;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/venues")
@@ -22,14 +26,14 @@ public class VenueController {
     private final VenueService venueService;
 
     @GetMapping
-    public ResponseEntity<List<VenueResponse>> getAllVenues() {
+    public ResponseEntity<Object> getAllVenues() {
         List<VenueResponse> venueResponses = venueService.getAllVenues();
-        return ResponseEntity.ok(venueResponses);
+        return getSuccessResponse(HttpStatus.OK, FETCH_OK, venueResponses);
     }
 
     @PostMapping
-    public ResponseEntity<Void> registerVenue(@Valid VenueRegistrationRequest venueRegistrationRequest) {
+    public ResponseEntity<Object> registerVenue(@Valid VenueRegistrationRequest venueRegistrationRequest) {
         venueService.registerVenue(venueRegistrationRequest);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        return getSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 }

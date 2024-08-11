@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
+import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.getSuccessResponse;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/players")
@@ -23,14 +27,14 @@ public class PlayerController {
     private final PlayerService playerService;
 
     @PostMapping
-    public ResponseEntity<Void> registerPlayer(@Valid @RequestBody PlayerRegistrationRequest registrationRequest) {
+    public ResponseEntity<Object> registerPlayer(@Valid @RequestBody PlayerRegistrationRequest registrationRequest) {
         playerService.registerPlayer(registrationRequest);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        return getSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 
     @GetMapping
-    public ResponseEntity<List<PlayerResponse>> getAllPlayers() {
+    public ResponseEntity<Object> getAllPlayers() {
         List<PlayerResponse> players = playerService.getAllPlayers();
-        return ResponseEntity.ok(players);
+        return getSuccessResponse(HttpStatus.OK, FETCH_OK, players);
     }
 }

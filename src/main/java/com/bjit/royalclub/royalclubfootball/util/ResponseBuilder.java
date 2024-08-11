@@ -58,6 +58,17 @@ public final class ResponseBuilder {
         return new ResponseEntity<>(response, status);
     }
 
+    public static ResponseEntity<Object> getSuccessResponse(HttpStatus status, String message) {
+        Response response = Response.builder()
+                .message(message)
+                .status(status.getReasonPhrase())
+                .statusCode(status.value())
+                .timeStamp(System.currentTimeMillis())
+                .build();
+
+        return new ResponseEntity<>(response, status);
+    }
+
     public static ResponseEntity<Object> getSuccessResponse(HttpStatus status, String message, Object content,
                                                             int numberOfElement) {
         Response response = Response.builder()
