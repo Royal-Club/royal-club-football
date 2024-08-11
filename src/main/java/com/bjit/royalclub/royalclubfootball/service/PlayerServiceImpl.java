@@ -23,6 +23,8 @@ public class PlayerServiceImpl implements PlayerService {
                 .email(registrationRequest.getEmail())
                 .name(registrationRequest.getName())
                 .employeeId(registrationRequest.getEmployeeId())
+                .mobileNo(registrationRequest.getMobileNo())
+                .skypeId(registrationRequest.getSkypeId())
                 .isActive(true)
                 .createdDate(LocalDateTime.now())
                 .build();
@@ -42,6 +44,8 @@ public class PlayerServiceImpl implements PlayerService {
                 .id(player.getId())
                 .name(player.getName())
                 .email(player.getEmail())
+                .mobileNo(player.getMobileNo())
+                .skypeId(player.getSkypeId())
                 .build();
     }
 }

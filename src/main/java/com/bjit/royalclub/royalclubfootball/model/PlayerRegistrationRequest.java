@@ -21,4 +21,9 @@ public class PlayerRegistrationRequest {
     @NotBlank(message = "Employee ID is mandatory")
     @Size(max = 255, message = "Employee ID must be less than 255 characters")
     private String employeeId;
+    @NotBlank(message = "Employee ID is mandatory")
+    @Size(max = 255, message = "skype ID must be less than 255 characters")
+    private String skypeId;
+    @Size(max = 255, message = "mobile No must be less than 255 characters")
+    private String mobileNo;
 }

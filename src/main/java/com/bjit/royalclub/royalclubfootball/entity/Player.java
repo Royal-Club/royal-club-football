@@ -35,7 +35,11 @@ public class Player {
 
     @Column(name = "employee_id", nullable = false, unique = true)
     private String employeeId;
+    @Column(name = "skype_id", nullable = false, unique = true)
+    private String skypeId;
 
+    @Column(name = "mobile_no")
+    private String mobileNo;
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
