@@ -3,6 +3,7 @@ package com.bjit.royalclub.royalclubfootball.controller;
 import com.bjit.royalclub.royalclubfootball.model.VenueRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.VenueResponse;
 import com.bjit.royalclub.royalclubfootball.service.VenueService;
+import com.bjit.royalclub.royalclubfootball.util.ResponseBuilder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,7 +17,6 @@ import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
-import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.getSuccessResponse;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,12 +28,12 @@ public class VenueController {
     @GetMapping
     public ResponseEntity<Object> getAllVenues() {
         List<VenueResponse> venueResponses = venueService.getAllVenues();
-        return getSuccessResponse(HttpStatus.OK, FETCH_OK, venueResponses);
+        return ResponseBuilder.buildSuccessResponse(HttpStatus.OK, FETCH_OK, venueResponses);
     }
 
     @PostMapping
     public ResponseEntity<Object> registerVenue(@Valid VenueRegistrationRequest venueRegistrationRequest) {
         venueService.registerVenue(venueRegistrationRequest);
-        return getSuccessResponse(HttpStatus.CREATED, CREATE_OK);
+        return ResponseBuilder.buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 }

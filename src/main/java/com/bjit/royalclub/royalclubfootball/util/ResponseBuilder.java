@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public final class ResponseBuilder {
@@ -14,18 +13,16 @@ public final class ResponseBuilder {
     }
 
     private static List<ErrorResponse> getCustomError(BindingResult result) {
-        List<ErrorResponse> errorResponses = new ArrayList<>();
-        result.getFieldErrors().forEach(fieldError -> {
-            ErrorResponse errorResponse = ErrorResponse.builder()
-                    .field(fieldError.getField())
-                    .message(fieldError.getDefaultMessage())
-                    .build();
-            errorResponses.add(errorResponse);
-        });
-        return errorResponses;
+        return result.getFieldErrors().stream()
+                .map(fieldError -> ErrorResponse.builder()
+                        .field(fieldError.getField())
+                        .message(fieldError.getDefaultMessage())
+                        .build())
+                .toList();
     }
 
-    public static ResponseEntity<Object> getFailureResponse(BindingResult result, String message) {
+
+    public static ResponseEntity<Object> buildFailureResponse(BindingResult result, String message) {
         Response response = Response.builder()
                 .message(message)
                 .errors(getCustomError(result))
@@ -36,7 +33,7 @@ public final class ResponseBuilder {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    public static ResponseEntity<Object> getFailureResponse(HttpStatus status, String message) {
+    public static ResponseEntity<Object> buildFailureResponse(HttpStatus status, String message) {
         Response response = Response.builder()
                 .message(message)
                 .status(status.getReasonPhrase())
@@ -46,7 +43,7 @@ public final class ResponseBuilder {
         return new ResponseEntity<>(response, status);
     }
 
-    public static ResponseEntity<Object> getSuccessResponse(HttpStatus status, String message, Object content) {
+    public static ResponseEntity<Object> buildSuccessResponse(HttpStatus status, String message, Object content) {
         Response response = Response.builder()
                 .message(message)
                 .status(status.getReasonPhrase())
@@ -58,7 +55,7 @@ public final class ResponseBuilder {
         return new ResponseEntity<>(response, status);
     }
 
-    public static ResponseEntity<Object> getSuccessResponse(HttpStatus status, String message) {
+    public static ResponseEntity<Object> buildSuccessResponse(HttpStatus status, String message) {
         Response response = Response.builder()
                 .message(message)
                 .status(status.getReasonPhrase())
@@ -69,8 +66,8 @@ public final class ResponseBuilder {
         return new ResponseEntity<>(response, status);
     }
 
-    public static ResponseEntity<Object> getSuccessResponse(HttpStatus status, String message, Object content,
-                                                            int numberOfElement) {
+    public static ResponseEntity<Object> buildSuccessResponse(HttpStatus status, String message, Object content,
+                                                              int numberOfElement) {
         Response response = Response.builder()
                 .message(message)
                 .status(status.getReasonPhrase())
@@ -82,8 +79,8 @@ public final class ResponseBuilder {
         return new ResponseEntity<>(response, status);
     }
 
-    public static ResponseEntity<Object> getSuccessResponse(HttpStatus status, String message, Object content,
-                                                            int numberOfElement, Long rowCount) {
+    public static ResponseEntity<Object> buildSuccessResponse(HttpStatus status, String message, Object content,
+                                                              int numberOfElement, Long rowCount) {
         Response response = Response.builder()
                 .message(message)
                 .status(status.getReasonPhrase())

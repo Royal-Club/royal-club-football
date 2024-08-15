@@ -3,6 +3,7 @@ package com.bjit.royalclub.royalclubfootball.controller;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.service.PlayerService;
+import com.bjit.royalclub.royalclubfootball.util.ResponseBuilder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,7 +18,6 @@ import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
-import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.getSuccessResponse;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,12 +29,12 @@ public class PlayerController {
     @PostMapping
     public ResponseEntity<Object> registerPlayer(@Valid @RequestBody PlayerRegistrationRequest registrationRequest) {
         playerService.registerPlayer(registrationRequest);
-        return getSuccessResponse(HttpStatus.CREATED, CREATE_OK);
+        return ResponseBuilder.buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 
     @GetMapping
     public ResponseEntity<Object> getAllPlayers() {
         List<PlayerResponse> players = playerService.getAllPlayers();
-        return getSuccessResponse(HttpStatus.OK, FETCH_OK, players);
+        return ResponseBuilder.buildSuccessResponse(HttpStatus.OK, FETCH_OK, players);
     }
 }
