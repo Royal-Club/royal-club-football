@@ -235,4 +235,22 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         return buildFailureResponse(HttpStatus.INTERNAL_SERVER_ERROR,
                 RestErrorMessageDetail.SQL_ERROR_MESSAGE);
     }
+
+    @ExceptionHandler(VenueServiceException.class)
+    public ResponseEntity<Object> handleVenueServiceException(VenueServiceException ex) {
+        log.error(ERROR_LOG, ex.getMessage());
+        return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
+    }
+
+    @ExceptionHandler(PlayerServiceException.class)
+    public ResponseEntity<Object> handlePlayerServiceException(PlayerServiceException ex) {
+        log.error(ERROR_LOG, ex.getMessage());
+        return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
+    }
+
+    @ExceptionHandler(MatchScheduleServiceException.class)
+    public ResponseEntity<Object> handleMatchScheduleServiceException(MatchScheduleServiceException ex) {
+        log.error(ERROR_LOG, ex.getMessage());
+        return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
+    }
 }

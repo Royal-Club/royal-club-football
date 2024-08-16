@@ -32,4 +32,10 @@ public class RestErrorMessageDetail {
     public static final String FORBIDDEN_ERROR_MESSAGE = "You are not authorized to access this resource.";
     public static final String INTERNAL_SERVER_ERROR_MESSAGE = "An internal server error occurred. Please try again later.";
     public static final String SERVICE_UNAVAILABLE_ERROR_MESSAGE = "The service is temporarily unavailable. Please try again later.";
+
+    public static final String VENUE_IS_NOT_FOUND = "Venue is not Found";
+    public static final String PLAYER_ALlREADY_EXISTS = "Already a player registered with this email";
+    public static final String PLAYER_IS_NOT_FOUND = "Player is not found";
+    public static final String MATCH_SCHEDULE_IS_NOT_FOUND = "Venue is not Found";
+
 }

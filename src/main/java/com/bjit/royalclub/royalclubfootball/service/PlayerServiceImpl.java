@@ -1,10 +1,13 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
+import com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
+import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -18,7 +21,9 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
-        /*TODO("Need to Check already player register or now with the mail or employeeId")*/
+        playerRepository.findByEmail(registrationRequest.getEmail())
+                .orElseThrow(() -> new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALlREADY_EXISTS,
+                        HttpStatus.CONFLICT));
         Player player = Player.builder()
                 .email(registrationRequest.getEmail())
                 .name(registrationRequest.getName())

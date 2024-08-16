@@ -1,15 +1,19 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.entity.Venue;
+import com.bjit.royalclub.royalclubfootball.exception.VenueServiceException;
 import com.bjit.royalclub.royalclubfootball.model.VenueRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.VenueResponse;
 import com.bjit.royalclub.royalclubfootball.repository.VenueRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.VENUE_IS_NOT_FOUND;
 
 @Service
 @AllArgsConstructor
@@ -20,7 +24,7 @@ public class VenueServiceImpl implements VenueService {
     @Override
     public Venue getVenueById(Long venueId) {
         return venueRepository.findById(venueId)
-                .orElseThrow(() -> new EntityNotFoundException("Venue not found for id: " + venueId));
+                .orElseThrow(() -> new VenueServiceException(VENUE_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
     @Override
