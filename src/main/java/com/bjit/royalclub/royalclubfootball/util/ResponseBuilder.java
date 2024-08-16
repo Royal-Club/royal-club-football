@@ -33,16 +33,6 @@ public final class ResponseBuilder {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    public static ResponseEntity<Object> buildFailureResponse(HttpStatus status, String message) {
-        Response response = Response.builder()
-                .message(message)
-                .status(status.getReasonPhrase())
-                .statusCode(status.value())
-                .timeStamp(System.currentTimeMillis())
-                .build();
-        return new ResponseEntity<>(response, status);
-    }
-
     public static ResponseEntity<Object> buildSuccessResponse(HttpStatus status, String message, Object content) {
         Response response = Response.builder()
                 .message(message)
@@ -56,6 +46,15 @@ public final class ResponseBuilder {
     }
 
     public static ResponseEntity<Object> buildSuccessResponse(HttpStatus status, String message) {
+        return buildResponse(status, message);
+    }
+
+    public static ResponseEntity<Object> buildFailureResponse(HttpStatus status, String message) {
+        return buildResponse(status, message);
+    }
+
+
+    public static ResponseEntity<Object> buildResponse(HttpStatus status, String message) {
         Response response = Response.builder()
                 .message(message)
                 .status(status.getReasonPhrase())
@@ -65,6 +64,7 @@ public final class ResponseBuilder {
 
         return new ResponseEntity<>(response, status);
     }
+
 
     public static ResponseEntity<Object> buildSuccessResponse(HttpStatus status, String message, Object content,
                                                               int numberOfElement) {
