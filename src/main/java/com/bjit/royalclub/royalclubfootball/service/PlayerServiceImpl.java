@@ -22,7 +22,7 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
         playerRepository.findByEmail(registrationRequest.getEmail())
-                .orElseThrow(() -> new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALlREADY_EXISTS,
+                .orElseThrow(() -> new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS,
                         HttpStatus.CONFLICT));
         Player player = Player.builder()
                 .email(registrationRequest.getEmail())
