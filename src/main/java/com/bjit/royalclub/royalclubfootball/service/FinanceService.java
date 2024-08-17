@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
+import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
 import com.bjit.royalclub.royalclubfootball.model.PaymentCollectionRequest;
 import com.bjit.royalclub.royalclubfootball.model.PaymentResponse;
 import jakarta.transaction.Transactional;
@@ -7,4 +8,7 @@ import jakarta.transaction.Transactional;
 public interface FinanceService {
     @Transactional
     PaymentResponse paymentCollection(PaymentCollectionRequest paymentRequest);
+
+    @Transactional
+    void recordCost(MonthlyCostRequest costRequest);
 }

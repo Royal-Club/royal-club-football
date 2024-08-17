@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
+import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
 import com.bjit.royalclub.royalclubfootball.model.PaymentCollectionRequest;
 import com.bjit.royalclub.royalclubfootball.model.PaymentResponse;
 import com.bjit.royalclub.royalclubfootball.service.FinanceService;
@@ -22,8 +23,14 @@ public class FinanceController {
     private final FinanceService financeService;
 
     @PostMapping("/collection")
-    public ResponseEntity<Object> recordCollection(@Valid  @RequestBody PaymentCollectionRequest paymentRequest) {
+    public ResponseEntity<Object> recordCollection(@Valid @RequestBody PaymentCollectionRequest paymentRequest) {
         PaymentResponse paymentResponse = financeService.paymentCollection(paymentRequest);
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK, paymentResponse);
+    }
+
+    @PostMapping("/costs")
+    public ResponseEntity<Object> recordCost(@RequestBody MonthlyCostRequest costRequest) {
+        financeService.recordCost(costRequest);
+        return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 }
