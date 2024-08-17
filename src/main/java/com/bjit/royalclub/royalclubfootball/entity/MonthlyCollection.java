@@ -46,7 +46,7 @@ public class MonthlyCollection {
     @Column(name = "is_paid", nullable = false)
     private boolean isPaid;
 
-    @Column(name = "created_date", nullable = false)
+    @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
     @Column(name = "updated_date")

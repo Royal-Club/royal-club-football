@@ -5,42 +5,31 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Setter
-@Getter
 @Builder
-@NoArgsConstructor
+@Table(name = "cost_types")
+@Data
 @AllArgsConstructor
-@Table(name = "match_participant", uniqueConstraints = {@UniqueConstraint(columnNames = {"match_schedule_id", "player_id"})})
-public class MatchParticipant {
+@NoArgsConstructor
+public class CostType {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "match_schedule_id", nullable = false)
-    private MatchSchedule matchSchedule;
+    @Column(nullable = false, unique = true)
+    private String name;
 
-    @ManyToOne
-    @JoinColumn(name = "player_id", nullable = false)
-    private Player player;
+    private String description;
 
-    @Column(name = "participation_status", nullable = false)
-    private boolean participationStatus;
-
-    @Column(name = "is_active", nullable = false)
+    @Column(nullable = false)
     private boolean isActive;
 
     @Column(name = "created_date", nullable = false, updatable = false)

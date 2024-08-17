@@ -37,5 +37,6 @@ public class RestErrorMessageDetail {
     public static final String PLAYER_ALREADY_EXISTS = "Already a player registered with this email";
     public static final String PLAYER_IS_NOT_FOUND = "Player is not found";
     public static final String MATCH_SCHEDULE_IS_NOT_FOUND = "Venue is not Found";
+    public static final String COST_TYPE_ALREADY_EXISTS = "Already a cost type is exists";
 
 }

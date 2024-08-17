@@ -43,7 +43,7 @@ public class Player {
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
 
-    @Column(name = "created_date", nullable = false)
+    @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
     @Column(name = "updated_date")
