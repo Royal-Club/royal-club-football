@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 
@@ -22,21 +23,23 @@ public class FinanceServiceImpl implements FinanceService {
     private final MonthlyCollectionRepository monthlyCollectionRepository;
 
     @Override
-    public PaymentResponse recordCollection(PaymentCollectionRequest paymentRequest) {
+    public PaymentResponse paymentCollection(PaymentCollectionRequest paymentRequest) {
 
         Player player = playerRepository.findById(paymentRequest.getPlayerId())
                 .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
         String finalDescription = paymentRequest.getDescription();
-        if (paymentRequest.getPaymentMonth().isBefore(LocalDate.now().withDayOfMonth(1))) {
+        if (paymentRequest.getMonthOfPayment().isBefore(LocalDate.now().withDayOfMonth(1))) {
             finalDescription += " (Late Payment)";
         }
 
         MonthlyCollection collection = MonthlyCollection.builder()
                 .player(player)
                 .amount(paymentRequest.getAmount())
-                .paymentMonth(paymentRequest.getPaymentMonth())
+                .monthOfPayment(paymentRequest.getMonthOfPayment())
                 .description(finalDescription)
+                .isPaid(true)
+                .createdDate(LocalDateTime.now())
                 .build();
 
         MonthlyCollection savedCollection = monthlyCollectionRepository.save(collection);
@@ -46,8 +49,9 @@ public class FinanceServiceImpl implements FinanceService {
 
     private PaymentResponse convertToPaymentResponse(MonthlyCollection collection) {
         return PaymentResponse.builder()
+                .playerId(collection.getPlayer().getId())
                 .playerName(collection.getPlayer().getName())
-                .paymentMonth(collection.getPaymentMonth())
+                .paymentMonth(collection.getMonthOfPayment())
                 .amount(collection.getAmount())
                 .build();
     }

@@ -41,7 +41,7 @@ public class Player {
     @Column(name = "mobile_no")
     private String mobileNo;
     @Column(name = "is_active", nullable = false)
-    private Boolean isActive;
+    private boolean isActive;
 
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;

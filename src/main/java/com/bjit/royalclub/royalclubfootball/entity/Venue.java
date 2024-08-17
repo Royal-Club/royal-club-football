@@ -35,7 +35,7 @@ public class Venue {
     private String address;
 
     @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+    private boolean isActive = true;
 
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;

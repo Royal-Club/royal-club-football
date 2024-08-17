@@ -38,10 +38,10 @@ public class MatchParticipant {
     private Player player;
 
     @Column(name = "participation_status", nullable = false)
-    private Boolean participationStatus;
+    private boolean participationStatus;
 
     @Column(name = "is_active", nullable = false)
-    private Boolean isActive;
+    private boolean isActive;
 
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;

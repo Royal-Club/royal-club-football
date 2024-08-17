@@ -37,11 +37,14 @@ public class MonthlyCollection {
     @Column(nullable = false)
     private double amount;
 
-    @Column(name = "payment_month", nullable = false)
-    private LocalDate paymentMonth; // The month and year for which the payment is made
+    @Column(name = "month_of_payment", nullable = false)
+    private LocalDate monthOfPayment; // The month and year for which the payment is made
 
     @Column(name = "description")
     private String description;
+
+    @Column(name = "is_paid", nullable = false)
+    private boolean isPaid;
 
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;

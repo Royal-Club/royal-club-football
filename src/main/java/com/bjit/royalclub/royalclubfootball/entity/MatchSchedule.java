@@ -35,7 +35,7 @@ public class MatchSchedule {
     private Venue venue;
 
     @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+    private boolean isActive;
 
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;

@@ -6,5 +6,5 @@ import jakarta.transaction.Transactional;
 
 public interface FinanceService {
     @Transactional
-    PaymentResponse recordCollection(PaymentCollectionRequest paymentRequest);
+    PaymentResponse paymentCollection(PaymentCollectionRequest paymentRequest);
 }
