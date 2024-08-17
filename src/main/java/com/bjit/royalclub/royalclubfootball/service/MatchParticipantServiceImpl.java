@@ -32,7 +32,7 @@ public class MatchParticipantServiceImpl implements MatchParticipantService {
                 .orElseThrow(() -> new MatchScheduleServiceException(MATCH_SCHEDULE_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
         Player player = playerRepository.findById(matchParticipantRequest.getPlayerId())
-                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.CONFLICT));
+                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
         MatchParticipant matchParticipant = MatchParticipant.builder()
                 .id(matchParticipantRequest.getId())
