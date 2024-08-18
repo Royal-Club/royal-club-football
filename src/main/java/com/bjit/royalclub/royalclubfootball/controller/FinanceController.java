@@ -29,7 +29,7 @@ public class FinanceController {
     }
 
     @PostMapping("/costs")
-    public ResponseEntity<Object> recordCost(@RequestBody MonthlyCostRequest costRequest) {
+    public ResponseEntity<Object> recordCost(@Valid @RequestBody MonthlyCostRequest costRequest) {
         financeService.recordCost(costRequest);
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
