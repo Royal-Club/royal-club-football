@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.COST_TYPE_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
@@ -65,6 +67,38 @@ public class FinanceServiceImpl implements FinanceService {
         MonthlyCost cost = convertToEntity(costRequest);
         cost.setCostType(costType);
         monthlyCostRepository.save(cost);
+    }
+
+
+    private double fetchTotalCollection(LocalDate monthStart, LocalDate monthEnd) {
+        return monthlyCollectionRepository.findByMonthOfPaymentBetween(monthStart, monthEnd)
+                .stream()
+                .mapToDouble(MonthlyCollection::getAmount)
+                .sum();
+    }
+
+    private double fetchTotalCost(LocalDate monthStart, LocalDate monthEnd) {
+        return monthlyCostRepository.findByMonthOfCostBetween(monthStart, monthEnd)
+                .stream()
+                .mapToDouble(MonthlyCost::getAmount)
+                .sum();
+    }
+
+    private Map<String, Double> fetchCostTypeWiseCost(LocalDate monthStart, LocalDate monthEnd) {
+        return monthlyCostRepository.findByMonthOfCostBetween(monthStart, monthEnd)
+                .stream()
+                .collect(Collectors.groupingBy(cost -> cost.getCostType().getName(),
+                        Collectors.summingDouble(MonthlyCost::getAmount)));
+    }
+
+    private double fetchCashOnPreviousMonth(LocalDate date) {
+        // Calculate the first and last day of the previous month
+        LocalDate startOfPreviousMonth = date.minusMonths(1).withDayOfMonth(1);
+        LocalDate endOfPreviousMonth = startOfPreviousMonth.withDayOfMonth(startOfPreviousMonth.lengthOfMonth());
+
+        double totalCollection = fetchTotalCollection(startOfPreviousMonth, endOfPreviousMonth);
+        double totalCost = fetchTotalCost(startOfPreviousMonth, endOfPreviousMonth);
+        return totalCollection - totalCost;
     }
 
     private MonthlyCost convertToEntity(MonthlyCostRequest costRequest) {
