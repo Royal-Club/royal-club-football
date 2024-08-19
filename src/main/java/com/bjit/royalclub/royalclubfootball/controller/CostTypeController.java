@@ -8,15 +8,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.UPDATE_OK;
 import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuccessResponse;
 
 @RestController
@@ -36,5 +40,23 @@ public class CostTypeController {
     public ResponseEntity<Object> getAllCostType() {
         List<CostTypeResponse> costTypeResponses = costTypeService.getAllCostType();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, costTypeResponses);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Object> getCostTypeById(@PathVariable Long id) {
+        CostTypeResponse costType = costTypeService.getByCostId(id);
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, costType);
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Object> updateCostTypeStatus(@PathVariable Long id, @RequestParam boolean isActive) {
+        costTypeService.updateStatus(id, isActive);
+        return buildSuccessResponse(HttpStatus.OK, UPDATE_OK);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Object> updateCostType(@PathVariable Long id, @RequestBody CostTypeRequest costTypeRequest) {
+        CostTypeResponse updatedCostType = costTypeService.update(id, costTypeRequest);
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, updatedCostType);
     }
 }

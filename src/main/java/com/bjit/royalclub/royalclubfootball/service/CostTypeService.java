@@ -11,4 +11,10 @@ public interface CostTypeService {
     void saveCostType(CostTypeRequest costTypeRequest);
 
     List<CostTypeResponse> getAllCostType();
+
+    CostTypeResponse getByCostId(Long id);
+
+    void updateStatus(Long id, boolean isActive);
+
+    CostTypeResponse update(Long id, CostTypeRequest costTypeRequest);
 }
