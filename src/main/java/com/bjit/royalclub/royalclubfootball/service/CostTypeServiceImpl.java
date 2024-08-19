@@ -31,7 +31,8 @@ public class CostTypeServiceImpl implements CostTypeService {
         CostType costType = CostType.builder()
                 .name(costTypeRequest.getName())
                 .description(costTypeRequest.getDescription())
-                .isActive(costTypeRequest.isActive())
+                /*As it is admin api, so always will be true*/
+                .isActive(true)
                 .createdDate(LocalDateTime.now())
                 .build();
         costTypeRepository.save(costType);

@@ -8,11 +8,11 @@ import lombok.Data;
 @Data
 @Builder
 public class VenueRegistrationRequest {
-    @NotBlank
-    @Size(max = 100)
+    @NotBlank(message = "Venue name is required.")
+    @Size(max = 100, message = "Venue name must not exceed 100 characters.")
     private String name;
 
-    @NotBlank
-    @Size(max = 255)
+    @NotBlank(message = "Venue address is required.")
+    @Size(max = 255, message = "Venue address must not exceed 255 characters.")
     private String address;
 }

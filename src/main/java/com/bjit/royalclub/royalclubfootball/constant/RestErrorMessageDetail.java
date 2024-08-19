@@ -34,6 +34,7 @@ public class RestErrorMessageDetail {
     public static final String SERVICE_UNAVAILABLE_ERROR_MESSAGE = "The service is temporarily unavailable. Please try again later.";
 
     public static final String VENUE_IS_NOT_FOUND = "Venue is not Found";
+    public static final String VENUE_IS_ALREADY_EXISTS = "This Venue with this name already exists";
     public static final String PLAYER_ALREADY_EXISTS = "Already a player registered with this email";
     public static final String PLAYER_IS_NOT_FOUND = "Player is not found";
     public static final String MATCH_SCHEDULE_IS_NOT_FOUND = "Venue is not Found";

@@ -20,7 +20,7 @@ import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
-import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.UPDATE_OK;
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.STATUS_UPDATE_OK;
 import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuccessResponse;
 
 @RestController
@@ -51,11 +51,11 @@ public class CostTypeController {
     @PutMapping("/{id}/status")
     public ResponseEntity<Object> updateCostTypeStatus(@PathVariable Long id, @RequestParam boolean isActive) {
         costTypeService.updateStatus(id, isActive);
-        return buildSuccessResponse(HttpStatus.OK, UPDATE_OK);
+        return buildSuccessResponse(HttpStatus.OK, STATUS_UPDATE_OK);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Object> updateCostType(@PathVariable Long id, @RequestBody CostTypeRequest costTypeRequest) {
+    public ResponseEntity<Object> updateCostType(@PathVariable Long id, @Valid @RequestBody CostTypeRequest costTypeRequest) {
         CostTypeResponse updatedCostType = costTypeService.update(id, costTypeRequest);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, updatedCostType);
     }

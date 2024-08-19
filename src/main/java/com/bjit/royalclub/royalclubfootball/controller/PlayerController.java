@@ -21,6 +21,7 @@ import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.STATUS_UPDATE_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.UPDATE_OK;
 import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuccessResponse;
 
@@ -52,11 +53,11 @@ public class PlayerController {
     @PutMapping("/{id}/status")
     public ResponseEntity<Object> getPlayerById(@PathVariable Long id, @RequestParam boolean active) {
         playerService.updatePlayerStatus(id, active);
-        return buildSuccessResponse(HttpStatus.OK, UPDATE_OK);
+        return buildSuccessResponse(HttpStatus.OK, STATUS_UPDATE_OK);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Object> updatePlayer(@PathVariable Long id, @RequestBody PlayerUpdateRequest updateRequest) {
+    public ResponseEntity<Object> updatePlayer(@PathVariable Long id, @Valid @RequestBody PlayerUpdateRequest updateRequest) {
         PlayerResponse playerResponse = playerService.updatePlayer(id, updateRequest);
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, playerResponse);
     }

@@ -27,5 +27,4 @@ public class PlayerRegistrationRequest {
     @Size(max = 255, message = "mobile No must be less than 255 characters")
     private String mobileNo;
 
-    private boolean isActive;
 }

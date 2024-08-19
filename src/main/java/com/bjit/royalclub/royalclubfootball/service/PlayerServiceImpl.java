@@ -36,7 +36,8 @@ public class PlayerServiceImpl implements PlayerService {
                 .employeeId(registrationRequest.getEmployeeId())
                 .mobileNo(registrationRequest.getMobileNo())
                 .skypeId(registrationRequest.getSkypeId())
-                .isActive(registrationRequest.isActive())
+                /*this will be open API so, admin will activate it*/
+                .isActive(false)
                 .createdDate(LocalDateTime.now())
                 .build();
         playerRepository.save(player);

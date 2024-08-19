@@ -16,7 +16,7 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping()
+@RequestMapping("match-participants")
 public class MatchParticipantController {
     private final MatchParticipantService matchParticipant;
 

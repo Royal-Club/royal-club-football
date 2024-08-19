@@ -10,5 +10,5 @@ public class CostTypeRequest {
 
     @NotBlank(message = "Description is mandatory")
     private String description;
-    private boolean isActive;
+
 }

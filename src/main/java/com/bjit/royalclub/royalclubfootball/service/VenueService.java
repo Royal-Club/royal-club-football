@@ -9,10 +9,14 @@ import java.util.List;
 
 public interface VenueService {
 
-    Venue getVenueById(Long venueId);
+    VenueResponse getById(Long venueId);
 
     @Transactional
     void registerVenue(VenueRegistrationRequest registrationRequest);
 
     List<VenueResponse> getAllVenues();
+
+    void updateStatus(Long venueId, boolean isActive);
+
+    VenueResponse update(Long venueId, VenueRegistrationRequest venueRequest);
 }
