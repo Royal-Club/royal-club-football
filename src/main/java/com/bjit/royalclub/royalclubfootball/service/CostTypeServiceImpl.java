@@ -22,8 +22,10 @@ public class CostTypeServiceImpl implements CostTypeService {
     @Override
     public void saveCostType(CostTypeRequest costTypeRequest) {
 
-        costTypeRepository.findByName(costTypeRequest.getName()).orElseThrow(() ->
-                new CostTypeServiceException(COST_TYPE_ALREADY_EXISTS, HttpStatus.CONFLICT));
+        costTypeRepository.findByName(costTypeRequest.getName())
+                .ifPresent(costType -> {
+                    throw new CostTypeServiceException(COST_TYPE_ALREADY_EXISTS, HttpStatus.CONFLICT);
+                });
 
         CostType costType = CostType.builder()
                 .name(costTypeRequest.getName())

@@ -21,12 +21,11 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
-        if (playerRepository.findByEmail(registrationRequest.getEmail()).isPresent()) {
-            throw new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS, HttpStatus.CONFLICT);
-        }
-//        playerRepository.findByEmail(registrationRequest.getEmail())
-//                .orElseThrow(() -> new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS,
-//                        HttpStatus.CONFLICT));
+
+        playerRepository.findByEmail(registrationRequest.getEmail())
+                .ifPresent(player -> {
+                    throw new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS, HttpStatus.CONFLICT);
+                });
         Player player = Player.builder()
                 .email(registrationRequest.getEmail())
                 .name(registrationRequest.getName())
