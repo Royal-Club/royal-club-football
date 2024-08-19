@@ -26,4 +26,6 @@ public class PlayerRegistrationRequest {
     private String skypeId;
     @Size(max = 255, message = "mobile No must be less than 255 characters")
     private String mobileNo;
+
+    private boolean isActive;
 }

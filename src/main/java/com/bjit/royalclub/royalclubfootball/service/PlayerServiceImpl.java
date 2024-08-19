@@ -21,16 +21,19 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
-        playerRepository.findByEmail(registrationRequest.getEmail())
-                .orElseThrow(() -> new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS,
-                        HttpStatus.CONFLICT));
+        if (playerRepository.findByEmail(registrationRequest.getEmail()).isPresent()) {
+            throw new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS, HttpStatus.CONFLICT);
+        }
+//        playerRepository.findByEmail(registrationRequest.getEmail())
+//                .orElseThrow(() -> new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS,
+//                        HttpStatus.CONFLICT));
         Player player = Player.builder()
                 .email(registrationRequest.getEmail())
                 .name(registrationRequest.getName())
                 .employeeId(registrationRequest.getEmployeeId())
                 .mobileNo(registrationRequest.getMobileNo())
                 .skypeId(registrationRequest.getSkypeId())
-                .isActive(true)
+                .isActive(registrationRequest.isActive())
                 .createdDate(LocalDateTime.now())
                 .build();
         playerRepository.save(player);
@@ -51,6 +54,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .email(player.getEmail())
                 .mobileNo(player.getMobileNo())
                 .skypeId(player.getSkypeId())
+                .isActive(player.isActive())
                 .build();
     }
 }

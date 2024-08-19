@@ -9,8 +9,7 @@ public class PlayerResponse {
     private Long id;
     private String name;
     private String email;
-
     private String mobileNo;
-
     private String skypeId;
+    private boolean isActive;
 }
