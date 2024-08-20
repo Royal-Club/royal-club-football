@@ -1,7 +1,9 @@
 package com.bjit.royalclub.royalclubfootball.model;
 
+import com.bjit.royalclub.royalclubfootball.enums.FootballPosition;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -23,5 +25,6 @@ public class PlayerUpdateRequest {
 
     @Size(max = 255, message = "Mobile No must be less than 255 characters")
     private String mobileNo;
-    private boolean isActive;
+    @NotNull(message = "Position is mandatory")
+    private FootballPosition playingPosition;
 }

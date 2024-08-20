@@ -1,8 +1,10 @@
 package com.bjit.royalclub.royalclubfootball.model;
 
 
+import com.bjit.royalclub.royalclubfootball.enums.FootballPosition;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -26,5 +28,6 @@ public class PlayerRegistrationRequest {
     private String skypeId;
     @Size(max = 255, message = "mobile No must be less than 255 characters")
     private String mobileNo;
-
+    @NotNull(message = "Position is mandatory")
+    private FootballPosition playingPosition;
 }

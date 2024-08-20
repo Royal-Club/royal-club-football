@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.enums;
 
 public enum FootballPosition {
+    UNASSIGNED("Unassigned"),
     GOALKEEPER("Goalkeeper"),
     RIGHT_BACK("Right Back"),
     LEFT_BACK("Left Back"),

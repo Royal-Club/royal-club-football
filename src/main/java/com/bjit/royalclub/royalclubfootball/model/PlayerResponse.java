@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.model;
 
+import com.bjit.royalclub.royalclubfootball.enums.FootballPosition;
 import lombok.Builder;
 import lombok.Data;
 
@@ -12,4 +13,5 @@ public class PlayerResponse {
     private String mobileNo;
     private String skypeId;
     private boolean isActive;
+    private FootballPosition playingPosition;
 }

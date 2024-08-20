@@ -36,6 +36,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .employeeId(registrationRequest.getEmployeeId())
                 .mobileNo(registrationRequest.getMobileNo())
                 .skypeId(registrationRequest.getSkypeId())
+                .position(registrationRequest.getPlayingPosition())
                 /*this will be open API so, admin will activate it*/
                 .isActive(false)
                 .createdDate(LocalDateTime.now())
@@ -79,7 +80,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .employeeId(updateRequest.getEmployeeId())
                 .mobileNo(normalizeString(updateRequest.getMobileNo()))
                 .skypeId(updateRequest.getSkypeId())
-                .isActive(updateRequest.isActive())
+                .position(updateRequest.getPlayingPosition())
                 .updatedDate(LocalDateTime.now())
                 .build();
         player = playerRepository.save(updatedPlayer);
@@ -93,6 +94,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .email(player.getEmail())
                 .mobileNo(player.getMobileNo())
                 .skypeId(player.getSkypeId())
+                .playingPosition(player.getPosition())
                 .isActive(player.isActive())
                 .build();
     }
