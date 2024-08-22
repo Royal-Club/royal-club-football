@@ -94,6 +94,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .email(player.getEmail())
                 .mobileNo(player.getMobileNo())
                 .skypeId(player.getSkypeId())
+                .employeeId(player.getEmployeeId())
                 .playingPosition(player.getPosition())
                 .isActive(player.isActive())
                 .build();
