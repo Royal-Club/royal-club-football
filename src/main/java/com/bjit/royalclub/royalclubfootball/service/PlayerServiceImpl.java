@@ -73,17 +73,14 @@ public class PlayerServiceImpl implements PlayerService {
         Player player;
         player = playerRepository.findById(id)
                 .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
-        Player updatedPlayer = Player.builder()
-                .id(player.getId())
-                .email(updateRequest.getEmail())
-                .name(updateRequest.getName())
-                .employeeId(updateRequest.getEmployeeId())
-                .mobileNo(normalizeString(updateRequest.getMobileNo()))
-                .skypeId(updateRequest.getSkypeId())
-                .position(updateRequest.getPlayingPosition())
-                .updatedDate(LocalDateTime.now())
-                .build();
-        player = playerRepository.save(updatedPlayer);
+        player.setEmail(updateRequest.getEmail());
+        player.setName(updateRequest.getName());
+        player.setEmployeeId(updateRequest.getEmployeeId());
+        player.setMobileNo(normalizeString(updateRequest.getMobileNo()));
+        player.setSkypeId(updateRequest.getSkypeId());
+        player.setPosition(updateRequest.getPlayingPosition());
+        player.setUpdatedDate(LocalDateTime.now());
+        player = playerRepository.save(player);
         return convertToDto(player);
     }
 
