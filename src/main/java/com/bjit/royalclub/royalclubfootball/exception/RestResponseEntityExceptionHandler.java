@@ -248,8 +248,8 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
     }
 
-    @ExceptionHandler(MatchScheduleServiceException.class)
-    public ResponseEntity<Object> handleMatchScheduleServiceException(MatchScheduleServiceException ex) {
+    @ExceptionHandler(TournamentServiceException.class)
+    public ResponseEntity<Object> handleMatchScheduleServiceException(TournamentServiceException ex) {
         log.error(ERROR_LOG, ex.getMessage());
         return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
     }

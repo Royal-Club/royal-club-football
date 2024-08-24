@@ -23,15 +23,15 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "match_participant", uniqueConstraints = {@UniqueConstraint(columnNames = {"match_schedule_id", "player_id"})})
-public class MatchParticipant {
+@Table(name = "tournament_participant", uniqueConstraints = {@UniqueConstraint(columnNames = {"tournament_id", "player_id"})})
+public class TournamentParticipant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "match_schedule_id", nullable = false)
-    private MatchSchedule matchSchedule;
+    @JoinColumn(name = "tournament_id", nullable = false)
+    private Tournament tournament;
 
     @ManyToOne
     @JoinColumn(name = "player_id", nullable = false)

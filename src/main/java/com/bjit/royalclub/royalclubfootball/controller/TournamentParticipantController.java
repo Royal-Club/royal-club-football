@@ -1,7 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
-import com.bjit.royalclub.royalclubfootball.model.MatchParticipantRequest;
-import com.bjit.royalclub.royalclubfootball.service.MatchParticipantService;
+import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
+import com.bjit.royalclub.royalclubfootball.service.TournamentParticipantService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,13 +16,13 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("match-participants")
-public class MatchParticipantController {
-    private final MatchParticipantService matchParticipant;
+@RequestMapping("tournament-participants")
+public class TournamentParticipantController {
+    private final TournamentParticipantService tournamentParticipantService;
 
     @PostMapping
-    public ResponseEntity<Object> createMatchParticipant(@Valid @RequestBody MatchParticipantRequest matchParticipantRequest) {
-        matchParticipant.createMatchParticipant(matchParticipantRequest);
+    public ResponseEntity<Object> saveTournamentParticipant(@Valid @RequestBody TournamentParticipantRequest tournamentParticipantRequest) {
+        tournamentParticipantService.saveTournamentParticipant(tournamentParticipantRequest);
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 }

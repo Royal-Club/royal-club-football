@@ -14,10 +14,10 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MatchParticipantRequest {
+public class TournamentParticipantRequest {
     private Long id;
     @NotNull(message = "Match Schedule ID is mandatory")
-    private Long matchScheduleId;
+    private Long tournamentScheduleId;
     @NotNull(message = "Player ID is mandatory")
     private Long playerId;
     private boolean participationStatus;

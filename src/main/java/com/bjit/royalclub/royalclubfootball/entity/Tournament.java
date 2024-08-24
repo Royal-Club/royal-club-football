@@ -22,14 +22,15 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "match_schedule")
-public class MatchSchedule {
+@Table(name = "tournament")
+public class Tournament {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "match_scheduled_date", nullable = false)
-    private LocalDateTime dateTime;
+    private String name;
+    @Column(name = "tournament_date", nullable = false)
+    private LocalDateTime tournamentDate;
     @OneToOne
     @JoinColumn(name = "venue_id", nullable = false)
     private Venue venue;
