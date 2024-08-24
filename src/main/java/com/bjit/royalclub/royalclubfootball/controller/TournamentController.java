@@ -32,12 +32,6 @@ public class TournamentController {
 
     private final TournamentService tournamentService;
 
-    @GetMapping("/upcoming")
-    public ResponseEntity<Object> getUpcomingTournament() {
-        List<TournamentResponse> upcomingTournament = tournamentService.getUpcomingTournament();
-        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, upcomingTournament);
-    }
-
     @PostMapping
     public ResponseEntity<Object> saveTournament(@Valid @RequestBody TournamentRequest tournamentRequest) {
         TournamentResponse tournamentResponse = tournamentService.saveTournament(tournamentRequest);

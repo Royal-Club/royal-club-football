@@ -35,6 +35,9 @@ public class TournamentParticipantPlayer {
     @Column(name = "player_name")
     private String playerName;
 
+    @Column(name = "player_employee_id")
+    private String playerEmployeeId;
+
     @Column(name = "participation_status")
     private Boolean participationStatus;
 }

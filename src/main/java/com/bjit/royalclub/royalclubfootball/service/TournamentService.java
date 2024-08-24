@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
+import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.model.TournamentRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
@@ -9,7 +10,7 @@ import java.util.List;
 
 public interface TournamentService {
 
-    List<TournamentResponse> getUpcomingTournament();
+    Tournament getNextUpcomingTournament();
 
     @Transactional
     TournamentResponse saveTournament(TournamentRequest tournamentRequest);

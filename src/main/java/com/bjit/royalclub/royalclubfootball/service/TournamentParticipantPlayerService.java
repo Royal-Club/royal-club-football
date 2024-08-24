@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface TournamentParticipantPlayerService {
     List<TournamentWithPlayersResponse> getAllTournamentsWithPlayers();
+
+    TournamentWithPlayersResponse findNextSingleTournamentWithPlayers();
 }
