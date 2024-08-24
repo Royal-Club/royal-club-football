@@ -40,9 +40,6 @@ public class TournamentParticipant {
     @Column(name = "participation_status", nullable = false)
     private boolean participationStatus;
 
-    @Column(name = "is_active", nullable = false)
-    private boolean isActive;
-
     @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
 

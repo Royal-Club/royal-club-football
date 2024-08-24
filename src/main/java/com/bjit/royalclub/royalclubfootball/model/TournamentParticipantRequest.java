@@ -17,11 +17,8 @@ import java.time.LocalDateTime;
 public class TournamentParticipantRequest {
     private Long id;
     @NotNull(message = "Match Schedule ID is mandatory")
-    private Long tournamentScheduleId;
+    private Long tournamentId;
     @NotNull(message = "Player ID is mandatory")
     private Long playerId;
     private boolean participationStatus;
-    private boolean isActive;
-    private LocalDateTime createdDate;
-    private LocalDateTime updatedDate;
 }

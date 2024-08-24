@@ -22,7 +22,7 @@ public class TournamentParticipantController {
 
     @PostMapping
     public ResponseEntity<Object> saveTournamentParticipant(@Valid @RequestBody TournamentParticipantRequest tournamentParticipantRequest) {
-        tournamentParticipantService.saveTournamentParticipant(tournamentParticipantRequest);
+        tournamentParticipantService.updateTournamentParticipant(tournamentParticipantRequest);
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 }
