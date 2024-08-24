@@ -38,6 +38,7 @@ public class RestErrorMessageDetail {
     public static final String PLAYER_ALREADY_EXISTS = "Already a player registered with this email";
     public static final String PLAYER_IS_NOT_FOUND = "Player is not found";
     public static final String TOURNAMENT_IS_NOT_FOUND = "Tournament is not Found";
+    public static final String TEAM_IS_NOT_FOUND = "Team is not Found";
     public static final String NO_UPCOMING_TOURNAMENT = "No upcoming Tournament";
     public static final String PARTICIPANT_NOT_FOUND = "Participant is not Found";
     public static final String TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE = "This Tournament is already past";

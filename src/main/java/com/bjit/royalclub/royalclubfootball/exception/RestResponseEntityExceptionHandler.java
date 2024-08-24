@@ -254,6 +254,12 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
     }
 
+    @ExceptionHandler(TeamServiceException.class)
+    public ResponseEntity<Object> handleTeamServiceServiceException(TeamServiceException ex) {
+        log.error(ERROR_LOG, ex.getMessage());
+        return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
+    }
+
     @ExceptionHandler(CostTypeServiceException.class)
     public ResponseEntity<Object> handleCostTypeServiceException(CostTypeServiceException ex) {
         log.error(ERROR_LOG, ex.getMessage());
