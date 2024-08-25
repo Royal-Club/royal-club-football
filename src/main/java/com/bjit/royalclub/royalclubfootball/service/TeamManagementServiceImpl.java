@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.entity.Team;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
+import com.bjit.royalclub.royalclubfootball.exception.TeamServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.model.TeamRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamResponse;
@@ -46,6 +47,18 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         }
         teamRepository.save(team);
         return convertToDto(team);
+    }
+
+    @Override
+    public void deleteTeam(Long teamId) {
+        Team team = teamRepository.findById(teamId).orElseThrow(() ->
+                new TeamServiceException(TEAM_IS_NOT_FOUND, HttpStatus.NOT_FOUND)
+        );
+        if (team.getTournament().getTournamentDate().isBefore(LocalDateTime.now())) {
+            throw new TournamentServiceException(TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE, HttpStatus.BAD_REQUEST);
+        }
+        /*TODO("Need to delete team with players associate table data too before delete Team")*/
+        teamRepository.delete(team);
     }
 
     public TeamResponse convertToDto(Team team) {

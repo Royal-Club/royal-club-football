@@ -7,4 +7,6 @@ import jakarta.transaction.Transactional;
 public interface TeamManagementService {
     @Transactional
     TeamResponse createOrUpdateTeam(TeamRequest teamRequest);
+
+    void deleteTeam(Long teamId);
 }
