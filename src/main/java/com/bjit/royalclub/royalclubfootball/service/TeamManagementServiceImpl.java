@@ -64,6 +64,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     public TeamResponse convertToDto(Team team) {
         return TeamResponse.builder()
                 .teamId(team.getId())
+                .teamName(team.getTeamName())
                 .tournamentName(team.getTeamName())
                 .tournamentId(team.getTournament().getId())
                 .build();
