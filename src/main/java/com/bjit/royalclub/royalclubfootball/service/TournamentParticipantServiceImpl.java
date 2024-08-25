@@ -5,6 +5,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipant;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
+import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepository;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PARTICIPANT_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
@@ -60,4 +62,28 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
         }
     }
 
+    @Override
+    public List<PlayerParticipationResponse> playersToBeSelectedForTeam(Long tournamentId) {
+        List<TournamentParticipant> participants =
+                tournamentParticipantRepository.findAllByTournamentIdAndParticipationStatusTrue(tournamentId);
+        // Filter out participants who are already selected for a team
+        List<TournamentParticipant> unselectedPlayers = participants.stream()
+                .filter(participant -> !isPlayerAssignedToAnyTeam(participant))
+                .toList();
+        return unselectedPlayers.stream().map(this::convertToPlayerParticipationResponse).toList();
+    }
+
+    private boolean isPlayerAssignedToAnyTeam(TournamentParticipant participant) {
+        //TODO("Add logic to check if the participant's player is assigned to any team in this tournament")
+        return false;
+    }
+
+    private PlayerParticipationResponse convertToPlayerParticipationResponse(TournamentParticipant participant) {
+        return PlayerParticipationResponse.builder()
+                .playerId(participant.getPlayer().getId())
+                .employeeId(participant.getPlayer().getEmployeeId())
+                .playerName(participant.getPlayer().getName())
+                .participationStatus(participant.isParticipationStatus())
+                .build();
+    }
 }
