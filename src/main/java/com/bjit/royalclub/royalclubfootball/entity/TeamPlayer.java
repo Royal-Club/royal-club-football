@@ -42,7 +42,7 @@ public class TeamPlayer {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "playing_position", nullable = false)
-    private FootballPosition position;
+    private FootballPosition playingPosition;
 
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;

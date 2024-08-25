@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
+import com.bjit.royalclub.royalclubfootball.entity.Team;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipant;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
@@ -8,6 +9,7 @@ import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
+import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
     private final TournamentParticipantRepository tournamentParticipantRepository;
     private final TournamentRepository tournamentRepository;
     private final PlayerRepository playerRepository;
+    private final TeamPlayerRepository teamPlayerRepository;
 
     @Override
     public void updateTournamentParticipant(TournamentParticipantRequest tournamentParticipantRequest) {
@@ -74,8 +77,11 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
     }
 
     private boolean isPlayerAssignedToAnyTeam(TournamentParticipant participant) {
-        //TODO("Add logic to check if the participant's player is assigned to any team in this tournament")
-        return false;
+        Long playerId = participant.getPlayer().getId();
+        List<Long> teamIds = participant.getTournament().getTeams().stream()
+                .map(Team::getId)
+                .toList();
+        return teamPlayerRepository.existsByTeamIdsAndPlayerId(teamIds, playerId);
     }
 
     private PlayerParticipationResponse convertToPlayerParticipationResponse(TournamentParticipant participant) {

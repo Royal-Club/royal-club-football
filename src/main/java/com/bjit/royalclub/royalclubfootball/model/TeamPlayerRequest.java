@@ -15,7 +15,7 @@ import lombok.Setter;
 @Builder
 public class TeamPlayerRequest {
 
-    private long id;
+    private Long id;
 
     @NotNull(message = "Team ID is required")
     private Long teamId;

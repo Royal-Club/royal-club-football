@@ -1,5 +1,8 @@
 package com.bjit.royalclub.royalclubfootball.enums;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public enum FootballPosition {
     UNASSIGNED("Unassigned"),
     GOALKEEPER("Goalkeeper"),
@@ -22,5 +25,21 @@ public enum FootballPosition {
 
     public String getDescription() {
         return description;
+    }
+
+    private static final Map<String, FootballPosition> STRING_TO_ENUM = new HashMap<>();
+
+    static {
+        for (FootballPosition position : values()) {
+            STRING_TO_ENUM.put(position.description.toUpperCase(), position);
+        }
+    }
+
+    public static FootballPosition getPositionOrDefault(String position) {
+        if (position == null) {
+            return UNASSIGNED;
+        }
+        FootballPosition result = STRING_TO_ENUM.get(position.toUpperCase());
+        return result != null ? result : UNASSIGNED;
     }
 }
