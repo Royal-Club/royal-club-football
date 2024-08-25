@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
+import com.bjit.royalclub.royalclubfootball.model.TeamPlayerRemoveRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamPlayerRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamPlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.TeamRequest;
@@ -15,4 +16,6 @@ public interface TeamManagementService {
 
     @Transactional
     TeamPlayerResponse saveOrUpdateTeamPlayer(TeamPlayerRequest teamPlayerRequest);
+
+    void removePlayerFromTeam(TeamPlayerRemoveRequest playerRemoveRequest);
 }

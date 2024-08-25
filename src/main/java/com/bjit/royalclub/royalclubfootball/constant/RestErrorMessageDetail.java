@@ -44,5 +44,7 @@ public class RestErrorMessageDetail {
     public static final String TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE = "This Tournament is already past";
     public static final String COST_TYPE_ALREADY_EXISTS = "Already a cost type is exists";
     public static final String COST_TYPE_IS_NOT_FOUND = "Cost Type is not found";
+    public static final String PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM = "This player is already added another team";
+    public static final String PLAYER_IS_NOT_PART_OF_THIS_TEAM = "Player is not part of the specified team";
 
 }

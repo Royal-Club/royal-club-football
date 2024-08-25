@@ -7,6 +7,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.TeamServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
+import com.bjit.royalclub.royalclubfootball.model.TeamPlayerRemoveRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamPlayerRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamPlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.TeamRequest;
@@ -20,8 +21,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_PART_OF_THIS_TEAM;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TEAM_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
@@ -40,7 +44,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     public TeamResponse createOrUpdateTeam(TeamRequest teamRequest) {
         Tournament tournament = validateAndGetTournament(teamRequest.getTournamentId());
 
-        Team team = teamRequest.getId() == null
+        Team team = (teamRequest.getId() == null)
                 ? createTeam(teamRequest, tournament)
                 : updateTeam(teamRequest, tournament);
 
@@ -61,12 +65,32 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         validateTournamentDate(team.getTournament());
         Player player = validateAndGetPlayer(teamPlayerRequest.getPlayerId());
 
-        TeamPlayer teamPlayer = teamPlayerRequest.getId() == null
+        /* Check if the player is already assigned to any team in the same tournament*/
+        if (isPlayerAssignedToAnyTeamInTournament(team.getTournament().getId(), teamPlayerRequest.getPlayerId())) {
+            throw new TeamServiceException(PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM, HttpStatus.CONFLICT);
+        }
+
+        TeamPlayer teamPlayer = (teamPlayerRequest.getId() == null)
                 ? createTeamPlayer(teamPlayerRequest, team, player)
                 : updateTeamPlayer(teamPlayerRequest, team, player);
 
         teamPlayerRepository.save(teamPlayer);
         return convertToTeamPlayerResponse(teamPlayer);
+    }
+
+    @Override
+    public void removePlayerFromTeam(TeamPlayerRemoveRequest playerRemoveRequest) {
+        validateAndGetTeam(playerRemoveRequest.getTeamId());
+        validateAndGetPlayer(playerRemoveRequest.getPlayerId());
+        TeamPlayer teamPlayer = teamPlayerRepository.findByTeamIdAndPlayerId(playerRemoveRequest.getTeamId(),
+                playerRemoveRequest.getPlayerId()).orElseThrow(() ->
+                new TournamentServiceException(PLAYER_IS_NOT_PART_OF_THIS_TEAM, HttpStatus.NOT_FOUND)
+        );
+        teamPlayerRepository.delete(teamPlayer);
+    }
+
+    private boolean isPlayerAssignedToAnyTeamInTournament(Long tournamentId, Long playerId) {
+        return teamPlayerRepository.existsByTeamIdsAndPlayerId(Collections.singletonList(tournamentId), playerId);
     }
 
     private Tournament validateAndGetTournament(Long tournamentId) {

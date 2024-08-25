@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
+import com.bjit.royalclub.royalclubfootball.model.TeamPlayerRemoveRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamPlayerRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamPlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.TeamRequest;
@@ -43,6 +44,12 @@ public class TournamentManagementController {
     public ResponseEntity<Object> saveOrUpdateTeamPlayer(@Valid @RequestBody TeamPlayerRequest teamPlayerRequest) {
         TeamPlayerResponse teamPlayerResponse = teamManagementService.saveOrUpdateTeamPlayer(teamPlayerRequest);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, teamPlayerResponse);
+    }
+
+    @DeleteMapping("/players")
+    public ResponseEntity<Object> removePlayerFromTeam(@Valid @RequestBody TeamPlayerRemoveRequest playerRemoveRequest) {
+        teamManagementService.removePlayerFromTeam(playerRemoveRequest);
+        return buildSuccessResponse(HttpStatus.OK, DELETE_OK);
     }
 
 }
