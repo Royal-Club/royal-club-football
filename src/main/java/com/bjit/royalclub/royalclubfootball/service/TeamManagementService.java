@@ -19,7 +19,7 @@ public interface TeamManagementService {
 
     @Transactional
     TeamPlayerResponse saveOrUpdateTeamPlayer(TeamPlayerRequest teamPlayerRequest);
-
+    @Transactional
     void removePlayerFromTeam(TeamPlayerRemoveRequest playerRemoveRequest);
 
     List<TournamentResponse> getTournamentsSummery(Long tournamentId);

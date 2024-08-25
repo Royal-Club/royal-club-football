@@ -17,9 +17,11 @@ public interface TournamentService {
 
     TournamentResponse getTournamentById(Long id);
 
+    @Transactional
     void updateTournamentStatus(Long id, boolean active);
 
     List<TournamentResponse> getAllTournament();
 
+    @Transactional
     TournamentResponse updateTournament(Long id, TournamentUpdateRequest updateTournamentRequest);
 }
