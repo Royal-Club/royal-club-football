@@ -3,6 +3,7 @@ package com.bjit.royalclub.royalclubfootball.controller;
 import com.bjit.royalclub.royalclubfootball.model.TournamentRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
+import com.bjit.royalclub.royalclubfootball.service.TeamManagementService;
 import com.bjit.royalclub.royalclubfootball.service.TournamentService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -31,6 +32,7 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 public class TournamentController {
 
     private final TournamentService tournamentService;
+    private final TeamManagementService teamManagementService;
 
     @PostMapping
     public ResponseEntity<Object> saveTournament(@Valid @RequestBody TournamentRequest tournamentRequest) {
@@ -61,6 +63,12 @@ public class TournamentController {
     TournamentUpdateRequest tournamentUpdateRequest) {
         TournamentResponse tournamentResponse = tournamentService.updateTournament(id, tournamentUpdateRequest);
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, tournamentResponse);
+    }
+
+    @GetMapping("/details")
+    public ResponseEntity<Object> getTournamentsSummery(@RequestParam(required = false) Long tournamentId) {
+        List<TournamentResponse> tournamentResponses = teamManagementService.getTournamentsSummery(tournamentId);
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
     }
 
 }

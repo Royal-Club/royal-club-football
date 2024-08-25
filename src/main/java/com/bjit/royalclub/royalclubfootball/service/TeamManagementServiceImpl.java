@@ -12,6 +12,8 @@ import com.bjit.royalclub.royalclubfootball.model.TeamPlayerRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamPlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.TeamRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamResponse;
+import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
+import com.bjit.royalclub.royalclubfootball.model.TournamentTeamResponse;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamRepository;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
@@ -87,6 +90,75 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                 new TournamentServiceException(PLAYER_IS_NOT_PART_OF_THIS_TEAM, HttpStatus.NOT_FOUND)
         );
         teamPlayerRepository.delete(teamPlayer);
+    }
+
+    @Override
+    public List<TournamentResponse> getTournamentsSummery(Long tournamentId) {
+        if (tournamentId != null) {
+            return List.of(getTournamentWithTeamsAndPlayers(tournamentId));
+        } else {
+            return getAllTournamentsWithTeamsAndPlayers();
+        }
+    }
+
+    private TournamentResponse getTournamentWithTeamsAndPlayers(Long tournamentId) {
+        Tournament tournament = tournamentRepository.findById(tournamentId)
+                .orElseThrow(() -> new TournamentServiceException(TOURNAMENT_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        List<Team> teams = teamRepository.findTeamsWithPlayersByTournamentId(tournamentId);
+
+        List<TournamentTeamResponse> teamResponses = teams.stream()
+                .map(this::convertToTournamentTeamResponse)
+                .toList();
+
+        return TournamentResponse.builder()
+                .id(tournament.getId())
+                .tournamentName(tournament.getName())
+                .tournamentDate(tournament.getTournamentDate())
+                .venueName(tournament.getVenue().getName())
+                .activeStatus(tournament.isActive())
+                .teams(teamResponses)
+                .build();
+    }
+
+    private List<TournamentResponse> getAllTournamentsWithTeamsAndPlayers() {
+        List<Tournament> tournaments = tournamentRepository.findAll();
+
+        return tournaments.stream()
+                .map(tournament -> {
+                    List<Team> teams = teamRepository.findTeamsWithPlayersByTournamentId(tournament.getId());
+                    List<TournamentTeamResponse> teamResponses = teams.stream()
+                            .map(this::convertToTournamentTeamResponse)
+                            .toList();
+                    return TournamentResponse.builder()
+                            .id(tournament.getId())
+                            .tournamentName(tournament.getName())
+                            .tournamentDate(tournament.getTournamentDate())
+                            .venueName(tournament.getVenue().getName())
+                            .activeStatus(tournament.isActive())
+                            .teams(teamResponses)
+                            .build();
+                })
+                .toList();
+    }
+
+    private TournamentTeamResponse convertToTournamentTeamResponse(Team team) {
+        List<TeamPlayerResponse> players = team.getTeamPlayers().stream()
+                .map(player -> TeamPlayerResponse.builder()
+                        .id(player.getId())
+                        .teamId(team.getId())
+                        .playerId(player.getPlayer().getId())
+                        .teamName(team.getTeamName())
+                        .playerName(player.getPlayer().getName())
+                        .playingPosition(player.getPlayingPosition())
+                        .build())
+                .toList();
+
+        return TournamentTeamResponse.builder()
+                .teamId(team.getId())
+                .teamName(team.getTeamName())
+                .players(players)
+                .build();
     }
 
     private boolean isPlayerAssignedToAnyTeamInTournament(Long tournamentId, Long playerId) {
