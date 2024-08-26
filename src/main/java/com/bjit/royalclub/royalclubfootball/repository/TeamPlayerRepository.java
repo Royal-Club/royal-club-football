@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.TeamPlayer;
+import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,4 +15,10 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, Long> {
 
     @Query("SELECT tp FROM TeamPlayer tp WHERE tp.team.id = :teamId AND tp.player.id = :playerId")
     Optional<TeamPlayer> findByTeamIdAndPlayerId(@Param("teamId") Long teamId, @Param("playerId") Long playerId);
+
+    @Query("SELECT new com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse(tp.player.id, tp.player.name, COUNT(tp)) " +
+            "FROM TeamPlayer tp " +
+            "WHERE tp.playingPosition = 'GOALKEEPER' AND tp.player.id IN :playerIds " +
+            "GROUP BY tp.player.id, tp.player.name")
+    List<GoalkeeperStatsResponse> findGoalkeeperStatsByPlayerIds(@Param("playerIds") List<Long> playerIds);
 }

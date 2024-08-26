@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
+import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentWithPlayersResponse;
@@ -54,5 +55,12 @@ public class TournamentParticipantController {
         List<PlayerParticipationResponse> participationResponses =
                 tournamentParticipantService.playersToBeSelectedForTeam(tournamentId);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, participationResponses);
+    }
+
+    @GetMapping("/{tournamentId}/goal-keepers")
+    public ResponseEntity<Object> test(@PathVariable Long tournamentId) {
+        List<GoalkeeperStatsResponse> goalkeeperStatsResponses =
+                tournamentParticipantService.goalkeeperStatsResponse(tournamentId);
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, goalkeeperStatsResponses);
     }
 }

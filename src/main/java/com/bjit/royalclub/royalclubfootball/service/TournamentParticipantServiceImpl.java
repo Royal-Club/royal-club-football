@@ -6,6 +6,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipant;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
+import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
@@ -74,6 +75,16 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
                 .filter(participant -> !isPlayerAssignedToAnyTeam(participant))
                 .toList();
         return unselectedPlayers.stream().map(this::convertToPlayerParticipationResponse).toList();
+    }
+
+    @Override
+    public List<GoalkeeperStatsResponse> goalkeeperStatsResponse(Long tournamentId) {
+        List<Long> playerIds = tournamentParticipantRepository
+                .findAllByTournamentIdAndParticipationStatusTrue(tournamentId)
+                .stream().map(tournamentParticipant ->
+                        tournamentParticipant.getPlayer().getId())
+                .toList();
+        return teamPlayerRepository.findGoalkeeperStatsByPlayerIds(playerIds);
     }
 
     private boolean isPlayerAssignedToAnyTeam(TournamentParticipant participant) {
