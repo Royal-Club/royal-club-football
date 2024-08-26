@@ -20,10 +20,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.ALREADY_PARTICIPANT;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PARTICIPANT_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
+import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
 @Service
 @RequiredArgsConstructor
@@ -35,29 +37,52 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
     private final TeamPlayerRepository teamPlayerRepository;
 
     @Override
-    public void updateTournamentParticipant(TournamentParticipantRequest tournamentParticipantRequest) {
-        Tournament tournament = tournamentRepository.findById(tournamentParticipantRequest.getTournamentId())
-                .orElseThrow(() -> new TournamentServiceException(TOURNAMENT_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
-
-        Player player = playerRepository.findById(tournamentParticipantRequest.getPlayerId())
-                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+    public void saveOrUpdateTournamentParticipant(TournamentParticipantRequest tournamentParticipantRequest) {
+        Tournament tournament = getTournament(tournamentParticipantRequest.getTournamentId());
+        Player player = getPlayer(tournamentParticipantRequest.getPlayerId());
 
         validateTournamentDate(tournament.getTournamentDate());
 
-        TournamentParticipant tournamentParticipant;
-        if (tournamentParticipantRequest.getId() != null) {
-            tournamentParticipant = tournamentParticipantRepository.findById(tournamentParticipantRequest.getId())
-                    .orElseThrow(() -> new TournamentServiceException(PARTICIPANT_NOT_FOUND, HttpStatus.NOT_FOUND));
-        } else {
-            tournamentParticipant = new TournamentParticipant();
-            tournamentParticipant.setCreatedDate(LocalDateTime.now());
-        }
+        TournamentParticipant tournamentParticipant = tournamentParticipantRequest.getId() != null
+                ? getExistingParticipant(tournamentParticipantRequest.getId())
+                : createNewParticipant(tournament, player);
 
-        tournamentParticipant.setTournament(tournament);
-        tournamentParticipant.setPlayer(player);
-        tournamentParticipant.setParticipationStatus(tournamentParticipantRequest.isParticipationStatus());
-        tournamentParticipant.setUpdatedDate(LocalDateTime.now());
+        updateParticipantDetails(tournamentParticipant, tournament, player,
+                tournamentParticipantRequest.isParticipationStatus(), tournamentParticipantRequest.getComments());
         tournamentParticipantRepository.save(tournamentParticipant);
+    }
+
+    private Tournament getTournament(Long tournamentId) {
+        return tournamentRepository.findById(tournamentId)
+                .orElseThrow(() -> new TournamentServiceException(TOURNAMENT_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+    }
+
+    private Player getPlayer(Long playerId) {
+        return playerRepository.findById(playerId)
+                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+    }
+
+    private TournamentParticipant getExistingParticipant(Long participantId) {
+        return tournamentParticipantRepository.findById(participantId)
+                .orElseThrow(() -> new TournamentServiceException(PARTICIPANT_NOT_FOUND, HttpStatus.NOT_FOUND));
+    }
+
+    private TournamentParticipant createNewParticipant(Tournament tournament, Player player) {
+        if (tournamentParticipantRepository.existsByTournamentIdAndPlayerId(tournament.getId(), player.getId())) {
+            throw new TournamentServiceException(ALREADY_PARTICIPANT, HttpStatus.CONFLICT);
+        }
+        return TournamentParticipant.builder()
+                .createdDate(LocalDateTime.now())
+                .build();
+    }
+
+    private void updateParticipantDetails(TournamentParticipant participant, Tournament tournament, Player player,
+                                          boolean participationStatus, String newComments) {
+        participant.setTournament(tournament);
+        participant.setPlayer(player);
+        participant.setParticipationStatus(participationStatus);
+        participant.setComments(normalizeString(newComments));
+        participant.setUpdatedDate(LocalDateTime.now());
     }
 
     private void validateTournamentDate(LocalDateTime tournamentDate) {
@@ -68,31 +93,26 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
 
     @Override
     public List<PlayerParticipationResponse> playersToBeSelectedForTeam(Long tournamentId) {
-        List<TournamentParticipant> participants =
-                tournamentParticipantRepository.findAllByTournamentIdAndParticipationStatusTrue(tournamentId);
-        // Filter out participants who are already selected for a team
-        List<TournamentParticipant> unselectedPlayers = participants.stream()
+        return tournamentParticipantRepository.findAllByTournamentIdAndParticipationStatusTrue(tournamentId).stream()
                 .filter(participant -> !isPlayerAssignedToAnyTeam(participant))
+                .map(this::convertToPlayerParticipationResponse)
                 .toList();
-        return unselectedPlayers.stream().map(this::convertToPlayerParticipationResponse).toList();
     }
 
     @Override
     public List<GoalkeeperStatsResponse> goalkeeperStatsResponse(Long tournamentId) {
         List<Long> playerIds = tournamentParticipantRepository
-                .findAllByTournamentIdAndParticipationStatusTrue(tournamentId)
-                .stream().map(tournamentParticipant ->
-                        tournamentParticipant.getPlayer().getId())
+                .findAllByTournamentIdAndParticipationStatusTrue(tournamentId).stream()
+                .map(participant -> participant.getPlayer().getId())
                 .toList();
         return teamPlayerRepository.findGoalkeeperStatsByPlayerIds(playerIds);
     }
 
     private boolean isPlayerAssignedToAnyTeam(TournamentParticipant participant) {
-        Long playerId = participant.getPlayer().getId();
         List<Long> teamIds = participant.getTournament().getTeams().stream()
                 .map(Team::getId)
                 .toList();
-        return teamPlayerRepository.existsByTeamIdsAndPlayerId(teamIds, playerId);
+        return teamPlayerRepository.existsByTeamIdsAndPlayerId(teamIds, participant.getPlayer().getId());
     }
 
     private PlayerParticipationResponse convertToPlayerParticipationResponse(TournamentParticipant participant) {
@@ -101,6 +121,7 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
                 .employeeId(participant.getPlayer().getEmployeeId())
                 .playerName(participant.getPlayer().getName())
                 .participationStatus(participant.isParticipationStatus())
+                .comments(participant.getComments())
                 .build();
     }
 }

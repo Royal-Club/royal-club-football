@@ -14,4 +14,5 @@ public class PlayerParticipationResponse {
     private String playerName;
     private String employeeId;
     private Boolean participationStatus;
+    private String comments;
 }

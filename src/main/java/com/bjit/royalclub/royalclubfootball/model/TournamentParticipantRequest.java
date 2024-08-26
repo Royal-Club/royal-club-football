@@ -7,8 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Setter
 @Builder
@@ -20,5 +18,6 @@ public class TournamentParticipantRequest {
     private Long tournamentId;
     @NotNull(message = "Player ID is mandatory")
     private Long playerId;
+    private String comments;
     private boolean participationStatus;
 }

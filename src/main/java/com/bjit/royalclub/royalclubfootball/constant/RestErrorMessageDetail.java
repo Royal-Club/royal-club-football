@@ -41,6 +41,7 @@ public class RestErrorMessageDetail {
     public static final String TEAM_IS_NOT_FOUND = "Team is not Found";
     public static final String NO_UPCOMING_TOURNAMENT = "No upcoming Tournament";
     public static final String PARTICIPANT_NOT_FOUND = "Participant is not Found";
+    public static final String ALREADY_PARTICIPANT = "Already given vote for participant";
     public static final String TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE = "This Tournament is already past";
     public static final String COST_TYPE_ALREADY_EXISTS = "Already a cost type is exists";
     public static final String COST_TYPE_IS_NOT_FOUND = "Cost Type is not found";

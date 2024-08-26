@@ -31,8 +31,9 @@ public class TournamentParticipantController {
     private final TournamentParticipantPlayerService tournamentParticipantPlayerService;
 
     @PostMapping
-    public ResponseEntity<Object> saveTournamentParticipant(@Valid @RequestBody TournamentParticipantRequest tournamentParticipantRequest) {
-        tournamentParticipantService.updateTournamentParticipant(tournamentParticipantRequest);
+    public ResponseEntity<Object> saveOrUpdateTournamentParticipant(@Valid @RequestBody TournamentParticipantRequest
+                                                                            tournamentParticipantRequest) {
+        tournamentParticipantService.saveOrUpdateTournamentParticipant(tournamentParticipantRequest);
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 

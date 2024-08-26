@@ -39,6 +39,7 @@ public class TournamentParticipant {
 
     @Column(name = "participation_status", nullable = false)
     private boolean participationStatus;
+    private String comments;
 
     @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
