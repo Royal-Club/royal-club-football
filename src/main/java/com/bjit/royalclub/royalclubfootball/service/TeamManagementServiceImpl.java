@@ -23,7 +23,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM;
@@ -170,7 +169,9 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     }
 
     private boolean isPlayerAssignedToAnyTeamInTournament(Long tournamentId, Long playerId) {
-        return teamPlayerRepository.existsByTeamIdsAndPlayerId(Collections.singletonList(tournamentId), playerId);
+        Tournament tournament = validateAndGetTournament(tournamentId);
+        List<Long> teamIds = tournament.getTeams().stream().map(Team::getId).toList();
+        return teamPlayerRepository.existsByTeamIdsAndPlayerId(teamIds, playerId);
     }
 
     private Tournament validateAndGetTournament(Long tournamentId) {
