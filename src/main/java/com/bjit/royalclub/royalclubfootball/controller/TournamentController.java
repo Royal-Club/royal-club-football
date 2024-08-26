@@ -71,4 +71,10 @@ public class TournamentController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
     }
 
+    @GetMapping("/next-upcoming")
+    public ResponseEntity<Object> getTournaments() {
+        List<TournamentResponse> tournamentResponses = teamManagementService.getTournament();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
+    }
+
 }
