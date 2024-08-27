@@ -17,6 +17,7 @@ import com.bjit.royalclub.royalclubfootball.model.TournamentTeamResponse;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamRepository;
+import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,7 @@ import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_PARTICIPANT_YET;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_PART_OF_THIS_TEAM;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TEAM_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE;
@@ -42,6 +44,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     private final PlayerRepository playerRepository;
     private final TeamPlayerRepository teamPlayerRepository;
     private final TournamentService tournamentService;
+    private final TournamentParticipantRepository tournamentParticipantRepository;
 
     @Override
     public TeamResponse createOrUpdateTeam(TeamRequest teamRequest) {
@@ -212,6 +215,14 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     }
 
     private TeamPlayer createTeamPlayer(TeamPlayerRequest request, Team team, Player player) {
+
+        boolean isParticipant = tournamentParticipantRepository
+                .existsByTournamentIdAndPlayerIdAndParticipationStatusTrue(team.getTournament().getId(),
+                        player.getId());
+
+        if (!isParticipant) {
+            throw new PlayerServiceException(PLAYER_IS_NOT_PARTICIPANT_YET, HttpStatus.BAD_REQUEST);
+        }
         return TeamPlayer.builder()
                 .team(team)
                 .player(player)

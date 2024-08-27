@@ -13,4 +13,10 @@ public interface TournamentParticipantRepository extends JpaRepository<Tournamen
 
     @Query("SELECT COUNT(tp) > 0 FROM TournamentParticipant tp WHERE tp.tournament.id = :tournamentId AND tp.player.id = :playerId")
     boolean existsByTournamentIdAndPlayerId(@Param("tournamentId") Long tournamentId, @Param("playerId") Long playerId);
+
+    @Query("SELECT COUNT(tp) > 0 FROM TournamentParticipant tp " + "WHERE tp.tournament.id = :tournamentId "
+            + "AND tp.player.id = :playerId " + "AND tp.participationStatus = true")
+    boolean existsByTournamentIdAndPlayerIdAndParticipationStatusTrue(
+            @Param("tournamentId") Long tournamentId, @Param("playerId") Long playerId);
+
 }
