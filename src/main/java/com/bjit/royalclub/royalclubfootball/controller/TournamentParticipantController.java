@@ -37,17 +37,10 @@ public class TournamentParticipantController {
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 
-    @GetMapping
-    public ResponseEntity<Object> getAllTournamentsWithPlayers() {
-        List<TournamentWithPlayersResponse> withPlayersResponse =
-                tournamentParticipantPlayerService.getAllTournamentsWithPlayers();
-        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, withPlayersResponse);
-    }
-
-    @GetMapping("/next-upcoming")
-    public ResponseEntity<Object> getNextSingleTournamentWithPlayers() {
+    @GetMapping("/{tournamentId}/next-upcoming")
+    public ResponseEntity<Object> getNextTournamentForParticipation(@PathVariable Long tournamentId) {
         TournamentWithPlayersResponse tournamentWithPlayersResponse =
-                tournamentParticipantPlayerService.findNextSingleTournamentWithPlayers();
+                tournamentParticipantPlayerService.getNextTournamentForParticipation(tournamentId);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentWithPlayersResponse);
     }
 

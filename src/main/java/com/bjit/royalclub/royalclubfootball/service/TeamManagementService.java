@@ -24,6 +24,4 @@ public interface TeamManagementService {
     void removePlayerFromTeam(TeamPlayerRemoveRequest playerRemoveRequest);
 
     List<TournamentResponse> getTournamentsSummery(Long tournamentId);
-
-    List<TournamentResponse> getTournament();
 }

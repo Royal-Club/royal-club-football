@@ -1,6 +1,5 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
-import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.model.TournamentRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
@@ -67,21 +66,8 @@ public class TournamentController {
     }
 
     @GetMapping("/details")
-    public ResponseEntity<Object> getTournamentsSummery(@RequestParam(required = false) Long tournamentId) {
+    public ResponseEntity<Object> getTournamentsSummery(@RequestParam Long tournamentId) {
         List<TournamentResponse> tournamentResponses = teamManagementService.getTournamentsSummery(tournamentId);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
     }
-
-    @GetMapping("/next-upcoming")
-    public ResponseEntity<Object> getTournaments() {
-        List<TournamentResponse> tournamentResponses = teamManagementService.getTournament();
-        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
-    }
-
-    @GetMapping("/next")
-    public ResponseEntity<Object> getNextTournament() {
-        Tournament tournament = tournamentService.getNextUpcomingTournament();
-        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournament);
-    }
-
 }

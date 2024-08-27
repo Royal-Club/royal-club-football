@@ -43,7 +43,6 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     private final TeamRepository teamRepository;
     private final PlayerRepository playerRepository;
     private final TeamPlayerRepository teamPlayerRepository;
-    private final TournamentService tournamentService;
     private final TournamentParticipantRepository tournamentParticipantRepository;
 
     @Override
@@ -102,13 +101,6 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         } else {
             return getAllTournamentsWithTeamsAndPlayers();
         }
-    }
-
-    @Override
-    public List<TournamentResponse> getTournament() {
-        /*Only one next-upcoming tournament consider here */
-        Tournament tournament = tournamentService.getNextUpcomingTournament();
-        return List.of(getTournamentWithTeamsAndPlayers(tournament.getId()));
     }
 
     private TournamentResponse getTournamentWithTeamsAndPlayers(Long tournamentId) {

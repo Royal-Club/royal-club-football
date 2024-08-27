@@ -10,14 +10,12 @@ import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import com.bjit.royalclub.royalclubfootball.repository.VenueRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.NO_UPCOMING_TOURNAMENT;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.VENUE_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
@@ -28,15 +26,6 @@ public class TournamentServiceImpl implements TournamentService {
 
     private final TournamentRepository tournamentRepository;
     private final VenueRepository venueRepository;
-
-    @Override
-    public Tournament getNextUpcomingTournament() {
-        LocalDateTime now = LocalDateTime.now();
-        return tournamentRepository.findByTournamentDateAfterOrderByTournamentDateAsc(now, Pageable.ofSize(1))
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new TournamentServiceException(NO_UPCOMING_TOURNAMENT, HttpStatus.NOT_FOUND));
-    }
 
     private TournamentResponse convertToDto(Tournament tournament) {
         return TournamentResponse.builder()
