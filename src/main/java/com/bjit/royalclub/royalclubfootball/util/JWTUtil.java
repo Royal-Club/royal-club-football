@@ -31,9 +31,9 @@ public class JWTUtil {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(String username, List<String> roles) {
+    public String generateToken(String email, List<String> roles) {
         Map<String, Object> claims = Map.of(ROLES_KEY, roles);
-        return createToken(claims, username);
+        return createToken(claims, email);
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
@@ -46,16 +46,16 @@ public class JWTUtil {
                 .compact();
     }
 
-    public boolean validateToken(String token, String username) {
+    public boolean validateToken(String token, String email) {
         try {
-            final String tokenUsername = extractUsername(token);
-            return (tokenUsername.equals(username) && !isTokenExpired(token));
+            final String tokenEmail = extractEmail(token);
+            return (tokenEmail.equals(email) && !isTokenExpired(token));
         } catch (Exception e) {
             return false;
         }
     }
 
-    public String extractUsername(String token) {
+    public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
