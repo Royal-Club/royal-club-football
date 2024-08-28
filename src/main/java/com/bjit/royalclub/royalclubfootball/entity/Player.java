@@ -61,6 +61,8 @@ public class Player {
     @Column(name = "playing_position", nullable = false)
     private FootballPosition position;
 
+    private String password;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "players_roles", joinColumns = @JoinColumn(name = "player_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
