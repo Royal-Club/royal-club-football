@@ -25,44 +25,31 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
+        /*TODO("Before create new player need to check already players exists with same mail or not")*/
 
-        playerRepository.findByEmail(registrationRequest.getEmail())
-                .ifPresent(player -> {
-                    throw new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS, HttpStatus.CONFLICT);
-                });
-        Player player = Player.builder()
-                .email(registrationRequest.getEmail())
-                .name(registrationRequest.getName())
-                .employeeId(registrationRequest.getEmployeeId())
-                .mobileNo(registrationRequest.getMobileNo())
-                .skypeId(registrationRequest.getSkypeId())
-                .position(registrationRequest.getPlayingPosition())
-                /*this will be open API so, admin will activate it*/
-                .isActive(false)
-                .createdDate(LocalDateTime.now())
-                .build();
+        playerRepository.findByEmail(registrationRequest.getEmail()).ifPresent(player -> {
+            throw new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS, HttpStatus.CONFLICT);
+        });
+        Player player = Player.builder().email(registrationRequest.getEmail()).name(registrationRequest.getName()).employeeId(registrationRequest.getEmployeeId()).mobileNo(registrationRequest.getMobileNo()).skypeId(registrationRequest.getSkypeId()).position(registrationRequest.getPlayingPosition())
+                /*this will be open API so, admin will activate it*/.isActive(false).createdDate(LocalDateTime.now()).build();
         playerRepository.save(player);
     }
 
     @Override
     public List<PlayerResponse> getAllPlayers() {
         List<Player> players = playerRepository.findAll();
-        return players.stream()
-                .map(this::convertToDto)
-                .toList();
+        return players.stream().map(this::convertToDto).toList();
     }
 
     @Override
     public PlayerResponse getPlayerById(Long id) {
-        Player player = playerRepository.findById(id)
-                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+        Player player = playerRepository.findById(id).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         return convertToDto(player);
     }
 
     @Override
     public void updatePlayerStatus(Long id, boolean active) {
-        Player player = playerRepository.findById(id)
-                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+        Player player = playerRepository.findById(id).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         player.setActive(active);
         player.setUpdatedDate(LocalDateTime.now());
         playerRepository.save(player);
@@ -71,8 +58,7 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     public PlayerResponse updatePlayer(Long id, PlayerUpdateRequest updateRequest) {
         Player player;
-        player = playerRepository.findById(id)
-                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+        player = playerRepository.findById(id).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         player.setEmail(updateRequest.getEmail());
         player.setName(updateRequest.getName());
         player.setEmployeeId(updateRequest.getEmployeeId());
@@ -84,16 +70,12 @@ public class PlayerServiceImpl implements PlayerService {
         return convertToDto(player);
     }
 
+    @Override
+    public Player findByEmail(String email) {
+        return playerRepository.findByEmail(email).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+    }
+
     private PlayerResponse convertToDto(Player player) {
-        return PlayerResponse.builder()
-                .id(player.getId())
-                .name(player.getName())
-                .email(player.getEmail())
-                .mobileNo(player.getMobileNo())
-                .skypeId(player.getSkypeId())
-                .employeeId(player.getEmployeeId())
-                .playingPosition(player.getPosition())
-                .isActive(player.isActive())
-                .build();
+        return PlayerResponse.builder().id(player.getId()).name(player.getName()).email(player.getEmail()).mobileNo(player.getMobileNo()).skypeId(player.getSkypeId()).employeeId(player.getEmployeeId()).playingPosition(player.getPosition()).isActive(player.isActive()).build();
     }
 }
