@@ -1,7 +1,8 @@
-package com.bjit.royalclub.royalclubfootball.service;
+package com.bjit.royalclub.royalclubfootball.security;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
-import com.bjit.royalclub.royalclubfootball.model.UserPrinciple;
+import com.bjit.royalclub.royalclubfootball.security.UserPrinciple;
+import com.bjit.royalclub.royalclubfootball.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

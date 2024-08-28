@@ -1,4 +1,4 @@
-package com.bjit.royalclub.royalclubfootball.model;
+package com.bjit.royalclub.royalclubfootball.security;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.fasterxml.jackson.annotation.JsonIgnore;

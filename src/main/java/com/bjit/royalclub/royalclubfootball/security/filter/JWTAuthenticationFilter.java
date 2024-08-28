@@ -1,6 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.security.filter;
 
-import com.bjit.royalclub.royalclubfootball.service.CustomUserDetailsService;
+import com.bjit.royalclub.royalclubfootball.security.CustomUserDetailsService;
 import com.bjit.royalclub.royalclubfootball.util.JWTUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

@@ -1,7 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.security;
 
 import com.bjit.royalclub.royalclubfootball.security.filter.JWTAuthenticationFilter;
-import com.bjit.royalclub.royalclubfootball.service.CustomUserDetailsService;
 import com.bjit.royalclub.royalclubfootball.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
