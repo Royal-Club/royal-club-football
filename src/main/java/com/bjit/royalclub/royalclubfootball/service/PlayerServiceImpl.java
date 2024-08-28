@@ -2,18 +2,24 @@ package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
+import com.bjit.royalclub.royalclubfootball.entity.Role;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
+import com.bjit.royalclub.royalclubfootball.model.LoginRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
+import com.bjit.royalclub.royalclubfootball.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.INCORRECT_EMAIL;
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PASSWORD_MISMATCH_EXCEPTION;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
@@ -22,16 +28,25 @@ import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeStr
 public class PlayerServiceImpl implements PlayerService {
 
     private final PlayerRepository playerRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JWTUtil jwtUtil;
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
-        /*TODO("Before create new player need to check already players exists with same mail or not")*/
 
         playerRepository.findByEmail(registrationRequest.getEmail()).ifPresent(player -> {
             throw new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS, HttpStatus.CONFLICT);
         });
-        Player player = Player.builder().email(registrationRequest.getEmail()).name(registrationRequest.getName()).employeeId(registrationRequest.getEmployeeId()).mobileNo(registrationRequest.getMobileNo()).skypeId(registrationRequest.getSkypeId()).position(registrationRequest.getPlayingPosition())
-                /*this will be open API so, admin will activate it*/.isActive(false).createdDate(LocalDateTime.now()).build();
+        Player player = Player.builder()
+                .email(registrationRequest.getEmail())
+                .name(registrationRequest.getName())
+                .employeeId(registrationRequest.getEmployeeId())
+                .mobileNo(registrationRequest.getMobileNo())
+                .skypeId(registrationRequest.getSkypeId())
+                .position(registrationRequest.getPlayingPosition())
+                .isActive(false).createdDate(LocalDateTime.now())/*this will be open API so, admin will activate it*/
+                .password(passwordEncoder.encode(registrationRequest.getPassword()))
+                .build();
         playerRepository.save(player);
     }
 
@@ -67,6 +82,7 @@ public class PlayerServiceImpl implements PlayerService {
         player.setPosition(updateRequest.getPlayingPosition());
         player.setUpdatedDate(LocalDateTime.now());
         player = playerRepository.save(player);
+        /*TODO("NEED to manage default role while registration")*/
         return convertToDto(player);
     }
 
@@ -74,6 +90,20 @@ public class PlayerServiceImpl implements PlayerService {
     public Player findByEmail(String email) {
         return playerRepository.findByEmail(email).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
+
+    @Override
+    public String login(LoginRequest loginRequest) {
+        Player player = playerRepository.findByEmail(loginRequest.getEmail()).orElseThrow(() -> {
+            throw new PlayerServiceException(INCORRECT_EMAIL, HttpStatus.UNAUTHORIZED);
+        });
+        if (!passwordEncoder.matches(loginRequest.getPassword(), player.getPassword())) {
+            throw new PlayerServiceException(PASSWORD_MISMATCH_EXCEPTION, HttpStatus.UNAUTHORIZED);
+        }
+
+        return jwtUtil.generateToken(player.getEmail(), player.getRoles().stream()
+                .map(Role::getName).toList());
+    }
+
 
     private PlayerResponse convertToDto(Player player) {
         return PlayerResponse.builder().id(player.getId()).name(player.getName()).email(player.getEmail()).mobileNo(player.getMobileNo()).skypeId(player.getSkypeId()).employeeId(player.getEmployeeId()).playingPosition(player.getPosition()).isActive(player.isActive()).build();

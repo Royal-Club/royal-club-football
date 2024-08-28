@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
+import com.bjit.royalclub.royalclubfootball.model.LoginRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
@@ -21,6 +22,7 @@ import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.LOGIN_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.STATUS_UPDATE_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.UPDATE_OK;
 import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuccessResponse;
@@ -60,5 +62,11 @@ public class PlayerController {
     public ResponseEntity<Object> updatePlayer(@PathVariable Long id, @Valid @RequestBody PlayerUpdateRequest updateRequest) {
         PlayerResponse playerResponse = playerService.updatePlayer(id, updateRequest);
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, playerResponse);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Object> login(@Valid @RequestBody LoginRequest loginRequest) {
+        String token = playerService.login(loginRequest);
+        return buildSuccessResponse(HttpStatus.OK, LOGIN_OK, token);
     }
 }
