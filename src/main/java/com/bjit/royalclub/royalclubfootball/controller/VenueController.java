@@ -39,9 +39,14 @@ public class VenueController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> registerVenue(@Valid VenueRegistrationRequest venueRegistrationRequest) {
+    public ResponseEntity<Object> registerVenue(@Valid @RequestBody VenueRegistrationRequest venueRegistrationRequest) {
         venueService.registerVenue(venueRegistrationRequest);
         return ResponseBuilder.buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
+    }
+
+    @GetMapping("{id}")
+    public ResponseEntity<Object> getVenue(@PathVariable Long id) {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, venueService.getById(id));
     }
 
     @PutMapping("/{id}")
