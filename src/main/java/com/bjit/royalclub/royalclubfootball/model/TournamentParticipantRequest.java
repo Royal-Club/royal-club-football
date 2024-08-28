@@ -13,7 +13,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TournamentParticipantRequest {
-    private Long id;
+    private Long tournamentParticipantId;
     @NotNull(message = "Match Schedule ID is mandatory")
     private Long tournamentId;
     @NotNull(message = "Player ID is mandatory")

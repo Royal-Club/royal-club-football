@@ -43,4 +43,8 @@ public class TournamentParticipantPlayer {
 
     @Column(name = "participation_status")
     private Boolean participationStatus;
+
+
+    @Column(name = "tournament_participant_id")
+    private Long tournamentParticipantId;
 }

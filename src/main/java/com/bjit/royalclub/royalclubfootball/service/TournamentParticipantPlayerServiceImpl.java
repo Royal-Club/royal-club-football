@@ -30,6 +30,7 @@ public class TournamentParticipantPlayerServiceImpl implements TournamentPartici
                         .playerName(player.getPlayerName())
                         .employeeId(player.getPlayerEmployeeId())
                         .participationStatus(player.getParticipationStatus())
+                        .tournamentParticipantId(player.getTournamentParticipantId())
                         .comments(player.getComments())
                         .build())
                 .toList();

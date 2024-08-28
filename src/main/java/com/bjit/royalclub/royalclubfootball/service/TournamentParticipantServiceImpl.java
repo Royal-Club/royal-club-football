@@ -43,8 +43,8 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
 
         validateTournamentDate(tournament.getTournamentDate());
 
-        TournamentParticipant tournamentParticipant = tournamentParticipantRequest.getId() != null
-                ? getExistingParticipant(tournamentParticipantRequest.getId())
+        TournamentParticipant tournamentParticipant = tournamentParticipantRequest.getTournamentParticipantId() != null
+                ? getExistingParticipant(tournamentParticipantRequest.getTournamentParticipantId())
                 : createNewParticipant(tournament, player);
 
         updateParticipantDetails(tournamentParticipant, tournament, player,
