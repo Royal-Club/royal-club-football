@@ -3,12 +3,14 @@ package com.bjit.royalclub.royalclubfootball.service;
 import com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Role;
+import com.bjit.royalclub.royalclubfootball.enums.PlayerRole;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.model.LoginRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
+import com.bjit.royalclub.royalclubfootball.repository.RoleRepository;
 import com.bjit.royalclub.royalclubfootball.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,7 +18,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.INCORRECT_EMAIL;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PASSWORD_MISMATCH_EXCEPTION;
@@ -30,6 +34,7 @@ public class PlayerServiceImpl implements PlayerService {
     private final PlayerRepository playerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JWTUtil jwtUtil;
+    private final RoleRepository roleRepository;
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
@@ -37,16 +42,14 @@ public class PlayerServiceImpl implements PlayerService {
         playerRepository.findByEmail(registrationRequest.getEmail()).ifPresent(player -> {
             throw new PlayerServiceException(RestErrorMessageDetail.PLAYER_ALREADY_EXISTS, HttpStatus.CONFLICT);
         });
+
+        Role playerRole = roleRepository.findByName(PlayerRole.PLAYER.name())
+                .orElseThrow(() -> new PlayerServiceException("Role PLAYER not found", HttpStatus.NOT_FOUND));
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(playerRole);
         Player player = Player.builder()
-                .email(registrationRequest.getEmail())
-                .name(registrationRequest.getName())
-                .employeeId(registrationRequest.getEmployeeId())
-                .mobileNo(registrationRequest.getMobileNo())
-                .skypeId(registrationRequest.getSkypeId())
-                .position(registrationRequest.getPlayingPosition())
-                .isActive(false).createdDate(LocalDateTime.now())/*this will be open API so, admin will activate it*/
-                .password(passwordEncoder.encode(registrationRequest.getPassword()))
-                .build();
+                .email(registrationRequest.getEmail()).name(registrationRequest.getName()).employeeId(registrationRequest.getEmployeeId()).mobileNo(registrationRequest.getMobileNo()).skypeId(registrationRequest.getSkypeId()).position(registrationRequest.getPlayingPosition()).isActive(false).createdDate(LocalDateTime.now())/*this will be open API so, admin will activate it*/.password(passwordEncoder.encode(registrationRequest.getPassword())).roles(roles).build();
         playerRepository.save(player);
     }
 
@@ -93,15 +96,12 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public String login(LoginRequest loginRequest) {
-        Player player = playerRepository.findByEmail(loginRequest.getEmail()).orElseThrow(() -> {
-            throw new PlayerServiceException(INCORRECT_EMAIL, HttpStatus.UNAUTHORIZED);
-        });
+        Player player = playerRepository.findByEmail(loginRequest.getEmail()).orElseThrow(() -> new PlayerServiceException(INCORRECT_EMAIL, HttpStatus.UNAUTHORIZED));
         if (!passwordEncoder.matches(loginRequest.getPassword(), player.getPassword())) {
             throw new PlayerServiceException(PASSWORD_MISMATCH_EXCEPTION, HttpStatus.UNAUTHORIZED);
         }
 
-        return jwtUtil.generateToken(player.getEmail(), player.getRoles().stream()
-                .map(Role::getName).toList());
+        return jwtUtil.generateToken(player.getEmail(), player.getRoles().stream().map(Role::getName).toList());
     }
 
 

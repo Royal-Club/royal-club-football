@@ -7,7 +7,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Collections;
@@ -18,7 +18,7 @@ import java.util.function.Function;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.INVALID_TOKEN;
 
-@Component
+@Service
 public class JWTUtil {
 
     private static final String ROLES_KEY = "roles";
@@ -49,7 +49,10 @@ public class JWTUtil {
     public boolean validateToken(String token, String email) {
         try {
             final String tokenEmail = extractEmail(token);
-            return (tokenEmail.equals(email) && !isTokenExpired(token));
+            if (!tokenEmail.equals(email) || isTokenExpired(token)) {
+                throw new JWTException(INVALID_TOKEN, HttpStatus.EXPECTATION_FAILED);
+            }
+            return true;
         } catch (Exception e) {
             return false;
         }
