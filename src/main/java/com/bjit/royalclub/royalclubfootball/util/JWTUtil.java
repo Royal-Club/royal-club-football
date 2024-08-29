@@ -1,6 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.util;
 
-import com.bjit.royalclub.royalclubfootball.exception.JWTException;
+import com.bjit.royalclub.royalclubfootball.exception.SecurityException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -50,7 +50,7 @@ public class JWTUtil {
         try {
             final String tokenEmail = extractEmail(token);
             if (!tokenEmail.equals(email) || isTokenExpired(token)) {
-                throw new JWTException(INVALID_TOKEN, HttpStatus.EXPECTATION_FAILED);
+                throw new SecurityException(INVALID_TOKEN, HttpStatus.EXPECTATION_FAILED);
             }
             return true;
         } catch (Exception e) {
@@ -83,7 +83,7 @@ public class JWTUtil {
         try {
             return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
         } catch (Exception e) {
-            throw new JWTException(INVALID_TOKEN, HttpStatus.EXPECTATION_FAILED);
+            throw new SecurityException(INVALID_TOKEN, HttpStatus.EXPECTATION_FAILED);
         }
     }
 
