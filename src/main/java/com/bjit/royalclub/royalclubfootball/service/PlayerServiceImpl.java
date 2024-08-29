@@ -49,7 +49,16 @@ public class PlayerServiceImpl implements PlayerService {
         Set<Role> roles = new HashSet<>();
         roles.add(playerRole);
         Player player = Player.builder()
-                .email(registrationRequest.getEmail()).name(registrationRequest.getName()).employeeId(registrationRequest.getEmployeeId()).mobileNo(registrationRequest.getMobileNo()).skypeId(registrationRequest.getSkypeId()).position(registrationRequest.getPlayingPosition()).isActive(false).createdDate(LocalDateTime.now())/*this will be open API so, admin will activate it*/.password(passwordEncoder.encode(registrationRequest.getPassword())).roles(roles).build();
+                .email(registrationRequest.getEmail())
+                .name(registrationRequest.getName())
+                .employeeId(registrationRequest.getEmployeeId())
+                .mobileNo(registrationRequest.getMobileNo())
+                .skypeId(registrationRequest.getSkypeId())
+                .position(registrationRequest.getPlayingPosition())
+                .isActive(false)
+                .createdDate(LocalDateTime.now())/*this will be open API so, admin will activate it*/
+                .password(passwordEncoder.encode(registrationRequest.getPassword()))
+                .roles(roles).build();
         playerRepository.save(player);
     }
 
@@ -61,13 +70,15 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public PlayerResponse getPlayerById(Long id) {
-        Player player = playerRepository.findById(id).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+        Player player = playerRepository.findById(id)
+                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         return convertToDto(player);
     }
 
     @Override
     public void updatePlayerStatus(Long id, boolean active) {
-        Player player = playerRepository.findById(id).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+        Player player = playerRepository
+                .findById(id).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         player.setActive(active);
         player.setUpdatedDate(LocalDateTime.now());
         playerRepository.save(player);
@@ -76,7 +87,8 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     public PlayerResponse updatePlayer(Long id, PlayerUpdateRequest updateRequest) {
         Player player;
-        player = playerRepository.findById(id).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+        player = playerRepository.findById(id)
+                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         player.setEmail(updateRequest.getEmail());
         player.setName(updateRequest.getName());
         player.setEmployeeId(updateRequest.getEmployeeId());
@@ -91,12 +103,16 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public Player findByEmail(String email) {
-        return playerRepository.findByEmail(email).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+        return playerRepository
+                .findByEmailAndIsActiveTrue(email)
+                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
     @Override
     public String login(LoginRequest loginRequest) {
-        Player player = playerRepository.findByEmail(loginRequest.getEmail()).orElseThrow(() -> new PlayerServiceException(INCORRECT_EMAIL, HttpStatus.UNAUTHORIZED));
+        Player player = playerRepository
+                .findByEmailAndIsActiveTrue(loginRequest.getEmail())
+                .orElseThrow(() -> new PlayerServiceException(INCORRECT_EMAIL, HttpStatus.UNAUTHORIZED));
         if (!passwordEncoder.matches(loginRequest.getPassword(), player.getPassword())) {
             throw new PlayerServiceException(PASSWORD_MISMATCH_EXCEPTION, HttpStatus.UNAUTHORIZED);
         }
@@ -106,6 +122,15 @@ public class PlayerServiceImpl implements PlayerService {
 
 
     private PlayerResponse convertToDto(Player player) {
-        return PlayerResponse.builder().id(player.getId()).name(player.getName()).email(player.getEmail()).mobileNo(player.getMobileNo()).skypeId(player.getSkypeId()).employeeId(player.getEmployeeId()).playingPosition(player.getPosition()).isActive(player.isActive()).build();
+        return PlayerResponse.builder()
+                .id(player.getId())
+                .name(player.getName())
+                .email(player.getEmail())
+                .mobileNo(player.getMobileNo())
+                .skypeId(player.getSkypeId())
+                .employeeId(player.getEmployeeId())
+                .playingPosition(player.getPosition())
+                .isActive(player.isActive())
+                .build();
     }
 }
