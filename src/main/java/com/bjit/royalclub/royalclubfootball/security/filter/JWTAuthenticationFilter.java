@@ -2,11 +2,13 @@ package com.bjit.royalclub.royalclubfootball.security.filter;
 
 import com.bjit.royalclub.royalclubfootball.security.CustomUserDetailsService;
 import com.bjit.royalclub.royalclubfootball.util.JWTUtil;
+import jakarta.annotation.Nonnull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,9 +24,9 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService customUserDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@Nonnull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @Nonnull FilterChain filterChain) throws ServletException, IOException {
         String jwt = getJWTFromRequest(request);
         if (jwt != null && jwtUtil.validateToken(jwt, jwtUtil.extractEmail(jwt))) {
             String username = jwtUtil.extractEmail(jwt);
