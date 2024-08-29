@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
 import com.bjit.royalclub.royalclubfootball.model.LoginRequest;
+import com.bjit.royalclub.royalclubfootball.model.LoginResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
@@ -66,7 +67,7 @@ public class PlayerController {
 
     @PostMapping("/login")
     public ResponseEntity<Object> login(@Valid @RequestBody LoginRequest loginRequest) {
-        String token = playerService.login(loginRequest);
-        return buildSuccessResponse(HttpStatus.OK, LOGIN_OK, token);
+        LoginResponse loginResponse = playerService.login(loginRequest);
+        return buildSuccessResponse(HttpStatus.OK, LOGIN_OK, loginResponse);
     }
 }

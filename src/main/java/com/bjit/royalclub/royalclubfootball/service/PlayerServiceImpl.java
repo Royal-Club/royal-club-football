@@ -6,6 +6,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Role;
 import com.bjit.royalclub.royalclubfootball.enums.PlayerRole;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.model.LoginRequest;
+import com.bjit.royalclub.royalclubfootball.model.LoginResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
@@ -97,7 +98,7 @@ public class PlayerServiceImpl implements PlayerService {
         player.setPosition(updateRequest.getPlayingPosition());
         player.setUpdatedDate(LocalDateTime.now());
         player = playerRepository.save(player);
-        /*TODO("NEED to manage default role while registration")*/
+        /*role need to be handle while update players. and only Admin can change the role*/
         return convertToDto(player);
     }
 
@@ -109,15 +110,22 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     @Override
-    public String login(LoginRequest loginRequest) {
+    public LoginResponse login(LoginRequest loginRequest) {
         Player player = playerRepository
                 .findByEmailAndIsActiveTrue(loginRequest.getEmail())
                 .orElseThrow(() -> new PlayerServiceException(INCORRECT_EMAIL, HttpStatus.UNAUTHORIZED));
         if (!passwordEncoder.matches(loginRequest.getPassword(), player.getPassword())) {
             throw new PlayerServiceException(PASSWORD_MISMATCH_EXCEPTION, HttpStatus.UNAUTHORIZED);
         }
-
-        return jwtUtil.generateToken(player.getEmail(), player.getRoles().stream().map(Role::getName).toList());
+        String token = jwtUtil.generateToken(player.getEmail(),
+                player.getRoles().stream().map(Role::getName).toList());
+        return LoginResponse.builder()
+                .userId(player.getId())
+                .username(player.getName())
+                .email(player.getEmail())
+                .roles(player.getRoles().stream().map(Role::getName).toList())
+                .token(token)
+                .build();
     }
 
 

@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.model.LoginRequest;
+import com.bjit.royalclub.royalclubfootball.model.LoginResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
@@ -25,7 +26,7 @@ public interface PlayerService {
 
     Player findByEmail(String userName);
 
-    String login(LoginRequest loginRequest);
+    LoginResponse login(LoginRequest loginRequest);
 
 
 }
