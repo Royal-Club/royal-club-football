@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,32 +35,37 @@ public class TournamentController {
     private final TournamentService tournamentService;
     private final TeamManagementService teamManagementService;
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping
     public ResponseEntity<Object> saveTournament(@Valid @RequestBody TournamentRequest tournamentRequest) {
         TournamentResponse tournamentResponse = tournamentService.saveTournament(tournamentRequest);
         return buildSuccessResponse(HttpStatus.OK, CREATE_OK, tournamentResponse);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLAYER')")
     @GetMapping
     public ResponseEntity<Object> getAllTournament() {
         List<TournamentResponse> tournamentResponses = tournamentService.getAllTournament();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<Object> getTournamentById(@PathVariable Long id) {
         TournamentResponse tournamentResponse = tournamentService.getTournamentById(id);
         return buildSuccessResponse(HttpStatus.FOUND, CREATE_OK, tournamentResponse);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/{id}/status")
     public ResponseEntity<Object> updateStatus(@PathVariable Long id, @RequestParam boolean active) {
         tournamentService.updateTournamentStatus(id, active);
         return buildSuccessResponse(HttpStatus.OK, STATUS_UPDATE_OK);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<Object> updatePlayer(@PathVariable Long id, @Valid @RequestBody
+    public ResponseEntity<Object> updateTournament(@PathVariable Long id, @Valid @RequestBody
     TournamentUpdateRequest tournamentUpdateRequest) {
         TournamentResponse tournamentResponse = tournamentService.updateTournament(id, tournamentUpdateRequest);
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, tournamentResponse);
