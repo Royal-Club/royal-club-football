@@ -42,7 +42,6 @@ public class TournamentController {
         return buildSuccessResponse(HttpStatus.OK, CREATE_OK, tournamentResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLAYER')")
     @GetMapping
     public ResponseEntity<Object> getAllTournament() {
         List<TournamentResponse> tournamentResponses = tournamentService.getAllTournament();

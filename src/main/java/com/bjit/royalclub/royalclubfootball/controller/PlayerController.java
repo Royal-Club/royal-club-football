@@ -49,7 +49,6 @@ public class PlayerController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, players);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLAYER')")
     @GetMapping("/{id}")
     public ResponseEntity<Object> getPlayerById(@PathVariable Long id) {
         PlayerResponse player = playerService.getPlayerById(id);
@@ -63,7 +62,6 @@ public class PlayerController {
         return buildSuccessResponse(HttpStatus.OK, STATUS_UPDATE_OK);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLAYER')")
     @PutMapping("/{id}")
     public ResponseEntity<Object> updatePlayer(@PathVariable Long id,
                                                @Valid @RequestBody PlayerUpdateRequest updateRequest) {
