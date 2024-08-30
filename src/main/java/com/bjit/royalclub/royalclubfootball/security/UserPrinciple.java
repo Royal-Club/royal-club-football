@@ -31,8 +31,8 @@ public class UserPrinciple implements UserDetails {
     private boolean enabled = true;
 
     public static UserPrinciple create(Player player) {
-        List<GrantedAuthority> authorities = player.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName()))
+        List<GrantedAuthority> authorities = player.getRoles()
+                .stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
                 .collect(Collectors.toList());
 
         return UserPrinciple.builder()
