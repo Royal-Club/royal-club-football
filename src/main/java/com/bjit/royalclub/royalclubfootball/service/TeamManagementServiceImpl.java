@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_PARTICIPANT_YET;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_PART_OF_THIS_TEAM;
@@ -71,11 +72,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
 
         /* Check if the player is already assigned to any team in the same tournament*/
         if (isPlayerAssignedToAnyTeamInTournament(team.getTournament().getId(), teamPlayerRequest.getPlayerId())) {
-
-            TeamPlayer teamPlayer = teamPlayerRepository.findByTeamIdAndPlayerId(teamPlayerRequest.getTeamId(),
-                    teamPlayerRequest.getPlayerId()).orElseThrow(() ->
-                    new TournamentServiceException(PLAYER_IS_NOT_PART_OF_THIS_TEAM, HttpStatus.NOT_FOUND));
-            teamPlayerRepository.delete(teamPlayer);
+            throw new TeamServiceException(PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM, HttpStatus.CONFLICT);
         }
 
         TeamPlayer teamPlayer = (teamPlayerRequest.getId() == null)
