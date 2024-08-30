@@ -25,6 +25,7 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final JWTUtil jwtUtil;
     private final JwtUnAuthorizedResponseAuthenticationEntryPoint jwtUnAuthorizedResponseAuthenticationEntryPoint;
+    private final PublicEndpoints publicEndpoints;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -32,10 +33,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/players/login", "/players").permitAll()
-                        .requestMatchers("/football-positions", "/players/{id}",
-                                "/tournaments", "/tournaments/details", "/tournament-participants", "/venues")
-                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, publicEndpoints.getPublicGetEndpoints()).permitAll()
+                        .requestMatchers(HttpMethod.POST, publicEndpoints.getPublicPostEndpoints()).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception
