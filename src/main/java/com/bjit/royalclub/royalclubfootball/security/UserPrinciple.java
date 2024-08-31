@@ -20,6 +20,8 @@ public class UserPrinciple implements UserDetails {
     @JsonIgnore
     private String password;
     private Collection<? extends GrantedAuthority> authorities;
+    @JsonIgnore
+    private Player player;
 
     @Builder.Default
     private boolean accountNonExpired = true;
@@ -40,6 +42,7 @@ public class UserPrinciple implements UserDetails {
                 .username(player.getName())
                 .password(player.getPassword())
                 .authorities(authorities)
+                .player(player)
                 .build();
     }
 

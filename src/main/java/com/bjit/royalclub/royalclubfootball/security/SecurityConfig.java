@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, publicEndpoints.getPublicGetEndpoints()).permitAll()
                         .requestMatchers(HttpMethod.POST, publicEndpoints.getPublicPostEndpoints()).permitAll()
+                        .requestMatchers(HttpMethod.PUT, publicEndpoints.putPublicPostEndpoints()).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception

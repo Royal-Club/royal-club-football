@@ -22,4 +22,10 @@ public class PublicEndpoints {
                 "/players"
         };
     }
+
+    public String[] putPublicPostEndpoints() {
+        return new String[]{
+                "/auth/change-password"
+        };
+    }
 }

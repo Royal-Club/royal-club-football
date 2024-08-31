@@ -1,6 +1,6 @@
-package com.bjit.royalclub.royalclubfootball.util;
+package com.bjit.royalclub.royalclubfootball.security.util;
 
-
+import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.exception.SecurityException;
 import com.bjit.royalclub.royalclubfootball.security.UserPrinciple;
 import org.springframework.http.HttpStatus;
@@ -10,8 +10,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 
 public class SecurityUtil {
-    private SecurityUtil() {
 
+    private SecurityUtil() {
     }
 
     public static UserPrinciple getLoggedInUser() {
@@ -20,6 +20,10 @@ public class SecurityUtil {
 
     public static Long getLoggedInUserId() {
         return getLoggedInUser().getId();
+    }
+
+    public static Player getLoggedInPlayer() {
+        return getLoggedInUser().getPlayer();
     }
 
     private static Authentication getAuthentication() {
