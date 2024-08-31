@@ -41,8 +41,11 @@ public class TournamentController {
     }
 
     @GetMapping
-    public ResponseEntity<Object> getAllTournament() {
-        List<TournamentResponse> tournamentResponses = tournamentService.getAllTournament();
+    public ResponseEntity<Object> getAllTournament(@RequestParam(defaultValue = "0") int offSet,
+                                                   @RequestParam(defaultValue = "10") int pageSize,
+                                                   @RequestParam(defaultValue = "id") String sortedBy,
+                                                   @RequestParam(defaultValue = "DESC") String sortDirection) {
+        List<TournamentResponse> tournamentResponses = tournamentService.getAllTournament(offSet, pageSize, sortedBy, sortDirection);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
     }
 
