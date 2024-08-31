@@ -19,6 +19,8 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, Long> {
     @Query("SELECT new com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse(tp.player.id, tp.player.name, COUNT(tp)) " +
             "FROM TeamPlayer tp " +
             "WHERE tp.playingPosition = 'GOALKEEPER' AND tp.player.id IN :playerIds " +
-            "GROUP BY tp.player.id, tp.player.name")
+            "GROUP BY tp.player.id, tp.player.name " +
+            "ORDER BY COUNT(tp) ASC")
     List<GoalkeeperStatsResponse> findGoalkeeperStatsByPlayerIds(@Param("playerIds") List<Long> playerIds);
+
 }
