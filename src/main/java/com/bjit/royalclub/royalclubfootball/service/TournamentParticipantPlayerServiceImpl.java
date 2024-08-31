@@ -11,8 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_PARTICIPANT_YET;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
 
 @Service
@@ -22,24 +24,32 @@ public class TournamentParticipantPlayerServiceImpl implements TournamentPartici
     private final TournamentParticipantPlayerRepository participantPlayerRepository;
     private final TournamentRepository tournamentRepository;
 
-    private TournamentWithPlayersResponse buildTournamentWithPlayersResponse(List<TournamentParticipantPlayer> tournamentParticipantPlayers) {
+    private TournamentWithPlayersResponse buildTournamentWithPlayersResponse(List<TournamentParticipantPlayer>
+                                                                                     tournamentParticipantPlayers) {
+        if (tournamentParticipantPlayers == null || tournamentParticipantPlayers.isEmpty()) {
+            throw new TournamentServiceException(PLAYER_IS_NOT_PARTICIPANT_YET, HttpStatus.NOT_FOUND);
+        }
         TournamentParticipantPlayer firstEntry = tournamentParticipantPlayers.get(0);
-        List<PlayerParticipationResponse> players = tournamentParticipantPlayers.stream()
-                .map(player -> PlayerParticipationResponse.builder()
+        List<PlayerParticipationResponse> players = new ArrayList<>();
+
+        long totalParticipants = tournamentParticipantPlayers.stream()
+                .peek(player -> players.add(PlayerParticipationResponse.builder()
                         .playerId(player.getPlayerId())
                         .playerName(player.getPlayerName())
                         .employeeId(player.getPlayerEmployeeId())
                         .participationStatus(player.getParticipationStatus())
                         .tournamentParticipantId(player.getTournamentParticipantId())
                         .comments(player.getComments())
-                        .build())
-                .toList();
-        return new TournamentWithPlayersResponse(
-                firstEntry.getTournamentId(),
-                firstEntry.getTournamentName(),
-                firstEntry.getTournamentDate(),
-                players
-        );
+                        .build()))
+                .filter(player -> Boolean.TRUE.equals(player.getParticipationStatus()))
+                .count();
+        return TournamentWithPlayersResponse.builder()
+                .tournamentId(firstEntry.getTournamentId())
+                .tournamentName(firstEntry.getTournamentName())
+                .tournamentDate(firstEntry.getTournamentDate())
+                .totalParticipants(totalParticipants)
+                .players(players)
+                .build();
     }
 
     @Override

@@ -70,11 +70,6 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         validateTournamentDate(team.getTournament());
         Player player = validateAndGetPlayer(teamPlayerRequest.getPlayerId());
 
-        /* Check if the player is already assigned to any team in the same tournament*/
-        if (isPlayerAssignedToAnyTeamInTournament(team.getTournament().getId(), teamPlayerRequest.getPlayerId())) {
-            throw new TeamServiceException(PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM, HttpStatus.CONFLICT);
-        }
-
         TeamPlayer teamPlayer = (teamPlayerRequest.getId() == null)
                 ? createTeamPlayer(teamPlayerRequest, team, player)
                 : updateTeamPlayer(teamPlayerRequest, team, player);
@@ -214,6 +209,9 @@ public class TeamManagementServiceImpl implements TeamManagementService {
 
         if (!isParticipant) {
             throw new PlayerServiceException(PLAYER_IS_NOT_PARTICIPANT_YET, HttpStatus.BAD_REQUEST);
+        }
+        if (isPlayerAssignedToAnyTeamInTournament(team.getTournament().getId(), player.getId())) {
+            throw new TeamServiceException(PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM, HttpStatus.CONFLICT);
         }
         return TeamPlayer.builder()
                 .team(team)

@@ -82,6 +82,7 @@ public class VenueServiceImpl implements VenueService {
                 .id(venue.getId())
                 .name(venue.getName())
                 .address(venue.getAddress())
+                .active(venue.isActive())
                 .build();
     }
 }
