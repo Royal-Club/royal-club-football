@@ -5,14 +5,11 @@ import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Role;
 import com.bjit.royalclub.royalclubfootball.enums.PlayerRole;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
-import com.bjit.royalclub.royalclubfootball.model.LoginRequest;
-import com.bjit.royalclub.royalclubfootball.model.LoginResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.RoleRepository;
-import com.bjit.royalclub.royalclubfootball.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,8 +20,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.INCORRECT_EMAIL;
-import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PASSWORD_MISMATCH_EXCEPTION;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
@@ -34,7 +29,6 @@ public class PlayerServiceImpl implements PlayerService {
 
     private final PlayerRepository playerRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JWTUtil jwtUtil;
     private final RoleRepository roleRepository;
 
     @Override
@@ -108,26 +102,6 @@ public class PlayerServiceImpl implements PlayerService {
                 .findByEmailAndIsActiveTrue(email)
                 .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
-
-    @Override
-    public LoginResponse login(LoginRequest loginRequest) {
-        Player player = playerRepository
-                .findByEmailAndIsActiveTrue(loginRequest.getEmail())
-                .orElseThrow(() -> new PlayerServiceException(INCORRECT_EMAIL, HttpStatus.UNAUTHORIZED));
-        if (!passwordEncoder.matches(loginRequest.getPassword(), player.getPassword())) {
-            throw new PlayerServiceException(PASSWORD_MISMATCH_EXCEPTION, HttpStatus.UNAUTHORIZED);
-        }
-        String token = jwtUtil.generateToken(player.getEmail(),
-                player.getRoles().stream().map(Role::getName).toList());
-        return LoginResponse.builder()
-                .userId(player.getId())
-                .username(player.getName())
-                .email(player.getEmail())
-                .roles(player.getRoles().stream().map(Role::getName).toList())
-                .token(token)
-                .build();
-    }
-
 
     private PlayerResponse convertToDto(Player player) {
         return PlayerResponse.builder()

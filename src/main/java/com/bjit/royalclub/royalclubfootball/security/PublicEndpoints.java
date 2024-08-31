@@ -18,7 +18,7 @@ public class PublicEndpoints {
 
     public String[] getPublicPostEndpoints() {
         return new String[]{
-                "/players/login",
+                "/auth/login",
                 "/players"
         };
     }
