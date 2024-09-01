@@ -76,7 +76,7 @@ public class TournamentServiceImpl implements TournamentService {
     }
 
     @Override
-    public List<TournamentResponse> getAllTournament(int offSet, int  pageSize,
+    public List<TournamentResponse> getAllTournament(int offSet, int pageSize,
                                                      String sortedBy, String sortDirection) {
 
         Pageable pageable = createPageable(offSet, pageSize, sortedBy, sortDirection);
@@ -102,6 +102,11 @@ public class TournamentServiceImpl implements TournamentService {
         tournament.setUpdatedDate(LocalDateTime.now());
         tournament = tournamentRepository.save(tournament);
         return convertToDto(tournament);
+    }
+
+    @Override
+    public void deactivatePastTournaments() {
+        tournamentRepository.deactivatePastTournaments();
     }
 
 }
