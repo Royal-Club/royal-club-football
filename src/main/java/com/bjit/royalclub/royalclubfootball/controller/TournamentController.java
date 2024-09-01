@@ -42,7 +42,7 @@ public class TournamentController {
 
     @GetMapping
     public ResponseEntity<Object> getAllTournament() {
-        List<TournamentResponse> tournamentResponses = tournamentService.getAllTournament();
+        List<TournamentResponse> tournamentResponses = tournamentService.getTournaments();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
     }
 
@@ -53,8 +53,8 @@ public class TournamentController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<Object> updateStatus(@PathVariable Long id, @RequestParam boolean active) {
-        tournamentService.updateTournamentStatus(id, active);
+    public ResponseEntity<Object> updateStatus(@PathVariable Long id, @RequestParam boolean status) {
+        tournamentService.updateTournamentStatus(id, status);
         return buildSuccessResponse(HttpStatus.OK, STATUS_UPDATE_OK);
     }
 

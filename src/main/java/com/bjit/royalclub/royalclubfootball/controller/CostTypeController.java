@@ -38,7 +38,7 @@ public class CostTypeController {
 
     @GetMapping
     public ResponseEntity<Object> getAllCostType() {
-        List<CostTypeResponse> costTypeResponses = costTypeService.getAllCostType();
+        List<CostTypeResponse> costTypeResponses = costTypeService.getCostTypes();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, costTypeResponses);
     }
 

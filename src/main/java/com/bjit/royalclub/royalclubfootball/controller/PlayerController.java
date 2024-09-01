@@ -39,7 +39,7 @@ public class PlayerController {
     }
 
     @GetMapping
-    public ResponseEntity<Object> getAllPlayers() {
+    public ResponseEntity<Object> getPlayers() {
         List<PlayerResponse> players = playerService.getAllPlayers();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, players);
     }
@@ -51,8 +51,8 @@ public class PlayerController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<Object> getPlayerById(@PathVariable Long id, @RequestParam boolean active) {
-        playerService.updatePlayerStatus(id, active);
+    public ResponseEntity<Object> getPlayerById(@PathVariable Long id, @RequestParam boolean status) {
+        playerService.updatePlayerStatus(id, status);
         return buildSuccessResponse(HttpStatus.OK, STATUS_UPDATE_OK);
     }
 

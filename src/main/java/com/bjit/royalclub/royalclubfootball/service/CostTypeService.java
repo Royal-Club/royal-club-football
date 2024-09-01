@@ -10,7 +10,7 @@ public interface CostTypeService {
     @Transactional
     void saveCostType(CostTypeRequest costTypeRequest);
 
-    List<CostTypeResponse> getAllCostType();
+    List<CostTypeResponse> getCostTypes();
 
     CostTypeResponse getByCostId(Long id);
 

@@ -40,7 +40,7 @@ public class CostTypeServiceImpl implements CostTypeService {
     }
 
     @Override
-    public List<CostTypeResponse> getAllCostType() {
+    public List<CostTypeResponse> getCostTypes() {
         return costTypeRepository.findAll().stream().map(this::convertToCostResponse).toList();
     }
 

@@ -11,7 +11,7 @@ import java.util.List;
 public class FootballPositionServiceImpl implements FootballPositionService {
 
     @Override
-    public List<FootballPositionResponse> getAllPositions() {
+    public List<FootballPositionResponse> getPositions() {
         return Arrays.stream(FootballPosition.values())
                 .map(position -> new FootballPositionResponse(position.name(), position.getDescription()))
                 .toList();

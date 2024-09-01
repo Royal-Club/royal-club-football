@@ -23,7 +23,7 @@ public class FootballPositionController {
 
     @GetMapping
     public ResponseEntity<Object> getAllFootballPositions() {
-        List<FootballPositionResponse> positions = footballPositionService.getAllPositions();
+        List<FootballPositionResponse> positions = footballPositionService.getPositions();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, positions);
     }
 }

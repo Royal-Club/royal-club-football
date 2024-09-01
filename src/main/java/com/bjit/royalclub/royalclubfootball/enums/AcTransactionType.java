@@ -1,5 +1,8 @@
 package com.bjit.royalclub.royalclubfootball.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum AcTransactionType {
     CO("Cash Out"),
     CI("Cash In"),
@@ -9,10 +12,6 @@ public enum AcTransactionType {
 
     AcTransactionType(String description) {
         this.description = description;
-    }
-
-    public String getDescription() {
-        return description;
     }
 
     @Override

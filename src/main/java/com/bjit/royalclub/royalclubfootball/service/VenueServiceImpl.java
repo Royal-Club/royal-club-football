@@ -45,7 +45,7 @@ public class VenueServiceImpl implements VenueService {
     }
 
     @Override
-    public List<VenueResponse> getAllVenues() {
+    public List<VenueResponse> getVenues() {
         return venueRepository.findAll().stream()
                 .map(this::convertToDto)
                 .toList();

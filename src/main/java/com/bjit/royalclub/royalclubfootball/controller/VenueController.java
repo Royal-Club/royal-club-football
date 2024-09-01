@@ -34,7 +34,7 @@ public class VenueController {
 
     @GetMapping
     public ResponseEntity<Object> getAllVenues() {
-        List<VenueResponse> venueResponses = venueService.getAllVenues();
+        List<VenueResponse> venueResponses = venueService.getVenues();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, venueResponses);
     }
 

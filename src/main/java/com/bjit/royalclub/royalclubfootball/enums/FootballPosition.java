@@ -1,8 +1,11 @@
 package com.bjit.royalclub.royalclubfootball.enums;
 
+import lombok.Getter;
+
 import java.util.HashMap;
 import java.util.Map;
 
+@Getter
 public enum FootballPosition {
     UNASSIGNED("Unassigned"),
     GOALKEEPER("Goalkeeper"),
@@ -21,10 +24,6 @@ public enum FootballPosition {
 
     FootballPosition(String description) {
         this.description = description;
-    }
-
-    public String getDescription() {
-        return description;
     }
 
     private static final Map<String, FootballPosition> STRING_TO_ENUM = new HashMap<>();

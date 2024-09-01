@@ -1,6 +1,5 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
-import com.bjit.royalclub.royalclubfootball.entity.Venue;
 import com.bjit.royalclub.royalclubfootball.model.VenueRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.VenueResponse;
 import jakarta.transaction.Transactional;
@@ -14,7 +13,7 @@ public interface VenueService {
     @Transactional
     void registerVenue(VenueRegistrationRequest registrationRequest);
 
-    List<VenueResponse> getAllVenues();
+    List<VenueResponse> getVenues();
 
     void updateStatus(Long venueId, boolean isActive);
 

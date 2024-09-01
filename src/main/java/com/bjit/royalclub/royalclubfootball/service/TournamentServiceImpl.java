@@ -71,7 +71,7 @@ public class TournamentServiceImpl implements TournamentService {
     }
 
     @Override
-    public List<TournamentResponse> getAllTournament() {
+    public List<TournamentResponse> getTournaments() {
         return tournamentRepository.findAll().stream()
                 .map(this::convertToDto).toList();
     }
