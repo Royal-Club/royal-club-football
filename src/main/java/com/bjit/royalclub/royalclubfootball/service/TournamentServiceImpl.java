@@ -9,10 +9,12 @@ import com.bjit.royalclub.royalclubfootball.model.TournamentRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
+import com.bjit.royalclub.royalclubfootball.repository.TournamentSpecification;
 import com.bjit.royalclub.royalclubfootball.repository.VenueRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -30,11 +32,12 @@ public class TournamentServiceImpl implements TournamentService {
 
     private final TournamentRepository tournamentRepository;
     private final VenueRepository venueRepository;
+    private final TournamentSpecification tournamentSpecification;
 
     private TournamentResponse convertToDto(Tournament tournament) {
         return TournamentResponse.builder()
                 .id(tournament.getId())
-                .tournamentName(tournament.getName())
+                .name(tournament.getName())
                 .tournamentDate(tournament.getTournamentDate())
                 .activeStatus(tournament.isActive())
                 .venueName(tournament.getVenue().getName())
@@ -76,10 +79,19 @@ public class TournamentServiceImpl implements TournamentService {
 
     @Override
     public PaginatedTournamentResponse getAllTournament(int offSet, int pageSize,
-                                                        String sortedBy, String sortDirection) {
+                                                        String sortedBy, String sortDirection,
+                                                        String searchColumn, String searchValue) {
 
         Pageable pageable = createPageable(offSet, pageSize, sortedBy, sortDirection);
-        Page<Tournament> tournamentPage = tournamentRepository.findAll(pageable);
+        Specification<Tournament> spec = null;
+
+        if ("tournamentDate".equalsIgnoreCase(searchColumn)) {
+            LocalDateTime searchDate = LocalDateTime.parse(searchValue);
+            spec = tournamentSpecification.hasDate(searchColumn, searchDate);
+        } else if ("name".equalsIgnoreCase(searchColumn)) {
+            spec = tournamentSpecification.hasValue(searchColumn, searchValue);
+        }
+        Page<Tournament> tournamentPage = tournamentRepository.findAll(spec, pageable);
 
         List<TournamentResponse> tournamentResponses = tournamentPage.getContent().stream()
                 .map(this::convertToDto)

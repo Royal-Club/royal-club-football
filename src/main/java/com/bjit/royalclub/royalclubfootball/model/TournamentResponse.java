@@ -12,7 +12,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class TournamentResponse {
     private Long id;
-    private String tournamentName;
+    private String name;
     private LocalDateTime tournamentDate;
     private String venueName;
     private boolean activeStatus;

@@ -110,7 +110,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
 
         return TournamentResponse.builder()
                 .id(tournament.getId())
-                .tournamentName(tournament.getName())
+                .name(tournament.getName())
                 .tournamentDate(tournament.getTournamentDate())
                 .venueName(tournament.getVenue().getName())
                 .activeStatus(tournament.isActive())
@@ -129,7 +129,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                             .toList();
                     return TournamentResponse.builder()
                             .id(tournament.getId())
-                            .tournamentName(tournament.getName())
+                            .name(tournament.getName())
                             .tournamentDate(tournament.getTournamentDate())
                             .venueName(tournament.getVenue().getName())
                             .activeStatus(tournament.isActive())

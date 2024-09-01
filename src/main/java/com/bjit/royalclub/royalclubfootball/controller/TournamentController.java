@@ -45,8 +45,11 @@ public class TournamentController {
     public ResponseEntity<Object> getAllTournament(@RequestParam(defaultValue = "0") int offSet,
                                                    @RequestParam(defaultValue = "10") int pageSize,
                                                    @RequestParam(defaultValue = "id") String sortedBy,
-                                                   @RequestParam(defaultValue = "DESC") String sortDirection) {
-        PaginatedTournamentResponse tournamentResponses = tournamentService.getAllTournament(offSet, pageSize, sortedBy, sortDirection);
+                                                   @RequestParam(defaultValue = "DESC") String sortDirection,
+                                                   @RequestParam(required = false) String searchColumn,
+                                                   @RequestParam(required = false) String searchValue) {
+        PaginatedTournamentResponse tournamentResponses
+                = tournamentService.getAllTournament(offSet, pageSize, sortedBy, sortDirection, searchColumn, searchValue);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
     }
 

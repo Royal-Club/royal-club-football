@@ -17,7 +17,7 @@ public interface TournamentService {
     void updateTournamentStatus(Long id, boolean active);
 
     PaginatedTournamentResponse getAllTournament(int offSet, int pageSize,
-                                                 String sortedBy, String sortDirection);
+                                                 String sortedBy, String sortDirection, String searchColumn, String searchValue);
 
     @Transactional
     TournamentResponse updateTournament(Long id, TournamentUpdateRequest updateTournamentRequest);
