@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
+import com.bjit.royalclub.royalclubfootball.model.PaginatedTournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
@@ -45,7 +46,7 @@ public class TournamentController {
                                                    @RequestParam(defaultValue = "10") int pageSize,
                                                    @RequestParam(defaultValue = "id") String sortedBy,
                                                    @RequestParam(defaultValue = "DESC") String sortDirection) {
-        List<TournamentResponse> tournamentResponses = tournamentService.getAllTournament(offSet, pageSize, sortedBy, sortDirection);
+        PaginatedTournamentResponse tournamentResponses = tournamentService.getAllTournament(offSet, pageSize, sortedBy, sortDirection);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
     }
 

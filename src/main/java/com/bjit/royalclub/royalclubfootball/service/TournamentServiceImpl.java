@@ -4,6 +4,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.entity.Venue;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.VenueServiceException;
+import com.bjit.royalclub.royalclubfootball.model.PaginatedTournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
@@ -16,9 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.VENUE_IS_NOT_FOUND;
@@ -76,17 +75,19 @@ public class TournamentServiceImpl implements TournamentService {
     }
 
     @Override
-    public List<TournamentResponse> getAllTournament(int offSet, int pageSize,
-                                                     String sortedBy, String sortDirection) {
+    public PaginatedTournamentResponse getAllTournament(int offSet, int pageSize,
+                                                        String sortedBy, String sortDirection) {
 
         Pageable pageable = createPageable(offSet, pageSize, sortedBy, sortDirection);
         Page<Tournament> tournamentPage = tournamentRepository.findAll(pageable);
 
-        if (tournamentPage.hasContent()) {
-            return tournamentPage.getContent().stream()
-                    .map(this::convertToDto).toList();
-        }
-        return Collections.emptyList();
+        List<TournamentResponse> tournamentResponses = tournamentPage.getContent().stream()
+                .map(this::convertToDto)
+                .toList();
+
+        long totalCount = tournamentPage.getTotalElements();
+
+        return new PaginatedTournamentResponse(tournamentResponses, totalCount);
     }
 
     @Override
