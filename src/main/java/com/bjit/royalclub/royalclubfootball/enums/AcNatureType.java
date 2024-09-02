@@ -3,14 +3,15 @@ package com.bjit.royalclub.royalclubfootball.enums;
 import lombok.Getter;
 
 @Getter
-public enum AcTransactionType {
-    CO("Cash Out"),
-    CI("Cash In"),
-    JL("Journal");
+public enum AcNatureType {
+    ASSET("Asset"),
+    LIABILITY("Liability"),
+    INCOME("Income"),
+    EXPENSE("Expense");
 
     private final String description;
 
-    AcTransactionType(String description) {
+    AcNatureType(String description) {
         this.description = description;
     }
 

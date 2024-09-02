@@ -1,39 +1,36 @@
 package com.bjit.royalclub.royalclubfootball.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.bjit.royalclub.royalclubfootball.enums.AcNatureType;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-//@Entity
-@Builder
+@Entity
 @Table(name = "ac_natures")
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Getter
+@Setter
 public class AcNature {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @Column(nullable = false, updatable = false, length = 20)
     private String name;
+
     @Column(nullable = false, updatable = false, length = 2)
-    private String code;
-    @Column(length = 1, nullable = false, updatable = false)
-    private String type;
+    private Integer code;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 15, nullable = false, updatable = false)
+    private AcNatureType type;
+
     private Integer slNo;
 
     @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
-    @Column(name = "updated_date")
+    @Column(name = "updated_date", nullable = false)
     private LocalDateTime updatedDate;
 
 }

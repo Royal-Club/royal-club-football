@@ -9,10 +9,10 @@ import java.util.List;
 
 @Builder
 @Data
-@JsonInclude(JsonInclude.Include.NON_EMPTY) // This will exclude fields with null or empty values
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class TournamentResponse {
     private Long id;
-    private String tournamentName;
+    private String name;
     private LocalDateTime tournamentDate;
     private String venueName;
     private boolean activeStatus;
