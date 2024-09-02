@@ -101,11 +101,13 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
 
     @Override
     public List<GoalkeeperStatsResponse> goalkeeperStatsResponse(Long tournamentId) {
+        Tournament tournament = getTournament(tournamentId);
+        List<Long> teamIds = tournament.getTeams().stream().map(Team::getId).toList();
         List<Long> playerIds = tournamentParticipantRepository
                 .findAllByTournamentIdAndParticipationStatusTrue(tournamentId).stream()
                 .map(participant -> participant.getPlayer().getId())
                 .toList();
-        return teamPlayerRepository.findGoalkeeperStatsByPlayerIds(playerIds);
+        return teamPlayerRepository.findGoalkeeperStatsByPlayerIdsExcludingTeams(playerIds, teamIds);
     }
 
     private boolean isPlayerAssignedToAnyTeam(TournamentParticipant participant) {
