@@ -38,6 +38,8 @@ public class RestErrorMessageDetail {
     public static final String PLAYER_ALREADY_EXISTS = "Already a player registered with this email";
     public static final String PLAYER_IS_NOT_PARTICIPANT_YET = "Player is not a confirmed participant in the tournament";
     public static final String PLAYER_IS_NOT_FOUND = "Player is not found";
+    public static final String INCORRECT_EMAIL = "Incorrect Email";
+    public static final String PASSWORD_MISMATCH_EXCEPTION = "Password mismatch";
     public static final String TOURNAMENT_IS_NOT_FOUND = "Tournament is not Found";
     public static final String TEAM_IS_NOT_FOUND = "Team is not Found";
     public static final String NO_UPCOMING_TOURNAMENT = "No upcoming Tournament";
@@ -48,5 +50,7 @@ public class RestErrorMessageDetail {
     public static final String COST_TYPE_IS_NOT_FOUND = "Cost Type is not found";
     public static final String PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM = "This player is already added another team";
     public static final String PLAYER_IS_NOT_PART_OF_THIS_TEAM = "Player is not part of the specified team";
+    public static final String JWT_ERROR_MESSAGE = "Player is not part of the specified team";
+    public static final String INVALID_TOKEN = "Invalid token";
 
 }

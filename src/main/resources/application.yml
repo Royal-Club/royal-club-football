@@ -11,10 +11,14 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
     hibernate:
       ddl-auto: validate
   flyway:
     baseline-on-migrate: true
+jwt:
+  secret: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkwYWJjZGVmZ2hpamts
+  expiration: 604800000  # 7 days in milliseconds
 
 server:
   port: 9191

@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,17 +39,14 @@ public class VenueController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, venueResponses);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<Object> registerVenue(@Valid @RequestBody VenueRegistrationRequest venueRegistrationRequest) {
+    public ResponseEntity<Object> registerVenue(@Valid VenueRegistrationRequest venueRegistrationRequest) {
         venueService.registerVenue(venueRegistrationRequest);
         return ResponseBuilder.buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 
-    @GetMapping("{id}")
-    public ResponseEntity<Object> getVenue(@PathVariable Long id) {
-        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, venueService.getById(id));
-    }
-
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<Object> updateVenue(@PathVariable Long id,
                                               @Valid @RequestBody VenueRegistrationRequest venueRegistrationRequest) {
@@ -56,6 +54,7 @@ public class VenueController {
         return ResponseBuilder.buildSuccessResponse(HttpStatus.OK, UPDATE_OK, updatedVenueResponse);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/{id}/status")
     public ResponseEntity<Object> updateVenueStatus(@PathVariable Long id, @RequestParam boolean isActive) {
         venueService.updateStatus(id, isActive);

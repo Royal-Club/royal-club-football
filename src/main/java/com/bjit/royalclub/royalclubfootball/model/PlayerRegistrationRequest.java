@@ -28,6 +28,9 @@ public class PlayerRegistrationRequest {
     private String skypeId;
     @Size(max = 255, message = "mobile No must be less than 255 characters")
     private String mobileNo;
+    /*TODO("Password will be strong. Need to set a rule/pattern for this")*/
+    @Size(max = 255, message = "Password No must be less than 255 characters")
+    private String password;
     @NotNull(message = "Position is mandatory")
     private FootballPosition playingPosition;
 }
