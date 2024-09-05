@@ -41,7 +41,7 @@ public class VenueController {
 
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<Object> registerVenue(@Valid VenueRegistrationRequest venueRegistrationRequest) {
+    public ResponseEntity<Object> registerVenue(@Valid @RequestBody VenueRegistrationRequest venueRegistrationRequest) {
         venueService.registerVenue(venueRegistrationRequest);
         return ResponseBuilder.buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
