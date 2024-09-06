@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.entity;
 
+import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
 import com.bjit.royalclub.royalclubfootball.enums.FootballPosition;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,22 +16,21 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
 @Setter
 @Getter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "players", uniqueConstraints = {@UniqueConstraint(columnNames = {"email", "employee_id"})})
-public class Player {
+public class Player extends AuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -50,13 +50,6 @@ public class Player {
     private String mobileNo;
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
-
-    @Column(name = "created_date", nullable = false, updatable = false)
-    private LocalDateTime createdDate;
-
-    @Column(name = "updated_date")
-    private LocalDateTime updatedDate;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "playing_position", nullable = false)
     private FootballPosition position;

@@ -39,7 +39,6 @@ public class VenueServiceImpl implements VenueService {
                 .name(venueName)
                 .address(venueRegistrationRequest.getAddress())
                 .isActive(true)
-                .createdDate(LocalDateTime.now())
                 .build();
         venueRepository.save(venue);
     }
@@ -55,7 +54,6 @@ public class VenueServiceImpl implements VenueService {
     public void updateStatus(Long venueId, boolean isActive) {
         Venue venue = getVenueById(venueId);
         venue.setActive(isActive);
-        venue.setUpdatedDate(LocalDateTime.now());
         venueRepository.save(venue);
     }
 
@@ -66,8 +64,6 @@ public class VenueServiceImpl implements VenueService {
         String trimmedName = venueRequest.getName().trim();
         venue.setName(trimmedName);
         venue.setAddress(venueRequest.getAddress());
-        venue.setUpdatedDate(LocalDateTime.now());
-
         Venue updatedVenue = venueRepository.save(venue);
         return convertToDto(updatedVenue);
     }

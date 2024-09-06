@@ -55,7 +55,6 @@ public class TournamentServiceImpl implements TournamentService {
                 .tournamentDate(tournamentRequest.getTournamentDate())
                 .venue(venue)
                 .isActive(true)
-                .createdDate(LocalDateTime.now())
                 .build();
         Tournament savedTournament = tournamentRepository.save(tournament);
         return convertToDto(savedTournament);
@@ -73,7 +72,6 @@ public class TournamentServiceImpl implements TournamentService {
         Tournament tournament = tournamentRepository.findById(id)
                 .orElseThrow(() -> new TournamentServiceException(TOURNAMENT_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         tournament.setActive(active);
-        tournament.setUpdatedDate(LocalDateTime.now());
         tournamentRepository.save(tournament);
     }
 
@@ -112,7 +110,6 @@ public class TournamentServiceImpl implements TournamentService {
         tournament.setName(normalizeString(tournamentUpdateRequest.getTournamentName()));
         tournament.setTournamentDate(tournamentUpdateRequest.getTournamentDate());
         tournament.setVenue(venue);
-        tournament.setUpdatedDate(LocalDateTime.now());
         tournament = tournamentRepository.save(tournament);
         return convertToDto(tournament);
     }

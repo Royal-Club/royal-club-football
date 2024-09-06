@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.entity;
 
+import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -9,20 +10,19 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
-@Builder
+@SuperBuilder
 @Table(name = "monthly_cost")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class MonthlyCost {
+public class MonthlyCost extends AuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -40,9 +40,4 @@ public class MonthlyCost {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "created_date", nullable = false, updatable = false)
-    private LocalDateTime createdDate;
-
-    @Column(name = "updated_date")
-    private LocalDateTime updatedDate;
 }

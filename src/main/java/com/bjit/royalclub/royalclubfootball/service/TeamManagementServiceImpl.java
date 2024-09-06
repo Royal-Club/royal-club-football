@@ -189,7 +189,6 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         return Team.builder()
                 .teamName(teamRequest.getTeamName())
                 .tournament(tournament)
-                .createdDate(LocalDateTime.now())
                 .build();
     }
 
@@ -197,7 +196,6 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         Team team = validateAndGetTeam(teamRequest.getId());
         team.setTeamName(teamRequest.getTeamName());
         team.setTournament(tournament);
-        team.setUpdatedDate(LocalDateTime.now());
         return team;
     }
 
@@ -217,7 +215,6 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                 .team(team)
                 .player(player)
                 .playingPosition(getPositionOrDefault(request.getPlayingPosition()))
-                .createdDate(LocalDateTime.now())
                 .build();
     }
 
@@ -227,7 +224,6 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         teamPlayer.setTeam(team);
         teamPlayer.setPlayer(player);
         teamPlayer.setPlayingPosition(getPositionOrDefault(request.getPlayingPosition()));
-        teamPlayer.setUpdatedDate(LocalDateTime.now());
         return teamPlayer;
     }
 

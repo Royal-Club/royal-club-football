@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.entity;
 
+import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -7,19 +8,17 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import lombok.experimental.SuperBuilder;
 
 @Entity
-@Builder
+@SuperBuilder
 @Table(name = "cost_types")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CostType {
+public class CostType extends AuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,13 +27,7 @@ public class CostType {
     private String name;
 
     private String description;
-
     @Column(nullable = false)
     private boolean isActive;
 
-    @Column(name = "created_date", nullable = false, updatable = false)
-    private LocalDateTime createdDate;
-
-    @Column(name = "updated_date")
-    private LocalDateTime updatedDate;
 }

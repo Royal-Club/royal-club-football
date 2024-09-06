@@ -37,10 +37,4 @@ public class AcVoucherType {
     @Column(name = "is_default", nullable = false)
     private boolean isDefault;
 
-
-    @Column(name = "created_date", nullable = false, updatable = false)
-    private LocalDateTime createdDate;
-
-    @Column(name = "updated_date")
-    private LocalDateTime updatedDate;
 }

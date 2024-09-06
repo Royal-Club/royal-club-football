@@ -18,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -50,7 +49,6 @@ public class FinanceServiceImpl implements FinanceService {
                 .monthOfPayment(paymentRequest.getMonthOfPayment())
                 .description(finalDescription)
                 .isPaid(true)
-                .createdDate(LocalDateTime.now())
                 .build();
 
         MonthlyCollection savedCollection = monthlyCollectionRepository.save(collection);
@@ -106,7 +104,6 @@ public class FinanceServiceImpl implements FinanceService {
                 .monthOfCost(costRequest.getMonthOfCost())
                 .amount(costRequest.getAmount())
                 .description(costRequest.getDescription())
-                .createdDate(LocalDateTime.now())
                 .build();
     }
 

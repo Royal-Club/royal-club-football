@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.entity;
 
+import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,17 +15,18 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Setter
 @Getter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "tournament_participant", uniqueConstraints = {@UniqueConstraint(columnNames = {"tournament_id", "player_id"})})
-public class TournamentParticipant {
+public class TournamentParticipant extends AuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -41,9 +43,4 @@ public class TournamentParticipant {
     private boolean participationStatus;
     private String comments;
 
-    @Column(name = "created_date", nullable = false, updatable = false)
-    private LocalDateTime createdDate;
-
-    @Column(name = "updated_date")
-    private LocalDateTime updatedDate;
 }

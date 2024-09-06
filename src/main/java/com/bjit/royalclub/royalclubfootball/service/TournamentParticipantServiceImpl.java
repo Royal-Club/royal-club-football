@@ -82,7 +82,6 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
         participant.setPlayer(player);
         participant.setParticipationStatus(participationStatus);
         participant.setComments(normalizeString(newComments));
-        participant.setUpdatedDate(LocalDateTime.now());
     }
 
     private void validateTournamentDate(LocalDateTime tournamentDate) {

@@ -33,7 +33,6 @@ public class CostTypeServiceImpl implements CostTypeService {
                 .description(costTypeRequest.getDescription())
                 /*As it is admin api, so always will be true*/
                 .isActive(true)
-                .createdDate(LocalDateTime.now())
                 .build();
         costTypeRepository.save(costType);
 
@@ -56,7 +55,6 @@ public class CostTypeServiceImpl implements CostTypeService {
         CostType costType = costTypeRepository.findById(id)
                 .orElseThrow(() -> new CostTypeServiceException(COST_TYPE_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         costType.setActive(isActive);
-        costType.setUpdatedDate(LocalDateTime.now());
         costTypeRepository.save(costType);
     }
 
@@ -67,7 +65,6 @@ public class CostTypeServiceImpl implements CostTypeService {
 
         costType.setName(costTypeRequest.getName());
         costType.setDescription(costTypeRequest.getDescription());
-        costType.setUpdatedDate(LocalDateTime.now());
         costTypeRepository.save(costType);
         return convertToCostResponse(costType);
     }

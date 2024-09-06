@@ -51,7 +51,6 @@ public class PlayerServiceImpl implements PlayerService {
                 .skypeId(registrationRequest.getSkypeId())
                 .position(registrationRequest.getPlayingPosition())
                 .isActive(false)
-                .createdDate(LocalDateTime.now())/*this will be open API so, admin will activate it*/
                 .password(passwordEncoder.encode(registrationRequest.getPassword()))
                 .roles(roles).build();
         playerRepository.save(player);
@@ -75,7 +74,6 @@ public class PlayerServiceImpl implements PlayerService {
         Player player = playerRepository
                 .findById(id).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         player.setActive(active);
-        player.setUpdatedDate(LocalDateTime.now());
         playerRepository.save(player);
     }
 
@@ -90,7 +88,6 @@ public class PlayerServiceImpl implements PlayerService {
         player.setMobileNo(normalizeString(updateRequest.getMobileNo()));
         player.setSkypeId(updateRequest.getSkypeId());
         player.setPosition(updateRequest.getPlayingPosition());
-        player.setUpdatedDate(LocalDateTime.now());
         player = playerRepository.save(player);
         /*role need to be handle while update players. and only Admin can change the role*/
         return convertToDto(player);
