@@ -53,4 +53,6 @@ public class RestErrorMessageDetail {
     public static final String JWT_ERROR_MESSAGE = "Player is not part of the specified team";
     public static final String INVALID_TOKEN = "Invalid token";
 
+    public static final String UNAUTHORIZED = "You are not authorized to do this action";
+
 }

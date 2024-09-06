@@ -19,12 +19,15 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.ALREADY_PARTICIPANT;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PARTICIPANT_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.UNAUTHORIZED;
+import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.getLoggedInPlayer;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
 @Service
@@ -38,6 +41,12 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
 
     @Override
     public void saveOrUpdateTournamentParticipant(TournamentParticipantRequest tournamentParticipantRequest) {
+        /*TODO("This is workable nice but need to develop this below code as standard")*/
+        if (!Objects.equals(tournamentParticipantRequest.getPlayerId(), getLoggedInPlayer().getId()) &&
+                getLoggedInPlayer().getRoles().stream()
+                        .noneMatch(role -> "ADMIN".equals(role.getName()))) {
+            throw new SecurityException(UNAUTHORIZED);
+        }
         Tournament tournament = getTournament(tournamentParticipantRequest.getTournamentId());
         Player player = getPlayer(tournamentParticipantRequest.getPlayerId());
 
