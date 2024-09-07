@@ -23,5 +23,5 @@ public interface TournamentService {
     TournamentResponse updateTournament(Long id, TournamentUpdateRequest updateTournamentRequest);
 
     @Transactional
-    void deactivatePastTournaments();
+    void deactivateAndConcludePastTournaments();
 }

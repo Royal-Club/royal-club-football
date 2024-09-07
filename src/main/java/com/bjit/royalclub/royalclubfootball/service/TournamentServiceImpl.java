@@ -23,6 +23,8 @@ import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.VENUE_IS_NOT_FOUND;
+import static com.bjit.royalclub.royalclubfootball.enums.TournamentStatus.ONGOING;
+import static com.bjit.royalclub.royalclubfootball.enums.TournamentStatus.UPCOMING;
 import static com.bjit.royalclub.royalclubfootball.util.PaginationUtil.createPageable;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
@@ -40,6 +42,7 @@ public class TournamentServiceImpl implements TournamentService {
                 .name(tournament.getName())
                 .tournamentDate(tournament.getTournamentDate())
                 .activeStatus(tournament.isActive())
+                .tournamentStatus(tournament.getTournamentStatus())
                 .venueName(tournament.getVenue().getName())
                 .build();
     }
@@ -54,6 +57,8 @@ public class TournamentServiceImpl implements TournamentService {
                 .name(normalizeString(tournamentRequest.getTournamentName()))
                 .tournamentDate(tournamentRequest.getTournamentDate())
                 .venue(venue)
+                .tournamentStatus(tournamentRequest
+                        .getTournamentDate().isAfter(LocalDateTime.now()) ? UPCOMING : ONGOING)
                 .isActive(true)
                 .build();
         Tournament savedTournament = tournamentRepository.save(tournament);
@@ -115,8 +120,8 @@ public class TournamentServiceImpl implements TournamentService {
     }
 
     @Override
-    public void deactivatePastTournaments() {
-        tournamentRepository.deactivatePastTournaments();
+    public void deactivateAndConcludePastTournaments() {
+        tournamentRepository.deactivateAndConcludePastTournaments();
     }
 
 }

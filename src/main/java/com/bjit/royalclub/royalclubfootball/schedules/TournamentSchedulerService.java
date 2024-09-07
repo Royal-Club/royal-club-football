@@ -19,7 +19,7 @@ public class TournamentSchedulerService {
     @Scheduled(cron = "0 15 0,8 * * ?", zone = "Asia/Dhaka")
     @Transactional
     public void deactivatePastTournaments() {
-        tournamentService.deactivatePastTournaments();
-        log.info("Deactivated past tournaments based on tournamentDate.");
+        tournamentService.deactivateAndConcludePastTournaments();
+        log.info("Deactivated and conclude past tournaments based on tournamentDate.");
     }
 }

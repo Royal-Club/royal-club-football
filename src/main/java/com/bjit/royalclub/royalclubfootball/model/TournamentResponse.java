@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.model;
 
+import com.bjit.royalclub.royalclubfootball.enums.TournamentStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Data;
@@ -16,5 +17,7 @@ public class TournamentResponse {
     private LocalDateTime tournamentDate;
     private String venueName;
     private boolean activeStatus;
+
+    private TournamentStatus tournamentStatus;
     private List<TournamentTeamResponse> teams;
 }
