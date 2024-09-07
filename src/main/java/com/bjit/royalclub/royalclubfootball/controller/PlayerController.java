@@ -39,7 +39,6 @@ public class PlayerController {
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping
     public ResponseEntity<Object> getAllPlayers() {
         List<PlayerResponse> players = playerService.getAllPlayers();
