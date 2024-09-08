@@ -1,6 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.repository.account;
 
-import com.bjit.royalclub.royalclubfootball.entity.AcChart;
+import com.bjit.royalclub.royalclubfootball.entity.account.AcChart;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

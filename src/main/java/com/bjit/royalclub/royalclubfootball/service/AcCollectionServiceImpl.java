@@ -1,59 +1,83 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.entity.CostType;
-import com.bjit.royalclub.royalclubfootball.entity.MonthlyCollection;
+import com.bjit.royalclub.royalclubfootball.entity.account.AcCollection;
 import com.bjit.royalclub.royalclubfootball.entity.MonthlyCost;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.exception.CostTypeServiceException;
-import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
 import com.bjit.royalclub.royalclubfootball.model.PaymentCollectionRequest;
 import com.bjit.royalclub.royalclubfootball.model.PaymentResponse;
 import com.bjit.royalclub.royalclubfootball.repository.CostTypeRepository;
-import com.bjit.royalclub.royalclubfootball.repository.MonthlyCollectionRepository;
+import com.bjit.royalclub.royalclubfootball.repository.account.AcCollectionRepository;
 import com.bjit.royalclub.royalclubfootball.repository.MonthlyCostRepository;
-import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
+import com.bjit.royalclub.royalclubfootball.util.RandomUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.COST_TYPE_IS_NOT_FOUND;
-import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
-public class FinanceServiceImpl implements FinanceService {
-    private final PlayerRepository playerRepository;
-    private final MonthlyCollectionRepository monthlyCollectionRepository;
+public class AcCollectionServiceImpl implements AcCollectionService {
+
+    private final PlayerService playerService;
+    private final AcCollectionRepository repository;
     private final CostTypeRepository costTypeRepository;
     private final MonthlyCostRepository monthlyCostRepository;
 
     @Override
-    public PaymentResponse paymentCollection(PaymentCollectionRequest paymentRequest) {
+    public Long paymentCollection(PaymentCollectionRequest paymentRequest) {
 
-        Player player = playerRepository.findById(paymentRequest.getPlayerId())
-                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+        Set<Player> players = new HashSet<>();
+        paymentRequest.getPlayerIds().forEach(id ->
+                players.add(playerService.getPlayerEntity(id)));
 
-        String finalDescription = paymentRequest.getDescription();
-        if (paymentRequest.getMonthOfPayment().isBefore(LocalDate.now().withDayOfMonth(1))) {
-            finalDescription += " (Late Payment)";
-        }
+//        LocalDate paymentMonth = LocalDate.MIN
 
-        MonthlyCollection collection = MonthlyCollection.builder()
-                .player(player)
+//        String finalDescription = paymentRequest.getDescription();
+//        if (paymentRequest.getMonthOfPayment().isBefore(LocalDate.now().withDayOfMonth(5))) {
+//            finalDescription += " (Late Payment)";
+//        }
+
+        AcCollection collection = AcCollection.builder()
+                .transactionId(generateUniqueTransactionId())
+                .players(players)
                 .amount(paymentRequest.getAmount())
+                .totalAmount(paymentRequest.getAmount() * players.size())
                 .monthOfPayment(paymentRequest.getMonthOfPayment())
-                .description(finalDescription)
+                .description(paymentRequest.getDescription())
                 .isPaid(true)
                 .build();
 
-        MonthlyCollection savedCollection = monthlyCollectionRepository.save(collection);
+        return repository.save(collection).getId();
+    }
 
-        return convertToPaymentResponse(savedCollection);
+    @Override
+    public List<PaymentResponse> getAllPayments() {
+        List<AcCollection> entities = repository.findAll();
+
+        return entities.stream().map(this::convertToPaymentResponse).toList();
+    }
+
+    private String generateUniqueTransactionId() {
+        String transactionId;
+        do {
+            transactionId = "COL" + RandomUtil.generateRandomString(10);
+        } while (isTransactionIdExists(transactionId));
+        return transactionId;
+    }
+
+    private boolean isTransactionIdExists(String transactionId) {
+        return repository.findByTransactionId(transactionId) != null;
     }
 
 
@@ -69,9 +93,9 @@ public class FinanceServiceImpl implements FinanceService {
 
 
     private double fetchTotalCollection(LocalDate monthStart, LocalDate monthEnd) {
-        return monthlyCollectionRepository.findByMonthOfPaymentBetween(monthStart, monthEnd)
+        return repository.findByMonthOfPaymentBetween(monthStart, monthEnd)
                 .stream()
-                .mapToDouble(MonthlyCollection::getAmount)
+                .mapToDouble(AcCollection::getAmount)
                 .sum();
     }
 
@@ -107,12 +131,22 @@ public class FinanceServiceImpl implements FinanceService {
                 .build();
     }
 
-    private PaymentResponse convertToPaymentResponse(MonthlyCollection collection) {
+    private PaymentResponse convertToPaymentResponse(AcCollection collection) {
+        String allPayersName = collection.getPlayers().stream()
+                .map(Player::getName)
+                .collect(Collectors.joining(", ")) ;
+
         return PaymentResponse.builder()
-                .playerId(collection.getPlayer().getId())
-                .playerName(collection.getPlayer().getName())
-                .paymentMonth(collection.getMonthOfPayment())
+                .id(collection.getId())
+                .transactionId(collection.getTransactionId())
+                .monthOfPayment(collection.getMonthOfPayment())
                 .amount(collection.getAmount())
+                .totalAmount(collection.getTotalAmount())
+                .isPaid(collection.isPaid())
+                .players(playerService.getPlayerResponses(collection.getPlayers()))
+                .createdDate(collection.getCreatedDate())
+                .updatedDate(collection.getUpdatedDate())
+                .allPayersName(allPayersName)
                 .build();
     }
 }

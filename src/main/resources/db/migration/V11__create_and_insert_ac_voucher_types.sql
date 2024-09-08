@@ -1,9 +1,9 @@
 -- Create the table
-CREATE TABLE ac_voucher_types
+CREATE TABLE IF NOT EXISTS ac_voucher_types
 (
     id                BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name              VARCHAR(30)             NOT NULL,
-    alias             VARCHAR(2)              NOT NULL,
+    name              VARCHAR(30)             NOT NULL unique ,
+    alias             VARCHAR(2)              NOT NULL unique,
     ac_transaction_type ENUM ('CO', 'CI', 'JL') NOT NULL,
     description       VARCHAR(255),
     is_default         BOOLEAN                 NOT NULL,

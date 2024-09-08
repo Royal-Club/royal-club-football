@@ -5,9 +5,13 @@ import com.bjit.royalclub.royalclubfootball.model.PaymentCollectionRequest;
 import com.bjit.royalclub.royalclubfootball.model.PaymentResponse;
 import jakarta.transaction.Transactional;
 
-public interface FinanceService {
+import java.util.List;
+
+public interface AcCollectionService {
     @Transactional
-    PaymentResponse paymentCollection(PaymentCollectionRequest paymentRequest);
+    Long paymentCollection(PaymentCollectionRequest paymentRequest);
+
+    List<PaymentResponse> getAllPayments();
 
     @Transactional
     void recordCost(MonthlyCostRequest costRequest);

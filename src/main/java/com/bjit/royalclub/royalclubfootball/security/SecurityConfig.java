@@ -36,7 +36,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, publicEndpoints.getPublicGetEndpoints()).permitAll()
                         .requestMatchers(HttpMethod.POST, publicEndpoints.getPublicPostEndpoints()).permitAll()
                         .requestMatchers(HttpMethod.PUT, publicEndpoints.putPublicPostEndpoints()).permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(jwtUnAuthorizedResponseAuthenticationEntryPoint)

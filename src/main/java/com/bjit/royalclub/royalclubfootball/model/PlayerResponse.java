@@ -13,6 +13,7 @@ public class PlayerResponse {
     private String mobileNo;
     private String skypeId;
     private String employeeId;
+    private String fullName;
     private boolean isActive;
     private FootballPosition playingPosition;
 }

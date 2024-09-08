@@ -1,5 +1,5 @@
 -- Create the ac_charts table
-CREATE TABLE ac_charts
+CREATE TABLE IF NOT EXISTS ac_charts
 (
     id           BIGINT AUTO_INCREMENT PRIMARY KEY,
     name         VARCHAR(250) NOT NULL UNIQUE,

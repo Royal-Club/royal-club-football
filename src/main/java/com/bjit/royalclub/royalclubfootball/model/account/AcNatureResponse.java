@@ -1,6 +1,5 @@
 package com.bjit.royalclub.royalclubfootball.model.account;
 
-import com.bjit.royalclub.royalclubfootball.entity.AcVoucherType;
 import com.bjit.royalclub.royalclubfootball.enums.AcNatureType;
 import lombok.Builder;
 import lombok.Data;

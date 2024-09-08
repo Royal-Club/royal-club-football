@@ -1,4 +1,4 @@
-package com.bjit.royalclub.royalclubfootball.entity;
+package com.bjit.royalclub.royalclubfootball.entity.account;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;

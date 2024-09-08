@@ -1,6 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.service.account;
 
-import com.bjit.royalclub.royalclubfootball.entity.AcNature;
+import com.bjit.royalclub.royalclubfootball.entity.account.AcNature;
 import com.bjit.royalclub.royalclubfootball.model.account.AcNatureResponse;
 import com.bjit.royalclub.royalclubfootball.repository.account.AcNatureRepository;
 import lombok.RequiredArgsConstructor;

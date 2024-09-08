@@ -15,10 +15,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
@@ -70,6 +70,23 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     @Override
+    public PlayerResponse getPlayerResponse(Player player) {
+        return convertToDto(player);
+    }
+
+    @Override
+    public Set<PlayerResponse> getPlayerResponses(Set<Player> players) {
+
+        return players.stream().map(this::convertToDto).collect(Collectors.toSet());
+    }
+
+    @Override
+    public Player getPlayerEntity(Long id) {
+        return playerRepository.findById(id)
+                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+    }
+
+    @Override
     public void updatePlayerStatus(Long id, boolean active) {
         Player player = playerRepository
                 .findById(id).orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
@@ -108,6 +125,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .mobileNo(player.getMobileNo())
                 .skypeId(player.getSkypeId())
                 .employeeId(player.getEmployeeId())
+                .fullName(player.getName() + "[" + player.getEmployeeId() + "]")
                 .playingPosition(player.getPosition())
                 .isActive(player.isActive())
                 .build();

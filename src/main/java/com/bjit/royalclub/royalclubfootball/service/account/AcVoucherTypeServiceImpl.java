@@ -1,6 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.service.account;
 
-import com.bjit.royalclub.royalclubfootball.entity.AcVoucherType;
+import com.bjit.royalclub.royalclubfootball.entity.account.AcVoucherType;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherTypeResponse;
 import com.bjit.royalclub.royalclubfootball.repository.account.AcVoucherTypeRepository;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.bjit.royalclub.royalclubfootball.entity;
+package com.bjit.royalclub.royalclubfootball.entity.account;
 
 import com.bjit.royalclub.royalclubfootball.enums.AcTransactionType;
 import jakarta.persistence.Column;

@@ -1,5 +1,5 @@
 -- Create the ac_natures table
-CREATE TABLE ac_natures
+CREATE TABLE IF NOT EXISTS ac_natures
 (
     id           BIGINT AUTO_INCREMENT PRIMARY KEY,
     name         VARCHAR(50)                                      NOT NULL,
