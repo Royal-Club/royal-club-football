@@ -1,24 +1,32 @@
 spring:
   application:
     name: royal-club-football
+
   datasource:
     url: jdbc:mysql://localhost:3306/royal_club_football?useSSL=false&serverTimezone=UTC
     username: ${DB_USER_NAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jackson:
+    time-zone: UTC  # Ensure Jackson operates with UTC for date serialization
+
   jpa:
     show-sql: true
+    hibernate:
+      ddl-auto: validate  # Validate schema
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true
-    hibernate:
-      ddl-auto: validate
+        jdbc.time_zone: UTC  # Ensures Hibernate operates in UTC
+
   flyway:
     baseline-on-migrate: true
-jwt:
-  secret: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkwYWJjZGVmZ2hpamts
-  expiration: 604800000  # 7 days in milliseconds
 
 server:
   port: 9191
+# Will use environment variable for keep secret info of JWT
+jwt:
+  secret: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkwYWJjZGVmZ2hpamts
+  expiration: 604800000
