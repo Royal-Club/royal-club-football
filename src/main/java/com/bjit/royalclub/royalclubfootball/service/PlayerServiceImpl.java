@@ -21,6 +21,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.UNAUTHORIZED;
+import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.isUserAuthorizedForSelf;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
 @Service
@@ -96,6 +98,9 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public PlayerResponse updatePlayer(Long id, PlayerUpdateRequest updateRequest) {
+        if (!isUserAuthorizedForSelf(id)) {
+            throw new SecurityException(UNAUTHORIZED);
+        }
         Player player;
         player = playerRepository.findById(id)
                 .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));

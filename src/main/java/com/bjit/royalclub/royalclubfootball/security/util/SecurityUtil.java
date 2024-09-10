@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.Objects;
+
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 
 public class SecurityUtil {
@@ -24,6 +26,10 @@ public class SecurityUtil {
 
     public static Player getLoggedInPlayer() {
         return getLoggedInUser().getPlayer();
+    }
+
+    public static Boolean isUserAuthorizedForSelf(Long id) {
+        return id.equals(getLoggedInUserId());
     }
 
     private static Authentication getAuthentication() {

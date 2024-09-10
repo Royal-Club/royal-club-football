@@ -28,6 +28,7 @@ import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDeta
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.UNAUTHORIZED;
 import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.getLoggedInPlayer;
+import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.isUserAuthorizedForSelf;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
 @Service
@@ -42,7 +43,7 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
     @Override
     public void saveOrUpdateTournamentParticipant(TournamentParticipantRequest tournamentParticipantRequest) {
         /*TODO("This is workable nice but need to develop this below code as standard")*/
-        if (!Objects.equals(tournamentParticipantRequest.getPlayerId(), getLoggedInPlayer().getId()) &&
+        if (!isUserAuthorizedForSelf(tournamentParticipantRequest.getPlayerId()) &&
                 getLoggedInPlayer().getRoles().stream()
                         .noneMatch(role -> "ADMIN".equals(role.getName()))) {
             throw new SecurityException(UNAUTHORIZED);
