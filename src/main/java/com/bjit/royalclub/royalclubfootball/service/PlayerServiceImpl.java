@@ -5,6 +5,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Role;
 import com.bjit.royalclub.royalclubfootball.enums.PlayerRole;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
+import com.bjit.royalclub.royalclubfootball.exception.SecurityException;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
@@ -17,9 +18,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.EMAIL_ALREADY_IN_USE;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.UNAUTHORIZED;
 import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.isUserAuthorizedForSelf;
@@ -98,8 +101,13 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public PlayerResponse updatePlayer(Long id, PlayerUpdateRequest updateRequest) {
-        if (!isUserAuthorizedForSelf(id)) {
-            throw new SecurityException(UNAUTHORIZED);
+        if (Boolean.FALSE.equals(isUserAuthorizedForSelf(id))) {
+            throw new SecurityException(UNAUTHORIZED, HttpStatus.EXPECTATION_FAILED);
+        }
+        // Check if email exists and does not belong to the current user
+        Optional<Player> existingPlayerWithEmail = playerRepository.findByEmail(updateRequest.getEmail());
+        if (existingPlayerWithEmail.isPresent() && !existingPlayerWithEmail.get().getId().equals(id)) {
+            throw new SecurityException(EMAIL_ALREADY_IN_USE, HttpStatus.EXPECTATION_FAILED);
         }
         Player player;
         player = playerRepository.findById(id)

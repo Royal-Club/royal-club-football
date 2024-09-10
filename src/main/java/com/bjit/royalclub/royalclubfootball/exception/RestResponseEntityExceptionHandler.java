@@ -269,6 +269,6 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<Object> handleJWTException(SecurityException ex) {
         log.error(ERROR_LOG, "JWT exception: " + ex.getMessage());
-        return buildFailureResponse(HttpStatus.UNAUTHORIZED, RestErrorMessageDetail.JWT_ERROR_MESSAGE);
+        return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
     }
 }

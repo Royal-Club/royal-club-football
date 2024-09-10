@@ -43,7 +43,7 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
     @Override
     public void saveOrUpdateTournamentParticipant(TournamentParticipantRequest tournamentParticipantRequest) {
         /*TODO("This is workable nice but need to develop this below code as standard")*/
-        if (!isUserAuthorizedForSelf(tournamentParticipantRequest.getPlayerId()) &&
+        if (Boolean.TRUE.equals(!isUserAuthorizedForSelf(tournamentParticipantRequest.getPlayerId())) &&
                 getLoggedInPlayer().getRoles().stream()
                         .noneMatch(role -> "ADMIN".equals(role.getName()))) {
             throw new SecurityException(UNAUTHORIZED);
