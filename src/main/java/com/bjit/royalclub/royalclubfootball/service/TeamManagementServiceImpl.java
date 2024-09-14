@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
+import com.bjit.royalclub.royalclubfootball.entity.PlayerGoalkeepingHistory;
 import com.bjit.royalclub.royalclubfootball.entity.Team;
 import com.bjit.royalclub.royalclubfootball.entity.TeamPlayer;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
@@ -14,6 +15,7 @@ import com.bjit.royalclub.royalclubfootball.model.TeamRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentTeamResponse;
+import com.bjit.royalclub.royalclubfootball.repository.PlayerGoalkeepingHistoryRepository;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamRepository;
@@ -44,6 +46,8 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     private final PlayerRepository playerRepository;
     private final TeamPlayerRepository teamPlayerRepository;
     private final TournamentParticipantRepository tournamentParticipantRepository;
+
+    private final PlayerGoalkeepingHistoryRepository goalkeepingHistoryRepository;
 
     @Override
     public TeamResponse createOrUpdateTeam(TeamRequest teamRequest) {
@@ -245,5 +249,18 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                 .playerName(teamPlayer.getPlayer().getName())
                 .playingPosition(teamPlayer.getPlayingPosition())
                 .build();
+    }
+
+    private void trackGoalKeeperRound(Player player) {
+        Integer getGoalKeepingRound =
+                goalkeepingHistoryRepository.findMaxRoundByPlayerId(player.getId())
+                        .orElse(0);
+        int nextGoalKeepingRound = getGoalKeepingRound + 1;
+        PlayerGoalkeepingHistory playerGoalkeepingHistory = PlayerGoalkeepingHistory.builder()
+                .player(player)
+                .roundNumber(nextGoalKeepingRound)
+                .playedDate(LocalDateTime.now())
+                .build();
+        goalkeepingHistoryRepository.save(playerGoalkeepingHistory);
     }
 }

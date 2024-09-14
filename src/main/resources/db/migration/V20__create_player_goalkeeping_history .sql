@@ -8,5 +8,6 @@ CREATE TABLE player_goalkeeping_history
     created_date     DATETIME NOT NULL,
     last_modified_by BIGINT,
     updated_date     DATETIME DEFAULT NULL,
-    FOREIGN KEY (player_id) REFERENCES players (id)
+    FOREIGN KEY (player_id) REFERENCES players (id),
+    INDEX idx_player_round (player_id, round_number)
 );
