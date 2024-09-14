@@ -252,13 +252,14 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     }
 
     private void trackGoalKeeperRound(Player player) {
-        Integer getGoalKeepingRound =
-                goalkeepingHistoryRepository.findMaxRoundByPlayerId(player.getId())
-                        .orElse(0);
-        int nextGoalKeepingRound = getGoalKeepingRound + 1;
+
+        int lastRound = goalkeepingHistoryRepository.findMaxRoundByPlayerId(player.getId())
+                .orElse(0);
+        int nextRound = lastRound + 1;
+
         PlayerGoalkeepingHistory playerGoalkeepingHistory = PlayerGoalkeepingHistory.builder()
                 .player(player)
-                .roundNumber(nextGoalKeepingRound)
+                .roundNumber(nextRound)
                 .playedDate(LocalDateTime.now())
                 .build();
         goalkeepingHistoryRepository.save(playerGoalkeepingHistory);
