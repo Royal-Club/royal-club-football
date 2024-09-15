@@ -1,7 +1,9 @@
 package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.PlayerGoalkeepingHistory;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -11,5 +13,8 @@ public interface PlayerGoalkeepingHistoryRepository extends JpaRepository<Player
     @Query("SELECT MAX(gk.roundNumber) FROM PlayerGoalkeepingHistory gk WHERE gk.player.id = :playerId")
     Optional<Integer> findMaxRoundByPlayerId(@Param("playerId") Long playerId);
 
-
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM PlayerGoalkeepingHistory gk WHERE gk.player.id = :playerId AND gk.tournament.id = :tournamentId")
+    void deleteByPlayerAndTournament(@Param("playerId") Long playerId, @Param("tournamentId") Long tournamentId);
 }
