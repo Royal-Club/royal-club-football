@@ -54,4 +54,10 @@ public class RestErrorMessageDetail {
     public static final String UNAUTHORIZED = "You are not authorized to do this action";
     public static final String EMAIL_ALREADY_IN_USE = "Email address is already in use by another player.";
 
+    public static final String AC_VOUCHER_TYPE_NOT_FOUND = "Voucher type is not found!";
+    public static final String AC_CHART_NOT_FOUND = "Chart of Account is not found!";
+    public static final String AC_VOUCHER_NOT_FOUND = "Voucher is not found!";
+    public static final String AC_COLLECTION_NOT_FOUND = "Collection is not found!";
+    public static final String AC_VOUCHER_DR_CR_AMOUNT_NOT_SAME = "Voucher amount Cr/Dr is not same!";
+
 }

@@ -9,7 +9,7 @@ import java.util.Set;
 
 @Data
 @Builder
-public class PaymentResponse {
+public class AcCollectionResponse {
     private Long id;
     private String transactionId;
     private LocalDate monthOfPayment;
@@ -20,5 +20,7 @@ public class PaymentResponse {
     private LocalDateTime updatedDate;
     private Set<PlayerResponse> players;
     private String allPayersName;
+    private Long voucherId;
+    private String voucherCode;
 
 }

@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.entity.account;
 
+import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -21,7 +22,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class AcChart {
+public class AcChart extends AuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

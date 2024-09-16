@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.entity.account;
 
+import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
 import com.bjit.royalclub.royalclubfootball.enums.AcTransactionType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,7 +19,7 @@ import java.time.LocalDateTime;
 @Table(name = "ac_voucher_types")
 @Getter
 @Setter
-public class AcVoucherType {
+public class AcVoucherType extends AuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

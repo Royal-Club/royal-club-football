@@ -11,5 +11,6 @@ public class AcNatureResponse {
     private String name;
     private Integer code;
     private AcNatureType type;
+    private String description;
     private int slNo;
 }

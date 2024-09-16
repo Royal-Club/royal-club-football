@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.entity.account;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -11,6 +12,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -52,11 +55,17 @@ public class AcCollection extends AuditBase {
     private double totalAmount;
 
     @Column(name = "month_of_payment", nullable = false)
-    private LocalDate monthOfPayment; // The month and year for which the payment is made
+    private LocalDate monthOfPayment;
 
     @Column(name = "description")
     private String description;
 
     @Column(name = "is_paid", nullable = false)
     private boolean isPaid;
+
+    // One-to-one relationship with AcVoucher
+    @OneToOne(mappedBy = "collection",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    private AcVoucher voucher;
 }

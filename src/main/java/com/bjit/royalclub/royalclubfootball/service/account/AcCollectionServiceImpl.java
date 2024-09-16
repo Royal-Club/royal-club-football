@@ -1,28 +1,38 @@
-package com.bjit.royalclub.royalclubfootball.service;
+package com.bjit.royalclub.royalclubfootball.service.account;
 
 import com.bjit.royalclub.royalclubfootball.entity.CostType;
 import com.bjit.royalclub.royalclubfootball.entity.account.AcCollection;
 import com.bjit.royalclub.royalclubfootball.entity.MonthlyCost;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.exception.CostTypeServiceException;
+import com.bjit.royalclub.royalclubfootball.exception.ResourceNotFoundException;
 import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
 import com.bjit.royalclub.royalclubfootball.model.PaymentCollectionRequest;
-import com.bjit.royalclub.royalclubfootball.model.PaymentResponse;
+import com.bjit.royalclub.royalclubfootball.model.AcCollectionResponse;
+import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherDetailRequest;
+import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherRequest;
 import com.bjit.royalclub.royalclubfootball.repository.CostTypeRepository;
 import com.bjit.royalclub.royalclubfootball.repository.account.AcCollectionRepository;
 import com.bjit.royalclub.royalclubfootball.repository.MonthlyCostRepository;
+import com.bjit.royalclub.royalclubfootball.service.PlayerService;
 import com.bjit.royalclub.royalclubfootball.util.RandomUtil;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.AC_COLLECTION_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.COST_TYPE_IS_NOT_FOUND;
 
 @Service
@@ -33,6 +43,9 @@ public class AcCollectionServiceImpl implements AcCollectionService {
     private final AcCollectionRepository repository;
     private final CostTypeRepository costTypeRepository;
     private final MonthlyCostRepository monthlyCostRepository;
+    @Lazy
+    @Autowired
+    private  AcVoucherService acVoucherService;
 
     @Override
     public Long paymentCollection(PaymentCollectionRequest paymentRequest) {
@@ -58,11 +71,41 @@ public class AcCollectionServiceImpl implements AcCollectionService {
                 .isPaid(true)
                 .build();
 
-        return repository.save(collection).getId();
+        collection = repository.save(collection);
+
+        AcVoucherRequest voucherRequest = new AcVoucherRequest();
+        voucherRequest.setCollection(collection);
+        voucherRequest.setVoucherDate(LocalDate.now());
+        voucherRequest.setVoucherTypeId(2L);
+        voucherRequest.setNarration(paymentRequest.getDescription());
+        voucherRequest.setPostFlag(true);
+
+        List<AcVoucherDetailRequest> voucherDetailRequests = new ArrayList<>();
+
+        AcVoucherDetailRequest drDetail = AcVoucherDetailRequest.builder()
+                .dr(BigDecimal.valueOf(paymentRequest.getAmount() * players.size()))
+                .referenceNo("Monthly collection.")
+                .acChartId(4L)
+                .build();
+
+        AcVoucherDetailRequest crDetail = AcVoucherDetailRequest.builder()
+                .cr(BigDecimal.valueOf(paymentRequest.getAmount() * players.size()))
+                .referenceNo("Monthly collection.")
+                .acChartId(10L)
+                .build();
+
+        voucherDetailRequests.add(drDetail);
+        voucherDetailRequests.add(crDetail);
+
+        voucherRequest.setDetails(voucherDetailRequests);
+
+        acVoucherService.saveVoucher(voucherRequest);
+
+        return collection.getId();
     }
 
     @Override
-    public List<PaymentResponse> getAllPayments() {
+    public List<AcCollectionResponse> getAllAcCollections() {
         List<AcCollection> entities = repository.findAll();
 
         return entities.stream().map(this::convertToPaymentResponse).toList();
@@ -131,12 +174,21 @@ public class AcCollectionServiceImpl implements AcCollectionService {
                 .build();
     }
 
-    private PaymentResponse convertToPaymentResponse(AcCollection collection) {
+    public AcCollection getAcCollectionById(Long id) {
+        return repository.findById(id).orElseThrow(()->
+                new ResourceNotFoundException(AC_COLLECTION_NOT_FOUND, HttpStatus.NOT_FOUND));
+    }
+
+    public AcCollectionResponse getAcCollectionResponse(AcCollection acCollection) {
+        return convertToPaymentResponse(acCollection);
+    }
+
+    private AcCollectionResponse convertToPaymentResponse(AcCollection collection) {
         String allPayersName = collection.getPlayers().stream()
                 .map(Player::getName)
-                .collect(Collectors.joining(", ")) ;
+                .collect(Collectors.joining(", "));
 
-        return PaymentResponse.builder()
+        AcCollectionResponse acCollectionResponse = AcCollectionResponse.builder()
                 .id(collection.getId())
                 .transactionId(collection.getTransactionId())
                 .monthOfPayment(collection.getMonthOfPayment())
@@ -148,5 +200,10 @@ public class AcCollectionServiceImpl implements AcCollectionService {
                 .updatedDate(collection.getUpdatedDate())
                 .allPayersName(allPayersName)
                 .build();
+        if(ObjectUtils.isNotEmpty( collection.getVoucher())){
+            acCollectionResponse.setVoucherCode(collection.getVoucher().getCode());
+            acCollectionResponse.setVoucherId(collection.getVoucher().getId());
+        }
+        return acCollectionResponse;
     }
 }

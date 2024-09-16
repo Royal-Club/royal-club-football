@@ -2,7 +2,7 @@ package com.bjit.royalclub.royalclubfootball.controller.account;
 
 import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
 import com.bjit.royalclub.royalclubfootball.model.PaymentCollectionRequest;
-import com.bjit.royalclub.royalclubfootball.service.AcCollectionService;
+import com.bjit.royalclub.royalclubfootball.service.account.AcCollectionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -32,7 +32,7 @@ public class AcCollectionController {
     @GetMapping
     public ResponseEntity<Object> getAllAcCollections() {
         return buildSuccessResponse(
-                HttpStatus.OK, FETCH_OK, service.getAllPayments());
+                HttpStatus.OK, FETCH_OK, service.getAllAcCollections());
     }
 
     @PostMapping("/costs")

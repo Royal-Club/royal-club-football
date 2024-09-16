@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.entity.account;
 
+import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
 import com.bjit.royalclub.royalclubfootball.enums.AcNatureType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,7 +19,7 @@ import java.time.LocalDateTime;
 @Table(name = "ac_natures")
 @Getter
 @Setter
-public class AcNature {
+public class AcNature extends AuditBase {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,6 +29,9 @@ public class AcNature {
 
     @Column(nullable = false, updatable = false, length = 2)
     private Integer code;
+
+    @Column(length = 500)
+    private String description;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 15, nullable = false, updatable = false)

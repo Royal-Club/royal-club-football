@@ -25,6 +25,7 @@ public class AcNatureServiceImpl implements AcNatureService {
                 .name(entity.getName())
                 .code(entity.getCode())
                 .type(entity.getType())
+                .description(entity.getDescription())
                 .slNo(entity.getSlNo())
                 .build();
     }
