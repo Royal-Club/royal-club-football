@@ -2,6 +2,9 @@ spring:
   application:
     name: royal-club-football
 
+  main:
+    allow-circular-references: true
+
   datasource:
     url: jdbc:mysql://localhost:3306/royal_club_football?useSSL=false&serverTimezone=UTC
     username: ${DB_USER_NAME}
@@ -12,7 +15,7 @@ spring:
     time-zone: UTC  # Ensure Jackson operates with UTC for date serialization
 
   jpa:
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: validate  # Validate schema
     properties:
