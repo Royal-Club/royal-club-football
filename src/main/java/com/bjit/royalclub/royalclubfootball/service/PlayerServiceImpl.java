@@ -6,9 +6,11 @@ import com.bjit.royalclub.royalclubfootball.entity.Role;
 import com.bjit.royalclub.royalclubfootball.enums.PlayerRole;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.SecurityException;
+import com.bjit.royalclub.royalclubfootball.model.GoalKeeperHistoryDto;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
+import com.bjit.royalclub.royalclubfootball.repository.PlayerGoalkeepingHistoryRepository;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,8 @@ public class PlayerServiceImpl implements PlayerService {
     private final PlayerRepository playerRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
+
+    private final PlayerGoalkeepingHistoryRepository goalkeepingHistoryRepository;
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
@@ -128,6 +132,12 @@ public class PlayerServiceImpl implements PlayerService {
         return playerRepository
                 .findByEmailAndIsActiveTrue(email)
                 .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+    }
+
+    @Override
+    public List<GoalKeeperHistoryDto> goalKeepingHistory() {
+        /*TODO ("Need to customize here for expected data view")*/
+        return goalkeepingHistoryRepository.getGoalKeeperHistory();
     }
 
     private PlayerResponse convertToDto(Player player) {
