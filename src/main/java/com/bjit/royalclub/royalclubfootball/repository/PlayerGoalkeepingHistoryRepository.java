@@ -20,7 +20,7 @@ public interface PlayerGoalkeepingHistoryRepository extends JpaRepository<Player
     @Query("DELETE FROM PlayerGoalkeepingHistory gk WHERE gk.player.id = :playerId AND gk.tournament.id = :tournamentId")
     void deleteByPlayerAndTournament(@Param("playerId") Long playerId, @Param("tournamentId") Long tournamentId);
 
-    @Query("SELECT new com.bjit.royalclub.royalclubfootball.model.GoalKeeperHistoryDto(p.id, p.name, pgh.playedDate) " +
+    @Query("SELECT new com.bjit.royalclub.royalclubfootball.model.GoalKeeperHistoryDto(p.id, p.name, pgh.roundNumber, pgh.playedDate) " +
             "FROM Player p " +
             "LEFT JOIN PlayerGoalkeepingHistory pgh ON p.id = pgh.player.id")
     List<GoalKeeperHistoryDto> getGoalKeeperHistory();

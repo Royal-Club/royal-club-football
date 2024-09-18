@@ -1,6 +1,5 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
-import com.bjit.royalclub.royalclubfootball.entity.PlayerGoalkeepingHistory;
 import com.bjit.royalclub.royalclubfootball.model.GoalKeeperHistoryDto;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
@@ -21,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
@@ -69,7 +69,7 @@ public class PlayerController {
 
     @GetMapping("/goal-keeper-history")
     public ResponseEntity<Object> goalKeepingHistory() {
-        List<GoalKeeperHistoryDto> goalkeepingHistories = playerService.goalKeepingHistory();
-        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, goalkeepingHistories);
+        Map<Integer, List<GoalKeeperHistoryDto>> goalKeepingHistory = playerService.goalKeepingHistory();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, goalKeepingHistory);
     }
 }

@@ -8,6 +8,7 @@ import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface PlayerService {
@@ -32,6 +33,6 @@ public interface PlayerService {
 
     Player findByEmail(String userName);
 
-    List<GoalKeeperHistoryDto> goalKeepingHistory();
+    Map<Integer, List<GoalKeeperHistoryDto>> goalKeepingHistory();
 
 }

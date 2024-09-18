@@ -10,5 +10,6 @@ import java.time.LocalDateTime;
 public class GoalKeeperHistoryDto {
     private Long playerId;
     private String playerName;
+    private Integer roundNumber;
     private LocalDateTime playedDate;
 }

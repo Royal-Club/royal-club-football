@@ -18,10 +18,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.EMAIL_ALREADY_IN_USE;
@@ -134,11 +138,47 @@ public class PlayerServiceImpl implements PlayerService {
                 .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
+
     @Override
-    public List<GoalKeeperHistoryDto> goalKeepingHistory() {
-        /*TODO ("Need to customize here for expected data view")*/
-        return goalkeepingHistoryRepository.getGoalKeeperHistory();
+    public Map<Integer, List<GoalKeeperHistoryDto>> goalKeepingHistory() {
+
+        List<GoalKeeperHistoryDto> historyList = goalkeepingHistoryRepository.getGoalKeeperHistory();
+
+        Set<Long> allPlayerIds = historyList.stream()
+                .map(GoalKeeperHistoryDto::getPlayerId)
+                .collect(Collectors.toSet());
+
+        Map<Integer, List<GoalKeeperHistoryDto>> groupedByRound = historyList.stream()
+                .collect(Collectors.groupingBy(dto ->
+                                dto.getRoundNumber() == null || dto.getRoundNumber() == 0 ? 1 : dto.getRoundNumber(),
+                        () -> new TreeMap<>(Collections.reverseOrder()),
+                        Collectors.toList()));
+
+        groupedByRound.forEach((roundNumber, roundList) -> {
+            Set<Long> playersInThisRound = roundList.stream()
+                    .map(GoalKeeperHistoryDto::getPlayerId)
+                    .collect(Collectors.toSet());
+
+            allPlayerIds.stream()
+                    .filter(playerId -> !playersInThisRound.contains(playerId))
+                    .forEach(playerId -> {
+                        historyList.stream()
+                                .filter(player -> player.getPlayerId().equals(playerId))
+                                .findFirst()
+                                .ifPresent(player -> {
+                                    roundList.add(GoalKeeperHistoryDto.builder()
+                                            .playerId(player.getPlayerId())
+                                            .playerName(player.getPlayerName())
+                                            .roundNumber(roundNumber)
+                                            .playedDate(null)
+                                            .build());
+                                });
+                    });
+            roundList.sort(Comparator.comparing(GoalKeeperHistoryDto::getPlayerId));
+        });
+        return groupedByRound;
     }
+
 
     private PlayerResponse convertToDto(Player player) {
         return PlayerResponse.builder()
