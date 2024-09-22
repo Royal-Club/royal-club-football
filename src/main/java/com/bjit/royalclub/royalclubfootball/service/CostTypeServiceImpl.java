@@ -44,8 +44,18 @@ public class CostTypeServiceImpl implements CostTypeService {
 
     @Override
     public CostTypeResponse getByCostId(Long id) {
-        CostType costType = costTypeRepository.findById(id)
+        return convertToCostResponse(getCostTypeEntity(id));
+    }
+
+    @Override
+    public CostType getCostTypeEntity(Long id) {
+        return costTypeRepository.findById(id)
                 .orElseThrow(() -> new CostTypeServiceException(COST_TYPE_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+    }
+
+    @Override
+    public CostTypeResponse getByCostType(CostType costType) {
         return convertToCostResponse(costType);
     }
 

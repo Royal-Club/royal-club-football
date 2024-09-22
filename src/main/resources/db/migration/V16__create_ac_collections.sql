@@ -3,15 +3,15 @@ CREATE TABLE IF NOT EXISTS ac_collections
 (
     id               BIGINT PRIMARY KEY AUTO_INCREMENT,
     transaction_id   VARCHAR(30) UNIQUE NOT NULL,
-    amount           DOUBLE             NOT NULL,
-    total_amount     DOUBLE             NOT NULL,
+    amount           DECIMAL(19, 2)     NOT NULL,
+    total_amount     DECIMAL(19, 2)     NOT NULL,
     month_of_payment DATE               NOT NULL,
     description      TEXT,
     is_paid          BOOLEAN            NULL,
     created_by       BIGINT             NULL,
-    created_date     DATETIME           NOT NULL default current_timestamp,
+    created_date     DATETIME           NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_modified_by BIGINT             NULL,
-    updated_date     DATETIME           NULL     DEFAULT current_timestamp
+    updated_date     DATETIME           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create join table for AcCollection and Player

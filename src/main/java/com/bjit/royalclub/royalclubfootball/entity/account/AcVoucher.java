@@ -66,4 +66,8 @@ public class AcVoucher extends AuditBase {
     @JoinColumn(name = "collection_id", unique = true)
     private AcCollection collection;
 
+    @OneToOne
+    @JoinColumn(name = "payment_id", unique = true)
+    private AcBillPayment billPayment;
+
 }

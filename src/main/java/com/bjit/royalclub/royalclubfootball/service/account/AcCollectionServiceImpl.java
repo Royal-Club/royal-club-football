@@ -8,7 +8,7 @@ import com.bjit.royalclub.royalclubfootball.exception.CostTypeServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.ResourceNotFoundException;
 import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
 import com.bjit.royalclub.royalclubfootball.model.PaymentCollectionRequest;
-import com.bjit.royalclub.royalclubfootball.model.AcCollectionResponse;
+import com.bjit.royalclub.royalclubfootball.model.account.AcCollectionResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherDetailRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherRequest;
 import com.bjit.royalclub.royalclubfootball.repository.CostTypeRepository;
@@ -16,6 +16,7 @@ import com.bjit.royalclub.royalclubfootball.repository.account.AcCollectionRepos
 import com.bjit.royalclub.royalclubfootball.repository.MonthlyCostRepository;
 import com.bjit.royalclub.royalclubfootball.service.PlayerService;
 import com.bjit.royalclub.royalclubfootball.util.RandomUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,8 +46,9 @@ public class AcCollectionServiceImpl implements AcCollectionService {
     private final MonthlyCostRepository monthlyCostRepository;
     @Lazy
     @Autowired
-    private  AcVoucherService acVoucherService;
+    private AcVoucherService acVoucherService;
 
+    @Transactional
     @Override
     public Long paymentCollection(PaymentCollectionRequest paymentRequest) {
 
@@ -65,7 +67,7 @@ public class AcCollectionServiceImpl implements AcCollectionService {
                 .transactionId(generateUniqueTransactionId())
                 .players(players)
                 .amount(paymentRequest.getAmount())
-                .totalAmount(paymentRequest.getAmount() * players.size())
+                .totalAmount(paymentRequest.getAmount().multiply(BigDecimal.valueOf(players.size())))
                 .monthOfPayment(paymentRequest.getMonthOfPayment())
                 .description(paymentRequest.getDescription())
                 .isPaid(true)
@@ -83,13 +85,13 @@ public class AcCollectionServiceImpl implements AcCollectionService {
         List<AcVoucherDetailRequest> voucherDetailRequests = new ArrayList<>();
 
         AcVoucherDetailRequest drDetail = AcVoucherDetailRequest.builder()
-                .dr(BigDecimal.valueOf(paymentRequest.getAmount() * players.size()))
+                .dr(paymentRequest.getAmount().multiply(BigDecimal.valueOf(players.size())))
                 .referenceNo("Monthly collection.")
                 .acChartId(4L)
                 .build();
 
         AcVoucherDetailRequest crDetail = AcVoucherDetailRequest.builder()
-                .cr(BigDecimal.valueOf(paymentRequest.getAmount() * players.size()))
+                .cr(paymentRequest.getAmount().multiply(BigDecimal.valueOf(players.size())))
                 .referenceNo("Monthly collection.")
                 .acChartId(10L)
                 .build();
@@ -134,13 +136,13 @@ public class AcCollectionServiceImpl implements AcCollectionService {
         monthlyCostRepository.save(cost);
     }
 
-
-    private double fetchTotalCollection(LocalDate monthStart, LocalDate monthEnd) {
-        return repository.findByMonthOfPaymentBetween(monthStart, monthEnd)
-                .stream()
-                .mapToDouble(AcCollection::getAmount)
-                .sum();
-    }
+//
+//    private double fetchTotalCollection(LocalDate monthStart, LocalDate monthEnd) {
+//        return repository.findByMonthOfPaymentBetween(monthStart, monthEnd)
+//                .stream()
+//                .mapToDouble(AcCollection::getAmount)
+//                .sum();
+//    }
 
     private double fetchTotalCost(LocalDate monthStart, LocalDate monthEnd) {
         return monthlyCostRepository.findByMonthOfCostBetween(monthStart, monthEnd)
@@ -156,15 +158,15 @@ public class AcCollectionServiceImpl implements AcCollectionService {
                         Collectors.summingDouble(MonthlyCost::getAmount)));
     }
 
-    private double fetchCashOnPreviousMonth(LocalDate date) {
-        // Calculate the first and last day of the previous month
-        LocalDate startOfPreviousMonth = date.minusMonths(1).withDayOfMonth(1);
-        LocalDate endOfPreviousMonth = startOfPreviousMonth.withDayOfMonth(startOfPreviousMonth.lengthOfMonth());
-
-        double totalCollection = fetchTotalCollection(startOfPreviousMonth, endOfPreviousMonth);
-        double totalCost = fetchTotalCost(startOfPreviousMonth, endOfPreviousMonth);
-        return totalCollection - totalCost;
-    }
+//    private double fetchCashOnPreviousMonth(LocalDate date) {
+//        // Calculate the first and last day of the previous month
+//        LocalDate startOfPreviousMonth = date.minusMonths(1).withDayOfMonth(1);
+//        LocalDate endOfPreviousMonth = startOfPreviousMonth.withDayOfMonth(startOfPreviousMonth.lengthOfMonth());
+//
+//        double totalCollection = fetchTotalCollection(startOfPreviousMonth, endOfPreviousMonth);
+//        double totalCost = fetchTotalCost(startOfPreviousMonth, endOfPreviousMonth);
+//        return totalCollection - totalCost;
+//    }
 
     private MonthlyCost convertToEntity(MonthlyCostRequest costRequest) {
         return MonthlyCost.builder()
@@ -175,7 +177,7 @@ public class AcCollectionServiceImpl implements AcCollectionService {
     }
 
     public AcCollection getAcCollectionById(Long id) {
-        return repository.findById(id).orElseThrow(()->
+        return repository.findById(id).orElseThrow(() ->
                 new ResourceNotFoundException(AC_COLLECTION_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
@@ -200,7 +202,7 @@ public class AcCollectionServiceImpl implements AcCollectionService {
                 .updatedDate(collection.getUpdatedDate())
                 .allPayersName(allPayersName)
                 .build();
-        if(ObjectUtils.isNotEmpty( collection.getVoucher())){
+        if (ObjectUtils.isNotEmpty(collection.getVoucher())) {
             acCollectionResponse.setVoucherCode(collection.getVoucher().getCode());
             acCollectionResponse.setVoucherId(collection.getVoucher().getId());
         }

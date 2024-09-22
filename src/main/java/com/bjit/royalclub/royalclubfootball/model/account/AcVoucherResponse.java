@@ -1,8 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.model.account;
 
-import com.bjit.royalclub.royalclubfootball.entity.account.AcCollection;
 import com.bjit.royalclub.royalclubfootball.entity.account.AcVoucherType;
-import com.bjit.royalclub.royalclubfootball.model.AcCollectionResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

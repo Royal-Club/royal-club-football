@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.model.account;
 
+import com.bjit.royalclub.royalclubfootball.entity.account.AcBillPayment;
 import com.bjit.royalclub.royalclubfootball.entity.account.AcCollection;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -32,5 +33,7 @@ public class AcVoucherRequest {
     private List<AcVoucherDetailRequest> details;
 
     private AcCollection collection;
+
+    private AcBillPayment billPayment;
 
 }

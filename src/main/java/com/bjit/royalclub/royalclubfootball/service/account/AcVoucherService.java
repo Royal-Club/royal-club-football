@@ -132,11 +132,11 @@ public class AcVoucherService {
         acVoucher.setCollection(request.getCollection());
 
         if (request.isPostFlag()) {
-            if (!ObjectUtils.isEmpty(getLoggedInPlayer())) {
-                acVoucher.setPostedBy(getLoggedInPlayer());
+//            if (!ObjectUtils.isEmpty(getLoggedInPlayer())) {
+//                acVoucher.setPostedBy(getLoggedInPlayer());
                 acVoucher.setPostDate(LocalDate.now());
                 acVoucher.setPostFlag(request.isPostFlag());
-            }
+//            }
         }
 
         List<AcVoucherDetail> detailsEntity = request.getDetails().stream().map(detailRequest -> {

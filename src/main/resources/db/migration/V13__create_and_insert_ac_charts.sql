@@ -1,39 +1,73 @@
 -- Create the ac_charts table
 CREATE TABLE IF NOT EXISTS ac_charts
 (
-    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name         VARCHAR(250) NOT NULL UNIQUE,
-    code         VARCHAR(50)  NOT NULL UNIQUE,
-    description  VARCHAR(500),
-    parent_no    BIGINT,
-    nature_no    BIGINT,
-    is_active    BOOLEAN      not null default false,
-    created_date DATETIME     NOT NULL default current_timestamp,
-    updated_date DATETIME     NOT NULL default current_timestamp,
+    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name             VARCHAR(250) NOT NULL UNIQUE,
+    code             VARCHAR(50)  NOT NULL UNIQUE,
+    description      VARCHAR(500),
+    parent_no        BIGINT,
+    nature_no        BIGINT,
+    is_active        BOOLEAN      NOT NULL DEFAULT false,
+    created_by       BIGINT       NOT NULL,
+    created_date     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_modified_by BIGINT,
+    updated_date     DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (parent_no) REFERENCES ac_charts (id),
     FOREIGN KEY (nature_no) REFERENCES ac_natures (id)
-);
---
--- -- Insert sample data into ac_charts
-INSERT INTO ac_charts (id, name, code, description, parent_no, nature_no, is_active, created_date, updated_date)
-VALUES (1, 'Current Assets', '1100-001',
-        'A current asset is any asset which can reasonably be expected to be sold, consumed, or exhausted through the normal operations of a business within the current fiscal year or operating cycle.',
-        null, 2, 1, now(), now());
-INSERT INTO ac_charts (id, name, code, description, parent_no, nature_no, is_active, created_date, updated_date)
-VALUES (2, 'Rent Expense', '5100-001', null, null, 8, 1, now(), now());
-INSERT INTO ac_charts (id, name, code, description, parent_no, nature_no, is_active, created_date, updated_date)
-VALUES (3, 'Food Expense', '5100-002', null, null, 8, 1, now(), now());
-INSERT INTO ac_charts (id, name, code, description, parent_no, nature_no, is_active, created_date, updated_date)
-VALUES (4, 'Cash on Hand (Rakib)', '1100-001-001', null, 1, 2, 1, now(), now());
-INSERT INTO ac_charts (id, name, code, description, parent_no, nature_no, is_active, created_date, updated_date)
-VALUES (5, 'Cash on Hand (Sarower)', '1100-001-002', null, 1, 2, 1, now(), now());
-INSERT INTO ac_charts (id, name, code, description, parent_no, nature_no, is_active, created_date, updated_date)
-VALUES (6, 'Equipment Expense', '5100-003', 'Expenses related to kits purchase and maintenance', null, 8, 1,
-        now(), now());
-INSERT INTO ac_charts (id, name, code, description, parent_no, nature_no, is_active, created_date, updated_date)
-VALUES (8, 'Operating Income', '1400-001',
-        'Operating income is an accounting figure that measures the amount of profit realized from a business''s operations, after deducting operating expenses such as wages, depreciation, and cost of goods sold (COGS).',
-        null, 4, 1, now(), now());
-INSERT INTO ac_charts (id, name, code, description, parent_no, nature_no, is_active, created_date, updated_date)
-VALUES (9, 'Non - Operating Income', '1400-002', 'Non-operating income, in accounting and finance, is gains or losses from sources not related to the typical activities of the business or organization. Non-operating income can include gains or losses from investments, property or asset sales, currency exchange, and other atypical gains or losses.', null, 4, 1, now(), now());
+    );
 
+-- Insert sample data into ac_charts
+INSERT INTO ac_charts
+(id, name, code, description, parent_no, nature_no, is_active, created_by, created_date, last_modified_by, updated_date)
+VALUES
+    (1, "Current Assets", "1100-001",
+     "Assets that can reasonably be expected to be sold, consumed, or exhausted within a fiscal year or operating cycle.",
+     NULL, 2, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (2, "Rent Expense", "5100-001",
+     "Expenses related to rental payments for properties or equipment.",
+     NULL, 8, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (3, "Food Expense", "5100-002",
+     "Costs related to providing meals or refreshments.",
+     NULL, 8, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (4, "Cash on Hand (Rakib)", "1100-001-001",
+     "Cash physically available with Rakib for daily operations.",
+     1, 2, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (5, "Cash on Hand (Sarower)", "1100-001-002",
+     "Cash physically available with Sarower for daily operations.",
+     1, 2, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (6, "Equipment Expense", "5100-003",
+     "Expenses related to purchasing and maintaining equipment such as sports kits.",
+     NULL, 8, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (8, "Operating Income", "4100-001",
+     "Income generated from the club's core activities, after deducting operating expenses.",
+     NULL, 6, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (9, "Non-Operating Income", "4200-001",
+     "Income from activities outside the club's primary operations, such as investment returns or asset sales.",
+     NULL, 7, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (10, "Monthly Membership Fees", "1400-001",
+     "Revenue from membership fees collected on a monthly basis from club members.",
+     NULL, 4, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (11, "Donations", "1400-002",
+     "Voluntary financial contributions made by members or supporters of the club.",
+     NULL, 4, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (12, "Sponsorship Income", "1400-003",
+     "Revenue generated from sponsorship deals or partnerships with businesses and organizations.",
+     NULL, 4, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (13, "Event Fees", "1400-004",
+     "Income from fees charged for events or activities organized by the club.",
+     NULL, 4, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+
+    (14, "Other Expenses", "5100-004",
+     "Expenses related to miscellaneous or all other expenses incurred by the club.",
+     NULL, 8, 1, 11, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP);

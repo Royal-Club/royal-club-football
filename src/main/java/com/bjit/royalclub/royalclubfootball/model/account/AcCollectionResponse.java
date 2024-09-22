@@ -1,8 +1,10 @@
-package com.bjit.royalclub.royalclubfootball.model;
+package com.bjit.royalclub.royalclubfootball.model.account;
 
+import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -13,8 +15,8 @@ public class AcCollectionResponse {
     private Long id;
     private String transactionId;
     private LocalDate monthOfPayment;
-    private double amount;
-    private double totalAmount;
+    private BigDecimal amount;
+    private BigDecimal totalAmount;
     private boolean isPaid;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;

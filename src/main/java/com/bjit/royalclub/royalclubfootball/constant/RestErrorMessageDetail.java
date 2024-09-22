@@ -58,6 +58,7 @@ public class RestErrorMessageDetail {
     public static final String AC_CHART_NOT_FOUND = "Chart of Account is not found!";
     public static final String AC_VOUCHER_NOT_FOUND = "Voucher is not found!";
     public static final String AC_COLLECTION_NOT_FOUND = "Collection is not found!";
+    public static final String AC_BILL_PAYMENT_NOT_FOUND = "Collection is not found!";
     public static final String AC_VOUCHER_DR_CR_AMOUNT_NOT_SAME = "Voucher amount Cr/Dr is not same!";
 
 }
