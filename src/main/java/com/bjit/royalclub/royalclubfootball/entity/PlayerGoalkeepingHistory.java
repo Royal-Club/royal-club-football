@@ -36,6 +36,10 @@ public class PlayerGoalkeepingHistory extends AuditBase {
     @JoinColumn(name = "player_id", nullable = false)
     private Player player;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tournament_id", nullable = false)
+    private Tournament tournament;
+
     @Column(name = "round_number", nullable = false)
     private int roundNumber;/*GoalKeeping round number*/
 

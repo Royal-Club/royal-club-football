@@ -35,6 +35,7 @@ import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDeta
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TEAM_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
+import static com.bjit.royalclub.royalclubfootball.enums.FootballPosition.GOALKEEPER;
 import static com.bjit.royalclub.royalclubfootball.enums.FootballPosition.getPositionOrDefault;
 
 @Service
@@ -215,16 +216,30 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         if (isPlayerAssignedToAnyTeamInTournament(team.getTournament().getId(), player.getId())) {
             throw new TeamServiceException(PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM, HttpStatus.CONFLICT);
         }
-        return TeamPlayer.builder()
+        TeamPlayer teamPlayer = TeamPlayer.builder()
                 .team(team)
                 .player(player)
                 .playingPosition(getPositionOrDefault(request.getPlayingPosition()))
                 .build();
+
+        // If the player is assigned as a goalkeeper, track goalkeeping round based on previous tournaments
+        if (isGoalKeeper(request.getPlayingPosition())) {
+            trackGoalKeeperRound(player, team.getTournament());
+        }
+        return teamPlayer;
     }
 
     private TeamPlayer updateTeamPlayer(TeamPlayerRequest request, Team team, Player player) {
         TeamPlayer teamPlayer = teamPlayerRepository.findById(request.getId())
                 .orElseThrow(() -> new TeamServiceException(TEAM_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        String previousPosition = teamPlayer.getPlayingPosition().name();
+        String newPosition = getPositionOrDefault(request.getPlayingPosition()).name();
+        if (isGoalKeeper(previousPosition) && !isGoalKeeper(newPosition)) {
+            removeGoalKeeperRound(player, team.getTournament());
+        } else if (!isGoalKeeper(previousPosition) && isGoalKeeper(newPosition)) {
+            trackGoalKeeperRound(player, team.getTournament());
+        }
         teamPlayer.setTeam(team);
         teamPlayer.setPlayer(player);
         teamPlayer.setPlayingPosition(getPositionOrDefault(request.getPlayingPosition()));
@@ -251,17 +266,29 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                 .build();
     }
 
-    private void trackGoalKeeperRound(Player player) {
+    private void trackGoalKeeperRound(Player player, Tournament tournament) {
+        Integer lastRoundInPreviousTournaments =
+                goalkeepingHistoryRepository.findMaxRoundByPlayerId(player.getId()).orElse(0);
 
-        int lastRound = goalkeepingHistoryRepository.findMaxRoundByPlayerId(player.getId())
-                .orElse(0);
-        int nextRound = lastRound + 1;
+        int nextGoalKeepingRound = lastRoundInPreviousTournaments + 1;
 
         PlayerGoalkeepingHistory playerGoalkeepingHistory = PlayerGoalkeepingHistory.builder()
                 .player(player)
-                .roundNumber(nextRound)
+                .tournament(tournament)
+                .roundNumber(nextGoalKeepingRound)
                 .playedDate(LocalDateTime.now())
                 .build();
+
         goalkeepingHistoryRepository.save(playerGoalkeepingHistory);
     }
+
+    private boolean isGoalKeeper(String position) {
+        return position != null && position.equalsIgnoreCase(GOALKEEPER.name());
+    }
+
+    private void removeGoalKeeperRound(Player player, Tournament tournament) {
+        goalkeepingHistoryRepository.deleteByPlayerAndTournament(player.getId(), tournament.getId());
+    }
+
+
 }
