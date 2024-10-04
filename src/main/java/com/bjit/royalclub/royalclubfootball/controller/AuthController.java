@@ -3,11 +3,13 @@ package com.bjit.royalclub.royalclubfootball.controller;
 import com.bjit.royalclub.royalclubfootball.model.ChangePasswordRequest;
 import com.bjit.royalclub.royalclubfootball.model.LoginRequest;
 import com.bjit.royalclub.royalclubfootball.model.LoginResponse;
+import com.bjit.royalclub.royalclubfootball.model.ResetPasswordRequest;
 import com.bjit.royalclub.royalclubfootball.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,6 +37,13 @@ public class AuthController {
     @PutMapping("/change-password")
     public ResponseEntity<Object> changePassword(@Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
         authService.changePassword(changePasswordRequest);
+        return buildResponse(HttpStatus.OK, UPDATE_OK);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PutMapping("reset-password")
+    public ResponseEntity<Object> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
+        authService.resetPassword(resetPasswordRequest);
         return buildResponse(HttpStatus.OK, UPDATE_OK);
     }
 }

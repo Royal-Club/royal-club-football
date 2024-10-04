@@ -6,6 +6,7 @@ import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.model.ChangePasswordRequest;
 import com.bjit.royalclub.royalclubfootball.model.LoginRequest;
 import com.bjit.royalclub.royalclubfootball.model.LoginResponse;
+import com.bjit.royalclub.royalclubfootball.model.ResetPasswordRequest;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
@@ -57,4 +58,15 @@ public class AuthServiceImpl implements AuthService {
         playerRepository.save(loggedInPlayer);
 
     }
+
+    @Override
+    public void resetPassword(ResetPasswordRequest resetPasswordRequest) {
+
+        Player player = playerRepository.findByEmail(resetPasswordRequest.getEmail())
+                .orElseThrow(() -> new PlayerServiceException(INCORRECT_EMAIL, HttpStatus.NOT_FOUND));
+
+        player.setPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
+        playerRepository.save(player);
+    }
+
 }
