@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.lang.NonNull;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -44,6 +45,7 @@ import java.sql.SQLTimeoutException;
 import java.sql.SQLTransactionRollbackException;
 import java.sql.SQLTransientException;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.ACCESS_DENIED_ERROR_MESSAGE;
 import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildFailureResponse;
 
 @ControllerAdvice
@@ -270,5 +272,11 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     public ResponseEntity<Object> handleJWTException(SecurityException ex) {
         log.error(ERROR_LOG, "JWT exception: " + ex.getMessage());
         return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException ex) {
+        log.error(ERROR_LOG, ex.getMessage());
+        return buildFailureResponse(HttpStatus.FORBIDDEN, ACCESS_DENIED_ERROR_MESSAGE);
     }
 }
