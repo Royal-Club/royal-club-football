@@ -18,9 +18,10 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ObjectUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,7 +31,6 @@ import java.util.Objects;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.AC_VOUCHER_DR_CR_AMOUNT_NOT_SAME;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.AC_VOUCHER_NOT_FOUND;
-import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.getLoggedInPlayer;
 
 @RequiredArgsConstructor
 @Service
@@ -43,6 +43,9 @@ public class AcVoucherService {
     private final PlayerService playerService;
     private final AcChartService accountChartService;
     private final AcCollectionService acCollectionService;
+    @Autowired
+    @Lazy
+    private AcBillPaymentService acBillPaymentService;
 
 
     public List<AcVoucherResponse> getAllAcVouchers(Boolean isDetailsResponse) {
@@ -82,6 +85,10 @@ public class AcVoucherService {
         }
         if (acVoucher.getPostedBy() != null) {
             acVoucherResponse.setPostedBy(playerService.getPlayerResponse(acVoucher.getPostedBy()));
+        }
+
+        if (acVoucher.getBillPayment() != null) {
+            acVoucherResponse.setBillPayment(acBillPaymentService.getAcBillPaymentResponse(acVoucher.getBillPayment()));
         }
 
         if (Boolean.TRUE.equals(isDetailsResponse)) {
@@ -130,12 +137,13 @@ public class AcVoucherService {
         acVoucher.setNarration(request.getNarration());
         acVoucher.setAmount(crSum);
         acVoucher.setCollection(request.getCollection());
+        acVoucher.setBillPayment(request.getBillPayment());
 
         if (request.isPostFlag()) {
 //            if (!ObjectUtils.isEmpty(getLoggedInPlayer())) {
 //                acVoucher.setPostedBy(getLoggedInPlayer());
-                acVoucher.setPostDate(LocalDate.now());
-                acVoucher.setPostFlag(request.isPostFlag());
+            acVoucher.setPostDate(LocalDate.now());
+            acVoucher.setPostFlag(request.isPostFlag());
 //            }
         }
 

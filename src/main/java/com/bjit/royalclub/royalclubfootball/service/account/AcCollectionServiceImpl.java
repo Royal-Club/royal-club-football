@@ -19,6 +19,7 @@ import com.bjit.royalclub.royalclubfootball.util.RandomUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.hibernate.engine.spi.CollectionEntry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
@@ -48,9 +49,34 @@ public class AcCollectionServiceImpl implements AcCollectionService {
     @Autowired
     private AcVoucherService acVoucherService;
 
+//    public Long updatePaymentCollection(
+//            PaymentCollectionRequest paymentRequest,
+//            Long id
+//    ){
+//        AcCollection acCollection = getAcCollectionById(id);
+//
+//        Set<Player> players = new HashSet<>();
+//
+//        paymentRequest.getPlayerIds().forEach(playerId ->
+//                players.add(playerService.getPlayerEntity(id)));
+//
+//        AcCollection collection = AcCollection.builder()
+//                .transactionId(generateUniqueTransactionId())
+//                .players(players)
+//                .amount(paymentRequest.getAmount())
+//                .totalAmount(paymentRequest.getAmount().multiply(BigDecimal.valueOf(players.size())))
+//                .monthOfPayment(paymentRequest.getMonthOfPayment())
+//                .description(paymentRequest.getDescription())
+//                .isPaid(true)
+//                .build();
+//
+//
+//
+//    }
+
     @Transactional
     @Override
-    public Long paymentCollection(PaymentCollectionRequest paymentRequest) {
+    public Long savePaymentCollection(PaymentCollectionRequest paymentRequest) {
 
         Set<Player> players = new HashSet<>();
         paymentRequest.getPlayerIds().forEach(id ->

@@ -39,4 +39,6 @@ public class AcVoucherResponse {
 
     private AcCollectionResponse collection;
 
+    private AcBillPaymentResponse billPayment;
+
 }

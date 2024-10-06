@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface AcCollectionService {
 
-    Long paymentCollection(PaymentCollectionRequest paymentRequest);
+    Long savePaymentCollection(PaymentCollectionRequest paymentRequest);
 
     List<AcCollectionResponse> getAllAcCollections();
 
