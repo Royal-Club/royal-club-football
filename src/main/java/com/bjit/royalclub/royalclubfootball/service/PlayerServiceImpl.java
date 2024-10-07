@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.EMAIL_ALREADY_IN_USE;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.UNAUTHORIZED;
+import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.getLoggedInPlayer;
 import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.isUserAuthorizedForSelf;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
@@ -109,9 +110,13 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public PlayerResponse updatePlayer(Long id, PlayerUpdateRequest updateRequest) {
-        if (Boolean.FALSE.equals(isUserAuthorizedForSelf(id))) {
-            throw new SecurityException(UNAUTHORIZED, HttpStatus.EXPECTATION_FAILED);
+
+        if (Boolean.TRUE.equals(!isUserAuthorizedForSelf(id)) &&
+                getLoggedInPlayer().getRoles().stream()
+                        .noneMatch(role -> "ADMIN".equals(role.getName()))) {
+            throw new java.lang.SecurityException(UNAUTHORIZED);
         }
+
         // Check if email exists and does not belong to the current user
         Optional<Player> existingPlayerWithEmail = playerRepository.findByEmail(updateRequest.getEmail());
         if (existingPlayerWithEmail.isPresent() && !existingPlayerWithEmail.get().getId().equals(id)) {
