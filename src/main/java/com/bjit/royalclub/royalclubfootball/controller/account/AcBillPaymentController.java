@@ -20,7 +20,7 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("ac/bill-payments")
-//@PreAuthorize("hasAnyRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN')")
 public class AcBillPaymentController {
     private final AcBillPaymentService service;
 

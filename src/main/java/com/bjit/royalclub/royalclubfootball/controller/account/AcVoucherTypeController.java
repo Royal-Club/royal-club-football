@@ -18,7 +18,7 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("ac/voucher-types")
-//@PreAuthorize("hasAnyRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN')")
 public class AcVoucherTypeController {
 
     private final AcVoucherTypeService service;
