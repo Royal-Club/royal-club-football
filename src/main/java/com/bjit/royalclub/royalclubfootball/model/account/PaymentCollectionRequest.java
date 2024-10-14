@@ -1,4 +1,4 @@
-package com.bjit.royalclub.royalclubfootball.model;
+package com.bjit.royalclub.royalclubfootball.model.account;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -18,6 +18,9 @@ public class PaymentCollectionRequest {
     @Positive(message = "Amount must be greater than zero")
     @NotNull(message = "Amount is required")
     private BigDecimal amount;
+
+    @NotNull(message = "Date is required")
+    private LocalDate date;
 
     @NotNull(message = "Month of payment is required")
     private LocalDate monthOfPayment;

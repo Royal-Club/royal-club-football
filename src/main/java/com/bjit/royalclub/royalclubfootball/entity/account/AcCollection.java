@@ -12,7 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -34,6 +33,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Table(name = "ac_collections")
 public class AcCollection extends AuditBase {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -61,12 +61,10 @@ public class AcCollection extends AuditBase {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "is_paid", nullable = false)
-    private boolean isPaid;
+    @Column(name = "date", nullable = false)
+    private LocalDate date;
 
-    // One-to-one relationship with AcVoucher
-    @OneToOne(mappedBy = "collection",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
+    @OneToOne(mappedBy = "collection", cascade = CascadeType.ALL, orphanRemoval = true)
     private AcVoucher voucher;
+
 }

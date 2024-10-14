@@ -60,5 +60,8 @@ public class RestErrorMessageDetail {
     public static final String AC_COLLECTION_NOT_FOUND = "Collection is not found!";
     public static final String AC_BILL_PAYMENT_NOT_FOUND = "Collection is not found!";
     public static final String AC_VOUCHER_DR_CR_AMOUNT_NOT_SAME = "Voucher amount Cr/Dr is not same!";
+    public static final String AC_CHART_HAS_VOUCHER = "Cannot delete chart. There are vouchers associated with this chart.";
+    public static final String AC_NATURE_NOT_FOUND = "AcNature not found for the given ID.";
+
 
 }

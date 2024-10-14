@@ -7,14 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
-import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
+import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.*;
+
 import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuccessResponse;
 
 @RestController
@@ -22,18 +18,65 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 @RequestMapping("ac/bill-payments")
 @PreAuthorize("hasAnyRole('ADMIN')")
 public class AcBillPaymentController {
+
     private final AcBillPaymentService service;
 
+    /**
+     * Create a new bill payment.
+     *
+     * @param paymentRequest The request body containing the bill payment data.
+     * @return A response with the created bill payment ID.
+     */
     @PostMapping
     public ResponseEntity<Object> saveAcBillPayment(
             @Valid @RequestBody AcBillPaymentRequest paymentRequest) {
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK, service.save(paymentRequest));
     }
 
+    /**
+     * Retrieve all bill payments.
+     *
+     * @return A response containing a list of all bill payments.
+     */
     @GetMapping
     public ResponseEntity<Object> getAllAcBillPayments() {
-        return buildSuccessResponse(
-                HttpStatus.OK, FETCH_OK, service.getAllBillPayments());
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, service.getAllBillPayments());
     }
 
+    /**
+     * Retrieve a bill payment by its ID.
+     *
+     * @param id The ID of the bill payment to retrieve.
+     * @return A response containing the bill payment data.
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<Object> getAcBillPaymentById(@PathVariable Long id) {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, service.getAcBillPaymentResponse(service.getAcBillPaymentEntity(id)));
+    }
+
+    /**
+     * Update an existing bill payment by ID.
+     *
+     * @param id The ID of the bill payment to update.
+     * @param paymentRequest The request body containing the updated bill payment data.
+     * @return A response with the updated bill payment ID.
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<Object> updateAcBillPayment(
+            @PathVariable Long id,
+            @Valid @RequestBody AcBillPaymentRequest paymentRequest) {
+        return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, service.update(id, paymentRequest));
+    }
+
+    /**
+     * Delete a bill payment by ID.
+     *
+     * @param id The ID of the bill payment to delete.
+     * @return A response confirming the deletion.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Object> deleteAcBillPayment(@PathVariable Long id) {
+        service.delete(id);
+        return buildSuccessResponse(HttpStatus.NO_CONTENT, DELETE_OK, null);
+    }
 }

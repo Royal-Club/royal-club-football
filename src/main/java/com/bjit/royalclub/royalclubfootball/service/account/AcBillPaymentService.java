@@ -32,31 +32,56 @@ public class AcBillPaymentService {
     private final CostTypeService costTypeService;
     private final AcVoucherService voucherService;
 
+    /**
+     * Retrieves all bill payments.
+     */
     public List<AcBillPaymentResponse> getAllBillPayments() {
         List<AcBillPayment> billPayments = repository.findAll();
-        return billPayments.stream().map(this::getAcBillPaymentResponse).toList();
+        return billPayments.stream().map(this::convertBillPaymentDto).toList();
     }
 
+    /**
+     * Saves a new bill payment.
+     */
     @Transactional
     public Long save(AcBillPaymentRequest request) {
-
-        CostType costType = costTypeService.getCostTypeEntity(request.getCostTypeId());
-
-        AcBillPayment billPayment = new AcBillPayment();
-        billPayment.setAmount(request.getAmount());
-        billPayment.setPaymentDate(request.getPaymentDate());
-        billPayment.setPaid(request.isPaid());
-        billPayment.setCode(generateUniqueBillCode());
-        billPayment.setDescription(request.getDescription());
-        billPayment.setCostType(costType);
-
-
+        AcBillPayment billPayment = createOrUpdateBillPaymentEntity(null, request);
         billPayment = repository.save(billPayment);
 
-        // Voucher entry
+        handleVoucherForBillPayment(billPayment, request, null);
+
+        return billPayment.getId();
+    }
+
+    /**
+     * Updates an existing bill payment and its associated voucher.
+     */
+    @Transactional
+    public Long update(Long id, AcBillPaymentRequest request) {
+        AcBillPayment existingBillPayment = createOrUpdateBillPaymentEntity(id, request);
+        repository.save(existingBillPayment);
+
+        handleVoucherForBillPayment(existingBillPayment, request, existingBillPayment.getVoucher() != null ? existingBillPayment.getVoucher().getId() : null);
+
+        return existingBillPayment.getId();
+    }
+
+    /**
+     * Deletes a bill payment by ID.
+     */
+    @Transactional
+    public void delete(Long id) {
+        AcBillPayment existingBillPayment = getAcBillPaymentEntity(id);
+        repository.delete(existingBillPayment);
+    }
+
+    /**
+     * Handles saving or updating the voucher for a bill payment, based on whether a voucher ID is provided.
+     */
+    private void handleVoucherForBillPayment(AcBillPayment billPayment, AcBillPaymentRequest request, Long voucherId) {
         AcVoucherRequest voucherRequest = new AcVoucherRequest();
         voucherRequest.setBillPayment(billPayment);
-        voucherRequest.setVoucherDate(LocalDate.now());
+        voucherRequest.setVoucherDate(billPayment.getPaymentDate());
         voucherRequest.setVoucherTypeId(1L);
         voucherRequest.setNarration(request.getDescription());
         voucherRequest.setPostFlag(true);
@@ -65,13 +90,11 @@ public class AcBillPaymentService {
 
         AcVoucherDetailRequest drDetail = AcVoucherDetailRequest.builder()
                 .dr(request.getAmount())
-//                .referenceNo("Payment")
-                .acChartId(costType.getChart().getId())
+                .acChartId(billPayment.getCostType().getChart().getId())
                 .build();
 
         AcVoucherDetailRequest crDetail = AcVoucherDetailRequest.builder()
                 .cr(request.getAmount())
-//                .referenceNo("Payment")
                 .acChartId(4L)
                 .build();
 
@@ -80,16 +103,44 @@ public class AcBillPaymentService {
 
         voucherRequest.setDetails(voucherDetailRequests);
 
-        voucherService.saveVoucher(voucherRequest);
-
-        return billPayment.getId();
+        if (voucherId != null) {
+            voucherService.updateVoucher(voucherId, voucherRequest);
+        } else {
+            voucherService.saveVoucher(voucherRequest);
+        }
     }
 
+    /**
+     * Creates or updates the bill payment entity based on the input request.
+     */
+    private AcBillPayment createOrUpdateBillPaymentEntity(Long id, AcBillPaymentRequest request) {
+        AcBillPayment billPayment = (id != null) ? getAcBillPaymentEntity(id) : new AcBillPayment();
+
+        CostType costType = costTypeService.getCostTypeEntity(request.getCostTypeId());
+
+        billPayment.setAmount(request.getAmount());
+        billPayment.setPaymentDate(request.getPaymentDate());
+        billPayment.setDescription(request.getDescription());
+        billPayment.setCostType(costType);
+
+        if (id == null) {
+            billPayment.setCode(generateUniqueBillCode());
+        }
+
+        return billPayment;
+    }
+
+    /**
+     * Retrieves a bill payment by ID.
+     */
     public AcBillPayment getAcBillPaymentEntity(Long id) {
         return repository.findById(id).orElseThrow(() ->
                 new ResourceNotFoundException(AC_BILL_PAYMENT_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
+    /**
+     * Generates a unique bill code.
+     */
     private String generateUniqueBillCode() {
         String code;
         do {
@@ -98,22 +149,18 @@ public class AcBillPaymentService {
         return code;
     }
 
-
     private boolean isBillCodeExists(String code) {
         return repository.existsByCode(code);
     }
 
-
-    public AcBillPaymentResponse getAcBillPaymentResponse(Long id) {
-        return convertBillPaymentDto(getAcBillPaymentEntity(id));
-    }
-
+    /**
+     * Converts the bill payment entity to response DTO.
+     */
     public AcBillPaymentResponse getAcBillPaymentResponse(AcBillPayment billPayment) {
         return convertBillPaymentDto(billPayment);
     }
 
     private AcBillPaymentResponse convertBillPaymentDto(AcBillPayment billPayment) {
-
         AcBillPaymentResponse response = new AcBillPaymentResponse();
 
         response.setId(billPayment.getId());
@@ -121,7 +168,6 @@ public class AcBillPaymentService {
         response.setPaymentDate(billPayment.getPaymentDate());
         response.setAmount(billPayment.getAmount());
         response.setDescription(billPayment.getDescription());
-        response.setPaid(billPayment.isPaid());
         response.setCostType(costTypeService.getByCostType(billPayment.getCostType()));
 
         if (billPayment.getVoucher() != null) {

@@ -2,7 +2,7 @@ package com.bjit.royalclub.royalclubfootball.service.account;
 
 import com.bjit.royalclub.royalclubfootball.entity.account.AcCollection;
 import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
-import com.bjit.royalclub.royalclubfootball.model.PaymentCollectionRequest;
+import com.bjit.royalclub.royalclubfootball.model.account.PaymentCollectionRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.AcCollectionResponse;
 import jakarta.transaction.Transactional;
 
@@ -14,8 +14,14 @@ public interface AcCollectionService {
 
     List<AcCollectionResponse> getAllAcCollections();
 
+    Long updatePaymentCollection(Long id, PaymentCollectionRequest paymentRequest);
+
     AcCollectionResponse getAcCollectionResponse(AcCollection acCollection);
 
     @Transactional
     void recordCost(MonthlyCostRequest costRequest);
+
+    AcCollectionResponse getAcCollection(Long id);
+
+    void deletePaymentCollection(Long id);
 }

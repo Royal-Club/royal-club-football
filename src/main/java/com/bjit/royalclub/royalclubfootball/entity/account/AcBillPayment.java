@@ -49,9 +49,6 @@ public class AcBillPayment extends AuditBase {
     @JoinColumn(name = "cost_type_id", nullable = false)
     private CostType costType;
 
-    @Column(name = "is_paid", nullable = false)
-    private boolean isPaid;
-
     @OneToOne(mappedBy = "billPayment",
             cascade = CascadeType.ALL,
             orphanRemoval = true)

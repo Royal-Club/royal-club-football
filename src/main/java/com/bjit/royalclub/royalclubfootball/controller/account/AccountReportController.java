@@ -1,5 +1,8 @@
 package com.bjit.royalclub.royalclubfootball.controller.account;
 
+import com.bjit.royalclub.royalclubfootball.model.account.report.AccountSummaryResponse;
+import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummaryResponse;
+import com.bjit.royalclub.royalclubfootball.service.account.AcVoucherService;
 import com.bjit.royalclub.royalclubfootball.service.account.AccountReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -7,6 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
 import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuccessResponse;
@@ -17,6 +23,7 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 public class AccountReportController {
 
     private final AccountReportService service;
+    private final AcVoucherService voucherService;
 
     @GetMapping("accounts-summary")
     public ResponseEntity<Object> getAccountsReport() {
@@ -34,6 +41,27 @@ public class AccountReportController {
     public ResponseEntity<Object> getBalanceSheet() {
         return buildSuccessResponse(
                 HttpStatus.OK, FETCH_OK, service.getBalanceSheetReport());
+    }
+
+    @GetMapping("/current-balance")
+    public ResponseEntity<Object> getCurrentBalance() {
+        BigDecimal currentBalance = service.getCurrentBalance();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, currentBalance);
+    }
+
+    /**
+     * API to get total collection, total expense, and current balance.
+     */
+    @GetMapping("/summary")
+    public ResponseEntity<Object> getAccountSummary() {
+        AccountSummaryResponse summaryResponse = service.getAccountSummary();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, summaryResponse);
+    }
+
+    @GetMapping("/monthly-summary")
+    public ResponseEntity<Object> getMonthlySummary() {
+        List<MonthWiseSummaryResponse> summary = service.getMonthlyAccountSummary();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, summary);
     }
 
 }

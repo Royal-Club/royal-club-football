@@ -14,13 +14,14 @@ import java.util.Set;
 public class AcCollectionResponse {
     private Long id;
     private String transactionId;
+    private LocalDate date;
     private LocalDate monthOfPayment;
     private BigDecimal amount;
     private BigDecimal totalAmount;
-    private boolean isPaid;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
     private Set<PlayerResponse> players;
+    private Set<Long> playerIds;
     private String allPayersName;
     private Long voucherId;
     private String voucherCode;
