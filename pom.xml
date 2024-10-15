@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.bjit.royalclub</groupId>
     <artifactId>royal-club-football</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>v1.0.0</version>
     <name>royal-club-football</name>
     <description>royal-club-football</description>
     <url/>
