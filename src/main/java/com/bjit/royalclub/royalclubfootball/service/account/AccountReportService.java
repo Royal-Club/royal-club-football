@@ -39,16 +39,19 @@ public class AccountReportService {
     }
 
     public AccountSummaryResponse getAccountSummary() {
-        BigDecimal totalCredits = acVoucherDetailRepository.getTotalCredits();  // Total collections (credits)
-        BigDecimal totalDebits = acVoucherDetailRepository.getTotalDebits();    // Total expenses (debits)
-        BigDecimal currentBalance = totalCredits.subtract(totalDebits);         // Balance = credits - debits
+        BigDecimal totalAssets = acVoucherDetailRepository.getTotalAssets();      // Total assets
+        BigDecimal totalExpenses = acVoucherDetailRepository.getTotalExpenses();  // Total expenses
+
+        // Calculate current balance as total assets minus total expenses
+        BigDecimal currentBalance = totalAssets.subtract(totalExpenses);
 
         return AccountSummaryResponse.builder()
-                .totalCollection(totalCredits)
-                .totalExpense(totalDebits)
+                .totalCollection(totalAssets)
+                .totalExpense(totalExpenses)
                 .currentBalance(currentBalance)
                 .build();
     }
+
 
     public List<MonthWiseSummaryResponse> getMonthlyAccountSummary() {
         List<Object[]> results = acVoucherDetailRepository.getMonthlyCollectionAndExpense();
