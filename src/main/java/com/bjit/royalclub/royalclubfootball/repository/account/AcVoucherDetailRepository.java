@@ -7,6 +7,7 @@ import com.bjit.royalclub.royalclubfootball.model.account.report.AccountsReport;
 import com.bjit.royalclub.royalclubfootball.model.account.report.NatureWiseBalanceSheetReport;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -80,6 +81,17 @@ public interface AcVoucherDetailRepository extends JpaRepository<AcVoucherDetail
             "GROUP BY FUNCTION('MONTH', v.voucherDate), FUNCTION('YEAR', v.voucherDate) " +
             "ORDER BY year, month")
     List<Object[]> getMonthlyCollectionAndExpense();
+
+    @Query("SELECT FUNCTION('MONTH', v.voucherDate) as month, " +
+            "FUNCTION('YEAR', v.voucherDate) as year, " +
+            "SUM(CASE WHEN v.cr > 0 THEN v.cr ELSE 0 END) as totalIncome, " +
+            "SUM(CASE WHEN v.dr > 0 THEN v.dr ELSE 0 END) as totalExpense " +
+            "FROM AcVoucherDetail v " +
+            "JOIN v.voucher vd " +
+            "WHERE FUNCTION('YEAR', vd.voucherDate) = :year " +
+            "GROUP BY FUNCTION('MONTH', vd.voucherDate), FUNCTION('YEAR', vd.voucherDate) " +
+            "ORDER BY year, month")
+    List<Object[]> getMonthlyIncomeAndExpenseByYear(@Param("year") int year);
 
 
 }

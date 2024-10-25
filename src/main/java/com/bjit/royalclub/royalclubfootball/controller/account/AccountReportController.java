@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.controller.account;
 
 import com.bjit.royalclub.royalclubfootball.model.account.report.AccountSummaryResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummary;
+import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummaryResponse;
 import com.bjit.royalclub.royalclubfootball.service.account.AcVoucherService;
 import com.bjit.royalclub.royalclubfootball.service.account.AccountReportService;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
@@ -61,6 +63,13 @@ public class AccountReportController {
     @GetMapping("/monthly-summary")
     public ResponseEntity<Object> getMonthlySummary() {
         List<MonthWiseSummary> summary = service.getMonthlyAccountSummary();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, summary);
+    }
+
+
+    @GetMapping("/monthly-income-expense-summary")
+    public ResponseEntity<Object> getMonthlyIncomeAndExpenseSummary(@RequestParam(value = "year", required = false) Integer year) {
+        List<MonthWiseSummaryResponse> summary = service.getMonthlyIncomeAndExpenseSummary(year);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, summary);
     }
 

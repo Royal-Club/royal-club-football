@@ -4,12 +4,15 @@ import com.bjit.royalclub.royalclubfootball.model.account.report.AccountBalanceS
 import com.bjit.royalclub.royalclubfootball.model.account.report.AccountSummaryResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.report.AccountsReport;
 import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummary;
+import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummaryResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.report.NatureWiseBalanceSheetReport;
 import com.bjit.royalclub.royalclubfootball.repository.account.AcVoucherDetailRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,6 +73,41 @@ public class AccountReportService {
                     .totalCollection(totalCollection)
                     .totalExpense(totalExpense)
                     .currentBalance(currentBalance)
+                    .build());
+        }
+
+        return summaries;
+    }
+
+    public List<MonthWiseSummaryResponse> getMonthlyIncomeAndExpenseSummary(Integer year) {
+        if (year == null) {
+            year = LocalDate.now().getYear(); // Set the current year if year parameter is null
+        }
+
+        List<Object[]> results = acVoucherDetailRepository.getMonthlyIncomeAndExpenseByYear(year);
+        List<MonthWiseSummaryResponse> summaries = new ArrayList<>();
+        BigDecimal closingBalance = BigDecimal.ZERO;
+
+        for (Object[] result : results) {
+            Integer month = (Integer) result[0];
+            Integer yearValue = (Integer) result[1];
+            BigDecimal totalIncome = (BigDecimal) result[2];
+            BigDecimal totalExpense = (BigDecimal) result[3];
+
+            String monthName = Month.of(month).name(); // Get the month name from the month number
+            monthName = monthName.charAt(0) + monthName.substring(1).toLowerCase(); // Capitalize only the first letter
+
+            BigDecimal currentMonthBalance = totalIncome.subtract(totalExpense);
+            closingBalance = closingBalance.add(currentMonthBalance);
+
+            summaries.add(MonthWiseSummaryResponse.builder()
+                    .month(month)
+                    .monthName(monthName)
+                    .year(yearValue)
+                    .totalIncome(totalIncome)
+                    .totalExpense(totalExpense)
+                    .currentBalance(currentMonthBalance)
+                    .closingBalance(closingBalance)  // Add the closing balance for each month
                     .build());
         }
 
