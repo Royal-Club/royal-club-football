@@ -1,7 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.controller.account;
 
 import com.bjit.royalclub.royalclubfootball.model.account.report.AccountSummaryResponse;
-import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummaryResponse;
+import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummary;
 import com.bjit.royalclub.royalclubfootball.service.account.AcVoucherService;
 import com.bjit.royalclub.royalclubfootball.service.account.AccountReportService;
 import lombok.RequiredArgsConstructor;
@@ -60,7 +60,7 @@ public class AccountReportController {
 
     @GetMapping("/monthly-summary")
     public ResponseEntity<Object> getMonthlySummary() {
-        List<MonthWiseSummaryResponse> summary = service.getMonthlyAccountSummary();
+        List<MonthWiseSummary> summary = service.getMonthlyAccountSummary();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, summary);
     }
 

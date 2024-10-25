@@ -3,7 +3,7 @@ package com.bjit.royalclub.royalclubfootball.service.account;
 import com.bjit.royalclub.royalclubfootball.model.account.report.AccountBalanceSummary;
 import com.bjit.royalclub.royalclubfootball.model.account.report.AccountSummaryResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.report.AccountsReport;
-import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummaryResponse;
+import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummary;
 import com.bjit.royalclub.royalclubfootball.model.account.report.NatureWiseBalanceSheetReport;
 import com.bjit.royalclub.royalclubfootball.repository.account.AcVoucherDetailRepository;
 import lombok.RequiredArgsConstructor;
@@ -53,9 +53,9 @@ public class AccountReportService {
     }
 
 
-    public List<MonthWiseSummaryResponse> getMonthlyAccountSummary() {
+    public List<MonthWiseSummary> getMonthlyAccountSummary() {
         List<Object[]> results = acVoucherDetailRepository.getMonthlyCollectionAndExpense();
-        List<MonthWiseSummaryResponse> summaries = new ArrayList<>();
+        List<MonthWiseSummary> summaries = new ArrayList<>();
 
         for (Object[] result : results) {
             Integer month = (Integer) result[0];
@@ -64,7 +64,7 @@ public class AccountReportService {
             BigDecimal totalExpense = (BigDecimal) result[3];
             BigDecimal currentBalance = totalCollection.subtract(totalExpense);
 
-            summaries.add(MonthWiseSummaryResponse.builder()
+            summaries.add(MonthWiseSummary.builder()
                     .month(month)
                     .year(year)
                     .totalCollection(totalCollection)

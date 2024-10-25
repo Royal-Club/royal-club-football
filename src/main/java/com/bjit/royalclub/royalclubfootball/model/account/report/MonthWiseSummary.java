@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 
 @Data
 @Builder
-public class MonthWiseSummaryResponse {
+public class MonthWiseSummary {
     private Integer month;
     private Integer year;
     private BigDecimal totalCollection;
