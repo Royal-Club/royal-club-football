@@ -13,11 +13,13 @@ import com.bjit.royalclub.royalclubfootball.util.RandomUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +40,22 @@ public class AcBillPaymentService {
     public List<AcBillPaymentResponse> getAllBillPayments() {
         List<AcBillPayment> billPayments = repository.findAll();
         return billPayments.stream().map(this::convertBillPaymentDto).toList();
+    }
+
+    public Page<AcBillPaymentResponse> getPaginatedAcBillPayments(int page, int size, String sortBy, String order, Integer year, Integer month) {
+        Sort sort = Sort.by(Sort.Direction.fromString(order == null ? "ASC" : order), sortBy == null ? "paymentDate" : sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<AcBillPayment> paymentPage;
+        if (year != null && month != null) {
+            paymentPage = repository.findByYearAndMonth(year, month, pageable);
+        } else if (year != null) {
+            paymentPage = repository.findByYear(year, pageable);
+        } else {
+            paymentPage = repository.findAll(pageable);
+        }
+
+        return paymentPage.map(this::convertBillPaymentDto);
     }
 
     /**

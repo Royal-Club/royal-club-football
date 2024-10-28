@@ -82,8 +82,8 @@ public interface AcVoucherDetailRepository extends JpaRepository<AcVoucherDetail
             "ORDER BY year, month")
     List<Object[]> getMonthlyCollectionAndExpense();
 
-    @Query("SELECT FUNCTION('MONTH', v.voucherDate) as month, " +
-            "FUNCTION('YEAR', v.voucherDate) as year, " +
+    @Query("SELECT FUNCTION('MONTH', vd.voucherDate) as month, " +
+            "FUNCTION('YEAR', vd.voucherDate) as year, " +
             "SUM(CASE WHEN v.cr > 0 THEN v.cr ELSE 0 END) as totalIncome, " +
             "SUM(CASE WHEN v.dr > 0 THEN v.dr ELSE 0 END) as totalExpense " +
             "FROM AcVoucherDetail v " +

@@ -1,9 +1,11 @@
 package com.bjit.royalclub.royalclubfootball.controller.account;
 
 import com.bjit.royalclub.royalclubfootball.model.account.AcBillPaymentRequest;
+import com.bjit.royalclub.royalclubfootball.model.account.AcBillPaymentResponse;
 import com.bjit.royalclub.royalclubfootball.service.account.AcBillPaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,6 +33,19 @@ public class AcBillPaymentController {
     public ResponseEntity<Object> saveAcBillPayment(
             @Valid @RequestBody AcBillPaymentRequest paymentRequest) {
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK, service.save(paymentRequest));
+    }
+
+    @GetMapping("/ajax-collections")
+    public ResponseEntity<Object> getAcBillPayments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String order,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+
+        Page<AcBillPaymentResponse> result = service.getPaginatedAcBillPayments(page, size, sortBy, order, year, month);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     /**
