@@ -63,5 +63,6 @@ public class RestErrorMessageDetail {
     public static final String AC_CHART_HAS_VOUCHER = "Cannot delete chart. There are vouchers associated with this chart.";
     public static final String AC_NATURE_NOT_FOUND = "AcNature not found for the given ID.";
 
+    public static final String CLUB_RULE_IS_NOT_FOUND = "Club rule is not Found";
 
 }

@@ -1,6 +1,5 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
-import com.bjit.royalclub.royalclubfootball.entity.Venue;
 import com.bjit.royalclub.royalclubfootball.model.VenueRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.VenueResponse;
 import jakarta.transaction.Transactional;
