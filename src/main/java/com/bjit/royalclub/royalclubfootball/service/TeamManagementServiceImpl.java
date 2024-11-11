@@ -86,8 +86,9 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     @Override
     public void removePlayerFromTeam(TeamPlayerRemoveRequest playerRemoveRequest) {
         Team team = validateAndGetTeam(playerRemoveRequest.getTeamId());
-        validateAndGetPlayer(playerRemoveRequest.getPlayerId());
         validateTournamentDate(team.getTournament());
+        Player player = validateAndGetPlayer(playerRemoveRequest.getPlayerId());
+        removeGoalKeeperRound(player, team.getTournament());
         TeamPlayer teamPlayer = teamPlayerRepository.findByTeamIdAndPlayerId(playerRemoveRequest.getTeamId(),
                 playerRemoveRequest.getPlayerId()).orElseThrow(() ->
                 new TournamentServiceException(PLAYER_IS_NOT_PART_OF_THIS_TEAM, HttpStatus.NOT_FOUND)
