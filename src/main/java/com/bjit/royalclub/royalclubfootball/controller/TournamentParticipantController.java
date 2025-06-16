@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
 import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
+import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithParticipantsResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentWithPlayersResponse;
@@ -30,6 +31,7 @@ public class TournamentParticipantController {
     private final TournamentParticipantService tournamentParticipantService;
     private final TournamentParticipantPlayerService tournamentParticipantPlayerService;
 
+
     @PostMapping
     public ResponseEntity<Object> saveOrUpdateTournamentParticipant(@Valid @RequestBody TournamentParticipantRequest
                                                                             tournamentParticipantRequest) {
@@ -56,5 +58,11 @@ public class TournamentParticipantController {
         List<GoalkeeperStatsResponse> goalkeeperStatsResponses =
                 tournamentParticipantService.goalkeeperStatsResponse(tournamentId);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, goalkeeperStatsResponses);
+    }
+
+    @GetMapping("/latest-tournament-with-participants")
+    public ResponseEntity<LatestTournamentWithParticipantsResponse> getLatestTournamentWithParticipants() {
+        LatestTournamentWithParticipantsResponse response = tournamentParticipantService.getLatestTournamentWithParticipants();
+        return ResponseEntity.ok(response);
     }
 }

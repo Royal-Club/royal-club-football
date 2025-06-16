@@ -12,4 +12,6 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long>, J
             "WHERE t.tournamentDate < CURRENT_TIMESTAMP AND t.isActive = true")
     void deactivateAndConcludePastTournaments();
 
+    Tournament findTopByOrderByTournamentDateDesc();
+
 }

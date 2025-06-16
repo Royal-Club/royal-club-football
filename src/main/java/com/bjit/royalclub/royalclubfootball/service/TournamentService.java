@@ -24,4 +24,8 @@ public interface TournamentService {
 
     @Transactional
     void deactivateAndConcludePastTournaments();
+
+    TournamentResponse getMostRecentTournament();
+
+
 }

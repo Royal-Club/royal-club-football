@@ -19,4 +19,6 @@ public interface TournamentParticipantRepository extends JpaRepository<Tournamen
     boolean existsByTournamentIdAndPlayerIdAndParticipationStatusTrue(
             @Param("tournamentId") Long tournamentId, @Param("playerId") Long playerId);
 
+    int countByTournamentIdAndParticipationStatusTrue(Long tournamentId);
+
 }

@@ -124,4 +124,14 @@ public class TournamentServiceImpl implements TournamentService {
         tournamentRepository.deactivateAndConcludePastTournaments();
     }
 
+    @Override
+    public TournamentResponse getMostRecentTournament() {
+        Tournament tournament = tournamentRepository.findTopByOrderByTournamentDateDesc();
+        if (tournament == null) {
+            throw new TournamentServiceException(TOURNAMENT_IS_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+        return convertToDto(tournament);
+    }
+
+
 }

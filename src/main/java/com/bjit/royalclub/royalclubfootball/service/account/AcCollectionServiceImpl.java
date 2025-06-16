@@ -11,6 +11,7 @@ import com.bjit.royalclub.royalclubfootball.model.account.PaymentCollectionReque
 import com.bjit.royalclub.royalclubfootball.model.account.AcCollectionResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherDetailRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherRequest;
+import com.bjit.royalclub.royalclubfootball.model.account.report.PlayerCollectionReport;
 import com.bjit.royalclub.royalclubfootball.repository.CostTypeRepository;
 import com.bjit.royalclub.royalclubfootball.repository.MonthlyCostRepository;
 import com.bjit.royalclub.royalclubfootball.repository.account.AcCollectionRepository;
@@ -25,7 +26,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -246,5 +249,31 @@ public class AcCollectionServiceImpl implements AcCollectionService {
     public AcCollectionResponse getAcCollection(Long id) {
         AcCollection collection = getAcCollectionById(id);
         return convertToPaymentResponse(collection);
+    }
+
+    // In AcCollectionServiceImpl.java
+    @Override
+    public List<PlayerCollectionReport> getPlayerCollectionMetrics() {
+        List<AcCollection> collections = repository.findAll();
+        Map<Long, PlayerCollectionReport> reportMap = new HashMap<>();
+
+        for (AcCollection collection : collections) {
+            for (Player player : collection.getPlayers()) {
+                PlayerCollectionReport report = reportMap.computeIfAbsent(player.getId(), id -> {
+                    PlayerCollectionReport r = new PlayerCollectionReport();
+                    r.setPlayerId(player.getId());
+                    r.setPlayerName(player.getName());
+                    r.setYearMonthAmount(new HashMap<>());
+                    return r;
+                });
+
+                int year = collection.getMonthOfPayment().getYear();
+                int month = collection.getMonthOfPayment().getMonthValue();
+                report.getYearMonthAmount()
+                        .computeIfAbsent(year, y -> new HashMap<>())
+                        .merge(month, collection.getAmount(), BigDecimal::add);
+            }
+        }
+        return new ArrayList<>(reportMap.values());
     }
 }

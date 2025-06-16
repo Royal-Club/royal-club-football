@@ -82,4 +82,10 @@ public class TournamentController {
         List<TournamentResponse> tournamentResponses = teamManagementService.getTournamentsSummery(tournamentId);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
     }
+
+    @GetMapping("/most-recent")
+    public ResponseEntity<Object> getMostRecentTournament() {
+        TournamentResponse response = tournamentService.getMostRecentTournament();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, response);
+    }
 }

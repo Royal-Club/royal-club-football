@@ -35,4 +35,6 @@ public interface PlayerService {
 
     Map<Integer, List<GoalKeeperHistoryDto>> goalKeepingHistory();
 
+    int countActivePlayers();
+
 }

@@ -11,4 +11,7 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
 
     Optional<Player> findByEmailAndIsActiveTrue(String email);
 
+    int countByIsActiveTrue();
+
+
 }

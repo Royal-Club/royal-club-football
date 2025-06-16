@@ -198,4 +198,9 @@ public class PlayerServiceImpl implements PlayerService {
                 .isActive(player.isActive())
                 .build();
     }
+
+    @Override
+    public int countActivePlayers() {
+        return playerRepository.countByIsActiveTrue();
+    }
 }

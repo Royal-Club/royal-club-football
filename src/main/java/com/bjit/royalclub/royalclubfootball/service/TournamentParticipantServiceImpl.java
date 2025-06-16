@@ -7,8 +7,10 @@ import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipant;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
+import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithParticipantsResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
+import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepository;
@@ -19,7 +21,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.ALREADY_PARTICIPANT;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PARTICIPANT_NOT_FOUND;
@@ -39,6 +40,9 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
     private final TournamentRepository tournamentRepository;
     private final PlayerRepository playerRepository;
     private final TeamPlayerRepository teamPlayerRepository;
+    private final TournamentService tournamentService;
+    private final PlayerService playerService;
+
 
     @Override
     public void saveOrUpdateTournamentParticipant(TournamentParticipantRequest tournamentParticipantRequest) {
@@ -133,6 +137,23 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
                 .playerName(participant.getPlayer().getName())
                 .participationStatus(participant.isParticipationStatus())
                 .comments(participant.getComments())
+                .build();
+    }
+
+    @Override
+    public LatestTournamentWithParticipantsResponse getLatestTournamentWithParticipants() {
+        TournamentResponse latestTournament = tournamentService.getMostRecentTournament();
+
+        int totalPlayers = playerService.countActivePlayers();
+
+        int totalParticipants = tournamentParticipantRepository.countByTournamentIdAndParticipationStatusTrue(
+                latestTournament.getId());
+
+        return LatestTournamentWithParticipantsResponse.builder()
+                .tournament(latestTournament)
+                .totalParticipant(totalParticipants)
+                .totalPlayer(totalPlayers)
+                .remainParticipant(totalPlayers - totalParticipants)
                 .build();
     }
 }

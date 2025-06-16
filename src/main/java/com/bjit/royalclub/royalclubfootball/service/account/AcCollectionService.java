@@ -2,8 +2,9 @@ package com.bjit.royalclub.royalclubfootball.service.account;
 
 import com.bjit.royalclub.royalclubfootball.entity.account.AcCollection;
 import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
-import com.bjit.royalclub.royalclubfootball.model.account.PaymentCollectionRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.AcCollectionResponse;
+import com.bjit.royalclub.royalclubfootball.model.account.PaymentCollectionRequest;
+import com.bjit.royalclub.royalclubfootball.model.account.report.PlayerCollectionReport;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
@@ -24,4 +25,6 @@ public interface AcCollectionService {
     AcCollectionResponse getAcCollection(Long id);
 
     void deletePaymentCollection(Long id);
+
+    List<PlayerCollectionReport> getPlayerCollectionMetrics();
 }
