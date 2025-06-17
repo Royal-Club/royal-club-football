@@ -7,10 +7,11 @@ import com.bjit.royalclub.royalclubfootball.entity.account.AcCollection;
 import com.bjit.royalclub.royalclubfootball.exception.CostTypeServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.ResourceNotFoundException;
 import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
-import com.bjit.royalclub.royalclubfootball.model.account.PaymentCollectionRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.AcCollectionResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherDetailRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherRequest;
+import com.bjit.royalclub.royalclubfootball.model.account.PaymentCollectionRequest;
+import com.bjit.royalclub.royalclubfootball.model.account.report.PlayerCollectionMetricsResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.report.PlayerCollectionReport;
 import com.bjit.royalclub.royalclubfootball.repository.CostTypeRepository;
 import com.bjit.royalclub.royalclubfootball.repository.MonthlyCostRepository;
@@ -253,7 +254,7 @@ public class AcCollectionServiceImpl implements AcCollectionService {
 
     // In AcCollectionServiceImpl.java
     @Override
-    public List<PlayerCollectionReport> getPlayerCollectionMetrics() {
+    public PlayerCollectionMetricsResponse getPlayerCollectionMetrics() {
         List<AcCollection> collections = repository.findAll();
         Map<Long, PlayerCollectionReport> reportMap = new HashMap<>();
 
@@ -274,6 +275,10 @@ public class AcCollectionServiceImpl implements AcCollectionService {
                         .merge(month, collection.getAmount(), BigDecimal::add);
             }
         }
-        return new ArrayList<>(reportMap.values());
+        return PlayerCollectionMetricsResponse.builder()
+                .metrics(new ArrayList<>(reportMap.values()))
+                .years(
+                        repository.findAllCollectionYears()
+                ).build();
     }
 }

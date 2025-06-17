@@ -1,7 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
 import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
-import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithParticipantsResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentWithPlayersResponse;
@@ -60,9 +59,13 @@ public class TournamentParticipantController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, goalkeeperStatsResponses);
     }
 
-    @GetMapping("/latest-tournament-with-participants")
-    public ResponseEntity<LatestTournamentWithParticipantsResponse> getLatestTournamentWithParticipants() {
-        LatestTournamentWithParticipantsResponse response = tournamentParticipantService.getLatestTournamentWithParticipants();
-        return ResponseEntity.ok(response);
+    @GetMapping("/latest/with-participants")
+    public ResponseEntity<Object> getLatestTournamentWithParticipants() {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentParticipantService.getLatestTournamentWithParticipants());
+    }
+
+    @GetMapping("/latest/with-user-status")
+    public ResponseEntity<Object> getLatestTournamentWithUserStatus() {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentParticipantService.getLatestTournamentWithUserStatus());
     }
 }

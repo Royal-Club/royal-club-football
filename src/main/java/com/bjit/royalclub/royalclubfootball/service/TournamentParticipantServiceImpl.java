@@ -8,6 +8,7 @@ import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
 import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithParticipantsResponse;
+import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithUserParticipantsResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
@@ -154,6 +155,26 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
                 .totalParticipant(totalParticipants)
                 .totalPlayer(totalPlayers)
                 .remainParticipant(totalPlayers - totalParticipants)
+                .build();
+    }
+
+    public LatestTournamentWithUserParticipantsResponse getLatestTournamentWithUserStatus() {
+        TournamentResponse latestTournament = tournamentService.getMostRecentTournament();
+
+        int totalPlayers = playerService.countActivePlayers();
+
+        int totalParticipants = tournamentParticipantRepository.countByTournamentIdAndParticipationStatusTrue(
+                latestTournament.getId());
+
+        boolean isUserParticipant = tournamentParticipantRepository.existsByTournamentIdAndPlayerIdAndParticipationStatusTrue(
+                latestTournament.getId(), getLoggedInPlayer().getId());
+
+        return LatestTournamentWithUserParticipantsResponse.builder()
+                .tournament(latestTournament)
+                .totalParticipant(totalParticipants)
+                .totalPlayer(totalPlayers)
+                .remainParticipant(totalPlayers - totalParticipants)
+                .isUserParticipated(isUserParticipant)
                 .build();
     }
 }

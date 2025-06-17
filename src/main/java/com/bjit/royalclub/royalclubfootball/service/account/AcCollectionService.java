@@ -4,6 +4,7 @@ import com.bjit.royalclub.royalclubfootball.entity.account.AcCollection;
 import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.AcCollectionResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.PaymentCollectionRequest;
+import com.bjit.royalclub.royalclubfootball.model.account.report.PlayerCollectionMetricsResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.report.PlayerCollectionReport;
 import jakarta.transaction.Transactional;
 
@@ -26,5 +27,5 @@ public interface AcCollectionService {
 
     void deletePaymentCollection(Long id);
 
-    List<PlayerCollectionReport> getPlayerCollectionMetrics();
+    PlayerCollectionMetricsResponse getPlayerCollectionMetrics();
 }

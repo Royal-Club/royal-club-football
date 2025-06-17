@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
 import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithParticipantsResponse;
+import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithUserParticipantsResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 
@@ -15,5 +16,7 @@ public interface TournamentParticipantService {
     List<GoalkeeperStatsResponse> goalkeeperStatsResponse(Long tournamentId);
 
     LatestTournamentWithParticipantsResponse getLatestTournamentWithParticipants();
+
+    LatestTournamentWithUserParticipantsResponse getLatestTournamentWithUserStatus();
 
 }

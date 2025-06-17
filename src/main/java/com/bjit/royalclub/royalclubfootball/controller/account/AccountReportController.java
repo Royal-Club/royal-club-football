@@ -3,7 +3,6 @@ package com.bjit.royalclub.royalclubfootball.controller.account;
 import com.bjit.royalclub.royalclubfootball.model.account.report.AccountSummaryResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummary;
 import com.bjit.royalclub.royalclubfootball.model.account.report.MonthWiseSummaryResponse;
-import com.bjit.royalclub.royalclubfootball.model.account.report.PlayerCollectionReport;
 import com.bjit.royalclub.royalclubfootball.service.account.AcCollectionService;
 import com.bjit.royalclub.royalclubfootball.service.account.AccountReportService;
 import lombok.RequiredArgsConstructor;
@@ -75,8 +74,8 @@ public class AccountReportController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, summary);
     }
 
-    @GetMapping("/player-metrics")
-    public List<PlayerCollectionReport> getPlayerCollectionMetrics() {
-        return acCollectionService.getPlayerCollectionMetrics();
+    @GetMapping("/player-collection-metrics")
+    public ResponseEntity<Object> getPlayerCollectionMetrics() {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, acCollectionService.getPlayerCollectionMetrics());
     }
 }
