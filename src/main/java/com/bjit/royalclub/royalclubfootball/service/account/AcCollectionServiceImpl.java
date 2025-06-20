@@ -254,8 +254,13 @@ public class AcCollectionServiceImpl implements AcCollectionService {
 
     // In AcCollectionServiceImpl.java
     @Override
-    public PlayerCollectionMetricsResponse getPlayerCollectionMetrics() {
-        List<AcCollection> collections = repository.findAll();
+    public PlayerCollectionMetricsResponse getPlayerCollectionMetrics(Integer year) {
+        List<AcCollection> collections;
+        if (year == null) {
+            collections = repository.findAll();
+        } else {
+            collections = repository.findCollectionsByYear(year);
+        }
         Map<Long, PlayerCollectionReport> reportMap = new HashMap<>();
 
         for (AcCollection collection : collections) {
@@ -264,15 +269,16 @@ public class AcCollectionServiceImpl implements AcCollectionService {
                     PlayerCollectionReport r = new PlayerCollectionReport();
                     r.setPlayerId(player.getId());
                     r.setPlayerName(player.getName());
+                    r.setActive(player.isActive());
                     r.setYearMonthAmount(new HashMap<>());
                     return r;
                 });
 
-                int year = collection.getMonthOfPayment().getYear();
-                int month = collection.getMonthOfPayment().getMonthValue();
+                int yearValue = collection.getMonthOfPayment().getYear();
+                int monthValue = collection.getMonthOfPayment().getMonthValue();
                 report.getYearMonthAmount()
-                        .computeIfAbsent(year, y -> new HashMap<>())
-                        .merge(month, collection.getAmount(), BigDecimal::add);
+                        .computeIfAbsent(yearValue, y -> new HashMap<>())
+                        .merge(monthValue, collection.getAmount(), BigDecimal::add);
             }
         }
         return PlayerCollectionMetricsResponse.builder()

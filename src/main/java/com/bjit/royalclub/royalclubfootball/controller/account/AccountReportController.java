@@ -75,7 +75,7 @@ public class AccountReportController {
     }
 
     @GetMapping("/player-collection-metrics")
-    public ResponseEntity<Object> getPlayerCollectionMetrics() {
-        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, acCollectionService.getPlayerCollectionMetrics());
+    public ResponseEntity<Object> getPlayerCollectionMetrics(@RequestParam(value = "year", required = false) Integer year) {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, acCollectionService.getPlayerCollectionMetrics(year));
     }
 }

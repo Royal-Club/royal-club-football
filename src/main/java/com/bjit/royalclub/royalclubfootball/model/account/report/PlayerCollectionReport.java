@@ -9,5 +9,6 @@ import java.util.Map;
 public class PlayerCollectionReport {
     private Long playerId;
     private String playerName;
-    private Map<Integer, Map<Integer, BigDecimal>> yearMonthAmount; // year -> (month -> totalAmount)
+    private boolean isActive;
+    private Map<Integer, Map<Integer, BigDecimal>> yearMonthAmount;
 }

@@ -27,5 +27,6 @@ public interface AcCollectionService {
 
     void deletePaymentCollection(Long id);
 
-    PlayerCollectionMetricsResponse getPlayerCollectionMetrics();
+    PlayerCollectionMetricsResponse getPlayerCollectionMetrics(Integer year);
+
 }
