@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: royal-club-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: brFc129
+      MYSQL_DATABASE: royal_club_football
+    ports:
+      - "3307:3306"  # Mapping container's port 3306 to host's port 3307
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - royal-club-network
+    restart: always
+
+networks:
+  royal-club-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
