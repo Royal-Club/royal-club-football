@@ -37,4 +37,6 @@ public interface PlayerService {
 
     int countActivePlayers();
 
+    List<GoalKeeperHistoryDto> getGoalKeeperHistoryByLoggedInUser();
+
 }
