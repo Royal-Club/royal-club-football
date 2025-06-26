@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
+import com.bjit.royalclub.royalclubfootball.entity.PlayerGoalkeepingHistory;
 import com.bjit.royalclub.royalclubfootball.entity.Role;
 import com.bjit.royalclub.royalclubfootball.enums.PlayerRole;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
@@ -32,6 +33,7 @@ import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDeta
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.UNAUTHORIZED;
 import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.getLoggedInPlayer;
+import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.getLoggedInUserId;
 import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.isUserAuthorizedForSelf;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
@@ -203,4 +205,24 @@ public class PlayerServiceImpl implements PlayerService {
     public int countActivePlayers() {
         return playerRepository.countByIsActiveTrue();
     }
+
+    @Override
+    public List<GoalKeeperHistoryDto> getGoalKeeperHistoryByLoggedInUser() {
+        Long loggedInUserId = getLoggedInUserId();
+        List<PlayerGoalkeepingHistory> playerGoalkeepingHistories =
+                goalkeepingHistoryRepository.getAllByPlayerIdOrderByRoundNumberDesc(loggedInUserId);
+        return playerGoalkeepingHistories.stream()
+                .map(playerGoalkeepingHistory -> {
+                    Player player = playerGoalkeepingHistory.getPlayer();
+                    return GoalKeeperHistoryDto.builder()
+                            .playerId(player.getId())
+                            .playerName(player.getName())
+                            .roundNumber(playerGoalkeepingHistory.getRoundNumber())
+                            .playedDate(playerGoalkeepingHistory.getPlayedDate())
+                            .build();
+                })
+                .toList();
+    }
+
+
 }

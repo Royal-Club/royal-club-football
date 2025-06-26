@@ -72,4 +72,12 @@ public class PlayerController {
         Map<Integer, List<GoalKeeperHistoryDto>> goalKeepingHistory = playerService.goalKeepingHistory();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, goalKeepingHistory);
     }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/goalkeeping-history")
+    public ResponseEntity<Object> getGoalKeeperHistoryForLoggedInUser() {
+        List<GoalKeeperHistoryDto> goalkeepingHistory = playerService.getGoalKeeperHistoryByLoggedInUser();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, goalkeepingHistory);
+    }
+
 }
