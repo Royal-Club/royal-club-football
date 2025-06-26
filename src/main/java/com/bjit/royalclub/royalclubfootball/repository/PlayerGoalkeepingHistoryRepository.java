@@ -25,6 +25,6 @@ public interface PlayerGoalkeepingHistoryRepository extends JpaRepository<Player
             "LEFT JOIN PlayerGoalkeepingHistory pgh ON p.id = pgh.player.id")
     List<GoalKeeperHistoryDto> getGoalKeeperHistory();
 
-    List<PlayerGoalkeepingHistory> getAllByPlayerId(Long playerId);
+    List<PlayerGoalkeepingHistory> getAllByPlayerIdOrderByRoundNumberDesc(Long playerId);
 
 }

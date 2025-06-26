@@ -209,7 +209,8 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     public List<GoalKeeperHistoryDto> getGoalKeeperHistoryByLoggedInUser() {
         Long loggedInUserId = getLoggedInUserId();
-        List<PlayerGoalkeepingHistory> playerGoalkeepingHistories = goalkeepingHistoryRepository.getAllByPlayerId(loggedInUserId);
+        List<PlayerGoalkeepingHistory> playerGoalkeepingHistories =
+                goalkeepingHistoryRepository.getAllByPlayerIdOrderByRoundNumberDesc(loggedInUserId);
         return playerGoalkeepingHistories.stream()
                 .map(playerGoalkeepingHistory -> {
                     Player player = playerGoalkeepingHistory.getPlayer();
@@ -220,7 +221,6 @@ public class PlayerServiceImpl implements PlayerService {
                             .playedDate(playerGoalkeepingHistory.getPlayedDate())
                             .build();
                 })
-                .sorted(Comparator.comparing(GoalKeeperHistoryDto::getRoundNumber).reversed())
                 .toList();
     }
 
