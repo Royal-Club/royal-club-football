@@ -72,7 +72,6 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     @Override
     public TeamPlayerResponse saveOrUpdateTeamPlayer(TeamPlayerRequest teamPlayerRequest) {
         Team team = validateAndGetTeam(teamPlayerRequest.getTeamId());
-        validateTournamentDate(team.getTournament());
         Player player = validateAndGetPlayer(teamPlayerRequest.getPlayerId());
 
         TeamPlayer teamPlayer = (teamPlayerRequest.getId() == null)
@@ -207,7 +206,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     }
 
     private TeamPlayer createTeamPlayer(TeamPlayerRequest request, Team team, Player player) {
-
+        validateTournamentDate(team.getTournament());
         boolean isParticipant = tournamentParticipantRepository
                 .existsByTournamentIdAndPlayerIdAndParticipationStatusTrue(team.getTournament().getId(),
                         player.getId());
