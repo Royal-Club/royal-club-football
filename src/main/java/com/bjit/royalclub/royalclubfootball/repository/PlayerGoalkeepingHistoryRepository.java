@@ -22,7 +22,8 @@ public interface PlayerGoalkeepingHistoryRepository extends JpaRepository<Player
 
     @Query("SELECT new com.bjit.royalclub.royalclubfootball.model.GoalKeeperHistoryDto(p.id, p.name, pgh.roundNumber, pgh.playedDate) " +
             "FROM Player p " +
-            "LEFT JOIN PlayerGoalkeepingHistory pgh ON p.id = pgh.player.id")
+            "LEFT JOIN PlayerGoalkeepingHistory pgh ON p.id = pgh.player.id " +
+            "WHERE p.isActive = true")
     List<GoalKeeperHistoryDto> getGoalKeeperHistory();
 
     List<PlayerGoalkeepingHistory> getAllByPlayerIdOrderByRoundNumberDesc(Long playerId);

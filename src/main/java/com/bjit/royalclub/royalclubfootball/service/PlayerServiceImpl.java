@@ -181,7 +181,10 @@ public class PlayerServiceImpl implements PlayerService {
                                             .build());
                                 });
                     });
-            roundList.sort(Comparator.comparing(GoalKeeperHistoryDto::getPlayerId));
+            // Comparator.nullsLast(...): ensures null dates (placeholders) go to the bottom of the list.
+            roundList.sort(Comparator
+                    .comparing(GoalKeeperHistoryDto::getPlayedDate, Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(GoalKeeperHistoryDto::getPlayerId));
         });
         return groupedByRound;
     }
