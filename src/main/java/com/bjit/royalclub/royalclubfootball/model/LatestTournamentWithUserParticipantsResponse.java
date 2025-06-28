@@ -12,6 +12,7 @@ public class LatestTournamentWithUserParticipantsResponse {
     private int totalParticipant;
     private int remainParticipant;
     private int totalPlayer;
-    private boolean isUserParticipated;
+    private Boolean isUserParticipated;
+    private Long tournamentParticipantId;
 
 }

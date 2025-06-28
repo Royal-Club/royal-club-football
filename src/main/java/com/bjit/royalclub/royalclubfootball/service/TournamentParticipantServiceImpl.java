@@ -4,6 +4,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Team;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipant;
+import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipantPlayer;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
@@ -14,6 +15,7 @@ import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
+import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantPlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +45,7 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
     private final TeamPlayerRepository teamPlayerRepository;
     private final TournamentService tournamentService;
     private final PlayerService playerService;
-
+    private final TournamentParticipantPlayerRepository participantPlayerRepository;
 
     @Override
     public void saveOrUpdateTournamentParticipant(TournamentParticipantRequest tournamentParticipantRequest) {
@@ -166,15 +168,15 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
         int totalParticipants = tournamentParticipantRepository.countByTournamentIdAndParticipationStatusTrue(
                 latestTournament.getId());
 
-        boolean isUserParticipant = tournamentParticipantRepository.existsByTournamentIdAndPlayerIdAndParticipationStatusTrue(
-                latestTournament.getId(), getLoggedInPlayer().getId());
-
+        TournamentParticipantPlayer participantPlayer =
+                participantPlayerRepository.findByTournamentIdAndPlayerId(latestTournament.getId(), getLoggedInPlayer().getId());
         return LatestTournamentWithUserParticipantsResponse.builder()
                 .tournament(latestTournament)
                 .totalParticipant(totalParticipants)
                 .totalPlayer(totalPlayers)
                 .remainParticipant(totalPlayers - totalParticipants)
-                .isUserParticipated(isUserParticipant)
+                .isUserParticipated(participantPlayer.getParticipationStatus())
+                .tournamentParticipantId(participantPlayer.getTournamentParticipantId())
                 .build();
     }
 }
