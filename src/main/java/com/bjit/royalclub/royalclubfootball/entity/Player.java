@@ -21,6 +21,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
@@ -55,6 +56,9 @@ public class Player extends AuditBase {
     private FootballPosition position;
 
     private String password;
+
+    @Column(name = "last_password_change_date")
+    private LocalDateTime lastPasswordChangeDate;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "players_roles", joinColumns = @JoinColumn(name = "player_id"),

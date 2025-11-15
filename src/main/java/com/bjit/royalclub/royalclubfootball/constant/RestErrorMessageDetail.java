@@ -40,6 +40,7 @@ public class RestErrorMessageDetail {
     public static final String PLAYER_IS_NOT_FOUND = "Player is not found";
     public static final String INCORRECT_EMAIL = "Incorrect Email";
     public static final String PASSWORD_MISMATCH_EXCEPTION = "Password mismatch";
+    public static final String NEW_PASSWORD_SAME_AS_OLD = "New password cannot be the same as old password";
     public static final String TOURNAMENT_IS_NOT_FOUND = "Tournament is not Found";
     public static final String TEAM_IS_NOT_FOUND = "Team is not Found";
     public static final String NO_UPCOMING_TOURNAMENT = "No upcoming Tournament";
