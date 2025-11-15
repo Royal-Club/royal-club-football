@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
 import com.bjit.royalclub.royalclubfootball.model.GoalKeeperHistoryDto;
+import com.bjit.royalclub.royalclubfootball.model.GoalKeeperQueueResponseDto;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
@@ -78,6 +79,12 @@ public class PlayerController {
     public ResponseEntity<Object> getGoalKeeperHistoryForLoggedInUser() {
         List<GoalKeeperHistoryDto> goalkeepingHistory = playerService.getGoalKeeperHistoryByLoggedInUser();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, goalkeepingHistory);
+    }
+
+    @GetMapping("/goalkeeper-queue")
+    public ResponseEntity<Object> getGoalKeeperPriorityQueue(@RequestParam Long tournamentId) {
+        GoalKeeperQueueResponseDto response = playerService.getGoalKeeperPriorityQueue(tournamentId);
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, response);
     }
 
 }

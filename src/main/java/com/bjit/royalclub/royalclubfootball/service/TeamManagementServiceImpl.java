@@ -277,7 +277,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                 .player(player)
                 .tournament(tournament)
                 .roundNumber(nextGoalKeepingRound)
-                .playedDate(LocalDateTime.now())
+                .playedDate(tournament.getTournamentDate())
                 .build();
 
         goalkeepingHistoryRepository.save(playerGoalkeepingHistory);
@@ -290,6 +290,5 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     private void removeGoalKeeperRound(Player player, Tournament tournament) {
         goalkeepingHistoryRepository.deleteByPlayerAndTournament(player.getId(), tournament.getId());
     }
-
 
 }

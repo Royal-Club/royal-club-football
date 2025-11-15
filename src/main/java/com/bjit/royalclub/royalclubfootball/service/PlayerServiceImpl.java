@@ -5,21 +5,30 @@ import com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.PlayerGoalkeepingHistory;
 import com.bjit.royalclub.royalclubfootball.entity.Role;
+import com.bjit.royalclub.royalclubfootball.entity.Tournament;
+import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipant;
 import com.bjit.royalclub.royalclubfootball.enums.PlayerRole;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.SecurityException;
 import com.bjit.royalclub.royalclubfootball.model.GoalKeeperHistoryDto;
+import com.bjit.royalclub.royalclubfootball.model.GoalKeeperPriorityDto;
+import com.bjit.royalclub.royalclubfootball.model.GoalKeeperQueueResponseDto;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerGoalkeepingHistoryRepository;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.RoleRepository;
+import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepository;
+import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -45,9 +54,10 @@ public class PlayerServiceImpl implements PlayerService {
     private final PlayerRepository playerRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
-
     private final PlayerGoalkeepingHistoryRepository goalkeepingHistoryRepository;
     private final PlayerProperties playerProperties;
+    private final TournamentRepository tournamentRepository;
+    private final TournamentParticipantRepository tournamentParticipantRepository;
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
@@ -230,5 +240,122 @@ public class PlayerServiceImpl implements PlayerService {
                 .toList();
     }
 
+    @Override
+    public GoalKeeperQueueResponseDto getGoalKeeperPriorityQueue(Long tournamentId) {
+        // Fetch the current tournament
+        Tournament tournament = tournamentRepository.findById(tournamentId)
+                .orElseThrow(() -> new PlayerServiceException("Tournament not found", HttpStatus.NOT_FOUND));
 
+        // Get the most recent tournament before current one
+        Tournament mostRecentTournament = tournamentRepository
+                .findMostRecentTournamentBefore(tournament.getTournamentDate());
+
+        // Get all active participants in the current tournament
+        List<TournamentParticipant> participants = tournamentParticipantRepository
+                .findAllByTournamentIdAndParticipationStatusTrue(tournamentId);
+
+        if (participants.isEmpty()) {
+            return GoalKeeperQueueResponseDto.builder()
+                    .tournamentId(tournamentId)
+                    .tournamentName(tournament.getName())
+                    .tournamentDate(tournament.getTournamentDate())
+                    .goalKeeperPriorityQueue(new ArrayList<>())
+                    .build();
+        }
+
+        List<GoalKeeperPriorityDto> priorityQueue = new ArrayList<>();
+        int priority = 1;
+
+        // Category 1: Never played as GK
+        List<GoalKeeperPriorityDto> neverPlayedAsGK = new ArrayList<>();
+        // Category 2: Played as GK in most recent tournament (LOWEST priority - need rotation)
+        List<GoalKeeperPriorityDto> playedInMostRecentTournament = new ArrayList<>();
+        // Category 3: Played as GK before but NOT in most recent tournament (MEDIUM priority)
+        List<GoalKeeperPriorityDto> playedButNotInMostRecent = new ArrayList<>();
+
+        for (TournamentParticipant participant : participants) {
+            Player player = participant.getPlayer();
+
+            // Get goalkeeper history excluding current tournament
+            List<PlayerGoalkeepingHistory> previousGoalKeeperHistory =
+                    goalkeepingHistoryRepository.findGoalKeeperHistoryExcludingTournament(
+                            player.getId(), tournamentId);
+
+            Integer countPreviousTournaments = goalkeepingHistoryRepository
+                    .countGoalKeeperHistoryExcludingTournament(player.getId(), tournamentId);
+
+            if (previousGoalKeeperHistory.isEmpty()) {
+                // HIGHEST PRIORITY: Never played as goalkeeper
+                neverPlayedAsGK.add(GoalKeeperPriorityDto.builder()
+                        .playerId(player.getId())
+                        .playerName(player.getName())
+                        .employeeId(player.getEmployeeId())
+                        .previousGoalKeepingTournaments(0)
+                        .wasGoalKeeperInMostRecentTournament(false)
+                        .playAsGkDates(new ArrayList<>())
+                        .build());
+            } else {
+                // Get the most recent goalkeeper date
+                LocalDateTime lastGoalKeeperDate = previousGoalKeeperHistory.get(0).getPlayedDate();
+
+                // Get all goalkeeper dates and format as dd-MM-yy
+                List<LocalDateTime> allGoalKeeperDateTimes = goalkeepingHistoryRepository
+                        .findAllGoalKeeperDates(player.getId(), tournamentId);
+
+                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yy");
+                List<String> formattedGoalKeeperDates = allGoalKeeperDateTimes.stream()
+                        .map(dateTime -> dateTime.format(dateFormatter))
+                        .toList();
+
+                // Check if they were goalkeeper in the most recent tournament
+                boolean wasGKInMostRecent = false;
+                if (mostRecentTournament != null) {
+                    wasGKInMostRecent = goalkeepingHistoryRepository
+                            .wasGoalKeeperInTournament(player.getId(), mostRecentTournament.getId());
+                }
+
+                GoalKeeperPriorityDto dto = GoalKeeperPriorityDto.builder()
+                        .playerId(player.getId())
+                        .playerName(player.getName())
+                        .employeeId(player.getEmployeeId())
+                        .previousGoalKeepingTournaments(countPreviousTournaments)
+                        .wasGoalKeeperInMostRecentTournament(wasGKInMostRecent)
+                        .playAsGkDates(formattedGoalKeeperDates)
+                        .build();
+
+                if (wasGKInMostRecent) {
+                    playedInMostRecentTournament.add(dto);
+                } else {
+                    playedButNotInMostRecent.add(dto);
+                }
+            }
+        }
+
+
+        // Build priority queue:
+        // 1. Never played as GK (HIGHEST - encourage first-timers)
+        for (GoalKeeperPriorityDto dto : neverPlayedAsGK) {
+            dto.setPriority(priority++);
+            priorityQueue.add(dto);
+        }
+
+        // 2. Played before but not in most recent tournament (MEDIUM - fair rotation)
+        for (GoalKeeperPriorityDto dto : playedButNotInMostRecent) {
+            dto.setPriority(priority++);
+            priorityQueue.add(dto);
+        }
+
+        // 3. Played in most recent tournament (LOWEST - they just played)
+        for (GoalKeeperPriorityDto dto : playedInMostRecentTournament) {
+            dto.setPriority(priority++);
+            priorityQueue.add(dto);
+        }
+
+        return GoalKeeperQueueResponseDto.builder()
+                .tournamentId(tournamentId)
+                .tournamentName(tournament.getName())
+                .tournamentDate(tournament.getTournamentDate())
+                .goalKeeperPriorityQueue(priorityQueue)
+                .build();
+    }
 }

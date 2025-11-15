@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.model.GoalKeeperHistoryDto;
+import com.bjit.royalclub.royalclubfootball.model.GoalKeeperQueueResponseDto;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
@@ -38,5 +39,7 @@ public interface PlayerService {
     int countActivePlayers();
 
     List<GoalKeeperHistoryDto> getGoalKeeperHistoryByLoggedInUser();
+
+    GoalKeeperQueueResponseDto getGoalKeeperPriorityQueue(Long tournamentId);
 
 }

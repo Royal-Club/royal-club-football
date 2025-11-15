@@ -28,4 +28,38 @@ public interface PlayerGoalkeepingHistoryRepository extends JpaRepository<Player
 
     List<PlayerGoalkeepingHistory> getAllByPlayerIdOrderByRoundNumberDesc(Long playerId);
 
+    @Query("SELECT pgh FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id = :playerId AND pgh.tournament.id != :currentTournamentId " +
+            "ORDER BY pgh.playedDate DESC")
+    List<PlayerGoalkeepingHistory> findGoalKeeperHistoryExcludingTournament(
+            @Param("playerId") Long playerId,
+            @Param("currentTournamentId") Long currentTournamentId);
+
+    @Query("SELECT COUNT(pgh) FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id = :playerId AND pgh.tournament.id != :currentTournamentId")
+    Integer countGoalKeeperHistoryExcludingTournament(
+            @Param("playerId") Long playerId,
+            @Param("currentTournamentId") Long currentTournamentId);
+
+    @Query("SELECT CASE WHEN COUNT(pgh) > 0 THEN true ELSE false END " +
+            "FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id = :playerId AND pgh.tournament.id = :tournamentId")
+    boolean wasGoalKeeperInTournament(
+            @Param("playerId") Long playerId,
+            @Param("tournamentId") Long tournamentId);
+
+    @Query("SELECT pgh FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id = :tournamentId " +
+            "ORDER BY pgh.playedDate DESC LIMIT 1")
+    Optional<PlayerGoalkeepingHistory> findMostRecentGoalKeeperAssignmentInTournament(
+            @Param("playerId") Long playerId,
+            @Param("tournamentId") Long tournamentId);
+
+    @Query("SELECT pgh.playedDate FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id = :playerId AND pgh.tournament.id != :currentTournamentId " +
+            "ORDER BY pgh.playedDate DESC")
+    List<java.time.LocalDateTime> findAllGoalKeeperDates(
+            @Param("playerId") Long playerId,
+            @Param("currentTournamentId") Long currentTournamentId);
+
 }

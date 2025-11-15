@@ -14,4 +14,8 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long>, J
 
     Tournament findTopByOrderByTournamentDateDesc();
 
+    @Query("SELECT t FROM Tournament t WHERE t.tournamentDate < :currentTournamentDate " +
+            "ORDER BY t.tournamentDate DESC LIMIT 1")
+    Tournament findMostRecentTournamentBefore(@org.springframework.data.repository.query.Param("currentTournamentDate") java.time.LocalDateTime currentTournamentDate);
+
 }
