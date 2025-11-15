@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
+import com.bjit.royalclub.royalclubfootball.config.PlayerProperties;
 import com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.PlayerGoalkeepingHistory;
@@ -46,6 +47,7 @@ public class PlayerServiceImpl implements PlayerService {
     private final RoleRepository roleRepository;
 
     private final PlayerGoalkeepingHistoryRepository goalkeepingHistoryRepository;
+    private final PlayerProperties playerProperties;
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
@@ -67,7 +69,8 @@ public class PlayerServiceImpl implements PlayerService {
                 .skypeId(registrationRequest.getSkypeId())
                 .position(registrationRequest.getPlayingPosition())
                 .isActive(false)
-                .password(passwordEncoder.encode(registrationRequest.getPassword()))
+                .password(passwordEncoder.encode(playerProperties.getDefaultPassword()))
+                .lastPasswordChangeDate(null)
                 .roles(roles).build();
         playerRepository.save(player);
     }
