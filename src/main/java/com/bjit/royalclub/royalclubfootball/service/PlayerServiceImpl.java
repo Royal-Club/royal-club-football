@@ -126,7 +126,7 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     public PlayerResponse updatePlayer(Long id, PlayerUpdateRequest updateRequest) {
 
-        if (Boolean.TRUE.equals(!isUserAuthorizedForSelf(id)) &&
+        if (!isUserAuthorizedForSelf(id) &&
                 getLoggedInPlayer().getRoles().stream()
                         .noneMatch(role -> "ADMIN".equals(role.getName()))) {
             throw new java.lang.SecurityException(UNAUTHORIZED);
@@ -263,99 +263,173 @@ public class PlayerServiceImpl implements PlayerService {
                     .build();
         }
 
-        List<GoalKeeperPriorityDto> priorityQueue = new ArrayList<>();
-        int priority = 1;
+        // Get total active tournaments for frequency calculation
+        Integer activeTournamentCount = goalkeepingHistoryRepository.countActiveTournaments();
+        if (activeTournamentCount == null || activeTournamentCount == 0) {
+            activeTournamentCount = 1; // Prevent division by zero
+        }
 
-        // Category 1: Never played as GK
-        List<GoalKeeperPriorityDto> neverPlayedAsGK = new ArrayList<>();
-        // Category 2: Played as GK in most recent tournament (LOWEST priority - need rotation)
-        List<GoalKeeperPriorityDto> playedInMostRecentTournament = new ArrayList<>();
-        // Category 3: Played as GK before but NOT in most recent tournament (MEDIUM priority)
-        List<GoalKeeperPriorityDto> playedButNotInMostRecent = new ArrayList<>();
+        // Build list of players with scores
+        List<PlayerWithMetadata> playersWithMetadata = new ArrayList<>();
 
         for (TournamentParticipant participant : participants) {
             Player player = participant.getPlayer();
 
-            // Get goalkeeper history excluding current tournament
-            List<PlayerGoalkeepingHistory> previousGoalKeeperHistory =
-                    goalkeepingHistoryRepository.findGoalKeeperHistoryExcludingTournament(
-                            player.getId(), tournamentId);
-
-            Integer countPreviousTournaments = goalkeepingHistoryRepository
+            // ===== GATHER DATA =====
+            // 1. Goalkeeper history (removed unused list variable)
+            Integer totalGKTournaments = goalkeepingHistoryRepository
                     .countGoalKeeperHistoryExcludingTournament(player.getId(), tournamentId);
 
-            if (previousGoalKeeperHistory.isEmpty()) {
-                // HIGHEST PRIORITY: Never played as goalkeeper
-                neverPlayedAsGK.add(GoalKeeperPriorityDto.builder()
-                        .playerId(player.getId())
-                        .playerName(player.getName())
-                        .employeeId(player.getEmployeeId())
-                        .previousGoalKeepingTournaments(0)
-                        .wasGoalKeeperInMostRecentTournament(false)
-                        .playAsGkDates(new ArrayList<>())
-                        .build());
+            // 2. Participation frequency data
+            Integer totalTournamentParticipations = goalkeepingHistoryRepository
+                    .countPlayerTournamentParticipations(player.getId());
+
+            // 3. Most recent GK date
+            Optional<LocalDateTime> mostRecentGKDate = goalkeepingHistoryRepository
+                    .findMostRecentGoalKeeperDate(player.getId());
+            LocalDateTime lastGoalKeeperDate = mostRecentGKDate.orElse(null);
+            Integer daysSinceLastGoalkeeping = lastGoalKeeperDate != null
+                    ? (int) java.time.temporal.ChronoUnit.DAYS.between(lastGoalKeeperDate.toLocalDate(), tournament.getTournamentDate().toLocalDate())
+                    : Integer.MAX_VALUE;
+            if (daysSinceLastGoalkeeping < 0) {
+                daysSinceLastGoalkeeping = 0; // guard against future dated GK entries
+            }
+
+            // 4. Calculate consecutive tournaments missed BEFORE current tournament
+            Integer consecutiveMissedTournaments = tournamentParticipantRepository
+                    .countConsecutiveMissedTournamentsBeforeCurrent(player.getId(), tournamentId);
+            if (consecutiveMissedTournaments == null) {
+                consecutiveMissedTournaments = 0;
+            }
+
+            // 5. All GK dates for display (EXCLUDING current & FUTURE tournaments - only PAST tournaments)
+            List<LocalDateTime> allGoalKeeperDateTimes = goalkeepingHistoryRepository
+                    .findGoalKeeperHistoryExcludingTournament(player.getId(), tournamentId).stream()
+                    .map(PlayerGoalkeepingHistory::getPlayedDate) // Only PAST dates
+                    .filter(playedDate -> playedDate.isBefore(tournament.getTournamentDate()))
+                    .toList();
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yy");
+            List<String> formattedGoalKeeperDates = allGoalKeeperDateTimes.stream()
+                    .map(dateTime -> dateTime.format(dateFormatter))
+                    .toList();
+
+            // 6. Check if GK in most recent tournament
+            boolean wasGKInMostRecent = false;
+            if (mostRecentTournament != null) {
+                wasGKInMostRecent = goalkeepingHistoryRepository
+                        .wasGoalKeeperInTournament(player.getId(), mostRecentTournament.getId());
+            }
+
+            // 7. Get last played tournament date (excluding current tournament)
+            Optional<LocalDateTime> lastParticipationDateOpt = tournamentParticipantRepository
+                    .findMostRecentParticipationDateExcludingCurrent(player.getId(), tournamentId);
+            String lastPlayedTournamentDate = null;
+            if (lastParticipationDateOpt.isPresent()) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yy");
+                lastPlayedTournamentDate = lastParticipationDateOpt.get().format(formatter);
+            }
+
+            // Basic frequency metrics
+            Double participationFrequency = activeTournamentCount > 0
+                    ? (totalTournamentParticipations * 100.0) / activeTournamentCount
+                    : 0.0;
+            Double gkExperienceFrequency = totalTournamentParticipations > 0
+                    ? (totalGKTournaments * 100.0) / totalTournamentParticipations
+                    : 0.0;
+
+            // Build DTO
+            GoalKeeperPriorityDto dto = GoalKeeperPriorityDto.builder()
+                    .playerId(player.getId())
+                    .playerName(player.getName())
+                    .employeeId(player.getEmployeeId())
+                    .playAsGkDates(formattedGoalKeeperDates)
+                    .totalTournamentParticipations(totalTournamentParticipations)
+                    .activeTournamentCount(activeTournamentCount)
+                    .participationFrequency(Math.round(participationFrequency * 100.0) / 100.0)
+                    .lastPlayedTournamentDate(lastPlayedTournamentDate)
+                    .totalGoalKeeperTournaments(totalGKTournaments)
+                    .lastGoalKeeperDate(lastGoalKeeperDate)
+                    .build();
+
+            // Store DTO with internal metadata
+            playersWithMetadata.add(new PlayerWithMetadata(dto, wasGKInMostRecent, consecutiveMissedTournaments));
+        }
+
+        // CATEGORY-BASED ORDERING
+        List<PlayerWithMetadata> regularPlayers = new ArrayList<>();
+        List<PlayerWithMetadata> lastTournamentGK = new ArrayList<>();
+        List<PlayerWithMetadata> brandNewPlayers = new ArrayList<>();
+
+        for (PlayerWithMetadata metadata : playersWithMetadata) {
+            GoalKeeperPriorityDto dto = metadata.dto;
+            // Brand new player: ONLY if participating in current tournament AND never participated before in any tournament
+            // Check: totalTournamentParticipations == 1 means only current tournament
+            // consecutiveMissedTournaments == (activeTournamentCount - 1) means missed ALL previous tournaments (truly new)
+            boolean isBrandNew = dto.getTotalTournamentParticipations() == 1
+                    && metadata.consecutiveMissedTournaments == (dto.getActiveTournamentCount() - 1);
+
+            if (isBrandNew) {
+                brandNewPlayers.add(metadata);
+            } else if (metadata.wasGKInMostRecent) {
+                lastTournamentGK.add(metadata);
             } else {
-                // Get the most recent goalkeeper date
-                LocalDateTime lastGoalKeeperDate = previousGoalKeeperHistory.get(0).getPlayedDate();
-
-                // Get all goalkeeper dates and format as dd-MM-yy
-                List<LocalDateTime> allGoalKeeperDateTimes = goalkeepingHistoryRepository
-                        .findAllGoalKeeperDates(player.getId(), tournamentId);
-
-                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yy");
-                List<String> formattedGoalKeeperDates = allGoalKeeperDateTimes.stream()
-                        .map(dateTime -> dateTime.format(dateFormatter))
-                        .toList();
-
-                // Check if they were goalkeeper in the most recent tournament
-                boolean wasGKInMostRecent = false;
-                if (mostRecentTournament != null) {
-                    wasGKInMostRecent = goalkeepingHistoryRepository
-                            .wasGoalKeeperInTournament(player.getId(), mostRecentTournament.getId());
-                }
-
-                GoalKeeperPriorityDto dto = GoalKeeperPriorityDto.builder()
-                        .playerId(player.getId())
-                        .playerName(player.getName())
-                        .employeeId(player.getEmployeeId())
-                        .previousGoalKeepingTournaments(countPreviousTournaments)
-                        .wasGoalKeeperInMostRecentTournament(wasGKInMostRecent)
-                        .playAsGkDates(formattedGoalKeeperDates)
-                        .build();
-
-                if (wasGKInMostRecent) {
-                    playedInMostRecentTournament.add(dto);
-                } else {
-                    playedButNotInMostRecent.add(dto);
-                }
+                // Regular players (includes irregular/returning players who participated before)
+                regularPlayers.add(metadata);
             }
         }
 
+        // Comparator for regular players:
+        // 1. Never GK first
+        // 2. Fewer consecutive missed tournaments (more regular attendance)
+        // 3. Fewer total GK times (less burden)
+        // 4. Older lastGoalKeeperDate
+        // 5. PlayerId tiebreaker
+        Comparator<PlayerWithMetadata> regularComparator = Comparator
+                .comparing((PlayerWithMetadata m) -> m.dto.getLastGoalKeeperDate() == null ? 0 : 1) // never GK first
+                .thenComparing(m -> m.consecutiveMissedTournaments) // fewer missed = higher priority (regular attendance)
+                .thenComparing(m -> m.dto.getTotalGoalKeeperTournaments()) // fewer GK times = higher priority (fair burden distribution)
+                .thenComparing(m -> m.dto.getLastGoalKeeperDate(), Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(m -> m.dto.getPlayerId());
 
-        // Build priority queue:
-        // 1. Never played as GK (HIGHEST - encourage first-timers)
-        for (GoalKeeperPriorityDto dto : neverPlayedAsGK) {
-            dto.setPriority(priority++);
-            priorityQueue.add(dto);
-        }
+        // Comparator for last tournament GK group: prioritize LESS experienced GK first (fewer times played GK)
+        // Then by older lastGoalKeeperDate, then by playerId
+        Comparator<PlayerWithMetadata> lastGKComparator = Comparator
+                .comparing((PlayerWithMetadata m) -> m.dto.getTotalGoalKeeperTournaments()) // fewer GK times = higher priority
+                .thenComparing(m -> m.dto.getLastGoalKeeperDate(), Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(m -> m.dto.getPlayerId());
 
-        // 2. Played before but not in most recent tournament (MEDIUM - fair rotation)
-        for (GoalKeeperPriorityDto dto : playedButNotInMostRecent) {
-            dto.setPriority(priority++);
-            priorityQueue.add(dto);
-        }
+        regularPlayers.sort(regularComparator);
+        lastTournamentGK.sort(lastGKComparator);
+        brandNewPlayers.sort(regularComparator); // treat brand new similar to regular (will be placed last anyway)
 
-        // 3. Played in most recent tournament (LOWEST - they just played)
-        for (GoalKeeperPriorityDto dto : playedInMostRecentTournament) {
+        List<GoalKeeperPriorityDto> finalQueue = new ArrayList<>();
+        finalQueue.addAll(regularPlayers.stream().map(m -> m.dto).toList());
+        finalQueue.addAll(lastTournamentGK.stream().map(m -> m.dto).toList());
+        finalQueue.addAll(brandNewPlayers.stream().map(m -> m.dto).toList());
+
+        int priority = 1;
+        for (GoalKeeperPriorityDto dto : finalQueue) {
             dto.setPriority(priority++);
-            priorityQueue.add(dto);
         }
 
         return GoalKeeperQueueResponseDto.builder()
                 .tournamentId(tournamentId)
                 .tournamentName(tournament.getName())
                 .tournamentDate(tournament.getTournamentDate())
-                .goalKeeperPriorityQueue(priorityQueue)
+                .goalKeeperPriorityQueue(finalQueue)
                 .build();
+    }
+
+    // Inner class to hold DTO with internal metadata (not exposed in API response)
+    private static class PlayerWithMetadata {
+        final GoalKeeperPriorityDto dto;
+        final boolean wasGKInMostRecent;
+        final int consecutiveMissedTournaments;
+
+        PlayerWithMetadata(GoalKeeperPriorityDto dto, boolean wasGKInMostRecent, int consecutiveMissedTournaments) {
+            this.dto = dto;
+            this.wasGKInMostRecent = wasGKInMostRecent;
+            this.consecutiveMissedTournaments = consecutiveMissedTournaments;
+        }
     }
 }
