@@ -36,6 +36,9 @@ jwt:
   secret: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkwYWJjZGVmZ2hpamts
   expiration: 604800000  # Token expiration in milliseconds (7 days)
 
+player:
+  default-password: JaniNa@123 # Configurable default password assigned at registration
+
 logging:
   level:
     root: INFO  # Default log level for the entire application
