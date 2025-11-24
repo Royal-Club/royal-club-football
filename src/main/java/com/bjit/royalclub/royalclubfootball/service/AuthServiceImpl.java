@@ -91,8 +91,11 @@ public class AuthServiceImpl implements AuthService {
         Player player = playerRepository.findByEmail(resetPasswordRequest.getEmail())
                 .orElseThrow(() -> new PlayerServiceException(INCORRECT_EMAIL, HttpStatus.NOT_FOUND));
 
+        Player loggedIn = getLoggedInPlayer();
+        boolean selfReset = loggedIn != null && loggedIn.getId().equals(player.getId());
+
         player.setPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
-        player.setLastPasswordChangeDate(null);
+        player.setLastPasswordChangeDate(selfReset ? LocalDateTime.now() : null);
         playerRepository.save(player);
     }
 
