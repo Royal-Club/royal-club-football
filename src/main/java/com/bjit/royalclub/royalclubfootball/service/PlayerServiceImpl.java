@@ -204,6 +204,15 @@ public class PlayerServiceImpl implements PlayerService {
 
 
     private PlayerResponse convertToDto(Player player) {
+        Set<com.bjit.royalclub.royalclubfootball.model.RoleResponse> roleResponses = player.getRoles() != null
+                ? player.getRoles().stream()
+                .map(role -> com.bjit.royalclub.royalclubfootball.model.RoleResponse.builder()
+                        .id(role.getId())
+                        .name(role.getName())
+                        .build())
+                .collect(Collectors.toSet())
+                : new HashSet<>();
+
         return PlayerResponse.builder()
                 .id(player.getId())
                 .name(player.getName())
@@ -214,6 +223,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .fullName(player.getName() + "[" + player.getEmployeeId() + "]")
                 .playingPosition(player.getPosition())
                 .isActive(player.isActive())
+                .roles(roleResponses)
                 .build();
     }
 
