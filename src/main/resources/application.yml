@@ -38,6 +38,7 @@ jwt:
 
 player:
   default-password: JaniNa@123 # Configurable default password assigned at registration
+  superadmin-email: rakibccj@gmail.com # Email of the player to assign SUPERADMIN role on application startup. Service will automatically assign this role when app starts. Leave empty to skip.
 
 logging:
   level:
