@@ -12,7 +12,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
@@ -75,8 +74,7 @@ public class RoleInitializationService {
                 return;
             }
 
-            // Assign SUPERADMIN and PLAYER roles to the player
-            Set<Role> roles = new HashSet<>();
+            Set<Role> roles = player.getRoles();
             roles.add(superadminRole);
             roles.add(playerRole);
             player.setRoles(roles);
