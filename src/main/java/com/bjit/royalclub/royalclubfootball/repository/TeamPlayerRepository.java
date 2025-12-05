@@ -28,5 +28,28 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, Long> {
             @Param("playerIds") List<Long> playerIds,
             @Param("teamIds") List<Long> teamIds);
 
+    /**
+     * Find all captains for a specific tournament team
+     */
+    @Query("SELECT tp FROM TeamPlayer tp WHERE tp.team.id = :teamId AND tp.teamPlayerRole IN ('CAPTAIN', 'VICE_CAPTAIN') ORDER BY tp.teamPlayerRole ASC")
+    List<TeamPlayer> findCaptainsByTeamId(@Param("teamId") Long teamId);
+
+    /**
+     * Check if a player is captain of a team
+     */
+    @Query("SELECT COUNT(tp) > 0 FROM TeamPlayer tp WHERE tp.team.id = :teamId AND tp.player.id = :playerId AND tp.teamPlayerRole = 'CAPTAIN'")
+    boolean isCaptainOfTeam(@Param("teamId") Long teamId, @Param("playerId") Long playerId);
+
+    /**
+     * Find a captain by team id and player id
+     */
+    @Query("SELECT tp FROM TeamPlayer tp WHERE tp.team.id = :teamId AND tp.player.id = :playerId AND tp.teamPlayerRole IN ('CAPTAIN', 'VICE_CAPTAIN')")
+    Optional<TeamPlayer> findCaptainByTeamIdAndPlayerId(@Param("teamId") Long teamId, @Param("playerId") Long playerId);
+
+    /**
+     * Find all team players by team id
+     */
+    @Query("SELECT tp FROM TeamPlayer tp WHERE tp.team.id = :teamId")
+    List<TeamPlayer> findAllByTeamId(@Param("teamId") Long teamId);
 
 }

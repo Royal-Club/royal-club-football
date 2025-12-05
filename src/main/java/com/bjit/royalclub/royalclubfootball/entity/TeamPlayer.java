@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.entity;
 
 import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
 import com.bjit.royalclub.royalclubfootball.enums.FootballPosition;
+import com.bjit.royalclub.royalclubfootball.enums.TeamPlayerRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -42,4 +43,14 @@ public class TeamPlayer extends AuditBase {
     @Enumerated(EnumType.STRING)
     @Column(name = "playing_position", nullable = false)
     private FootballPosition playingPosition;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "team_player_role", nullable = false)
+    private TeamPlayerRole teamPlayerRole;
+
+    @Column(name = "is_captain", nullable = false)
+    private Boolean isCaptain;
+
+    @Column(name = "jersey_number")
+    private Integer jerseyNumber;
 }

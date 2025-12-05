@@ -70,6 +70,13 @@ public class TournamentController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN')")
+    @PutMapping("/{id}/conclude")
+    public ResponseEntity<Object> concludeTournament(@PathVariable Long id) {
+        tournamentService.concludeTournament(id);
+        return buildSuccessResponse(HttpStatus.OK, "Tournament concluded successfully");
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<Object> updateTournament(@PathVariable Long id, @Valid @RequestBody
     TournamentUpdateRequest tournamentUpdateRequest) {

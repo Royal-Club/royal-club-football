@@ -16,4 +16,9 @@ public class TournamentRequest {
     @NotNull(message = "Venue ID is mandatory")
     private Long venueId;
 
+    // Fixture system fields
+    private String sportType;
+    private String tournamentType;
+    private Integer groupCount;
+
 }

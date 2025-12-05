@@ -14,12 +14,12 @@ public class TournamentSchedulerService {
 
     private final TournamentService tournamentService;
 
-    // Cron expression for 12:15 AM and 8:00 AM every day
-    // "0 15 0,8 * * ?" -> Seconds Minutes Hours DayOfMonth Month DayOfWeek Year(optional)
-    @Scheduled(cron = "0 15 0,8 * * ?", zone = "Asia/Dhaka")
+    // Cron expression for 12:15 AM, 8:00 AM, and 11:00 AM every day
+    // "0 15 0,8,11 * * ?" -> Seconds Minutes Hours DayOfMonth Month DayOfWeek Year(optional)
+    @Scheduled(cron = "0 0 0,8,11 * * ?", zone = "Asia/Dhaka")
     @Transactional
-    public void deactivatePastTournaments() {
-        tournamentService.deactivateAndConcludePastTournaments();
-        log.info("Deactivated and conclude past tournaments based on tournamentDate.");
+    public void updateTournamentStatuses() {
+        tournamentService.updateTournamentStatuses();
+        log.info("Updated tournament statuses based on match status and tournament date.");
     }
 }

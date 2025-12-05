@@ -21,6 +21,9 @@ public interface TeamManagementService {
     TeamPlayerResponse saveOrUpdateTeamPlayer(TeamPlayerRequest teamPlayerRequest);
 
     @Transactional
+    TeamPlayerResponse updateTeamPlayerDetails(TeamPlayerRequest teamPlayerRequest);
+
+    @Transactional
     void removePlayerFromTeam(TeamPlayerRemoveRequest playerRemoveRequest);
 
     List<TournamentResponse> getTournamentsSummery(Long tournamentId);

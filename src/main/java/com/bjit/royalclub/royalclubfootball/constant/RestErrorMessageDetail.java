@@ -66,4 +66,28 @@ public class RestErrorMessageDetail {
 
     public static final String CLUB_RULE_IS_NOT_FOUND = "Club rule is not Found";
 
+    // Fixture Generation Error Messages
+    public static final String FIXTURES_ALREADY_EXIST = "Scheduled fixtures already exist for this tournament";
+    public static final String NO_SCHEDULED_FIXTURES = "No scheduled fixtures found to clear";
+    public static final String SCHEDULING_CONFLICT = "Fixture scheduling conflict detected";
+    public static final String INVALID_TOURNAMENT_TYPE = "Invalid or unsupported tournament type";
+    public static final String INSUFFICIENT_TEAMS = "Insufficient teams for this tournament type";
+    public static final String INVALID_GROUP_CONFIGURATION = "Invalid group stage configuration";
+    public static final String MATCH_IS_NOT_FOUND = "Match is not found";
+
+    // Round Management Error Messages
+    public static final String ROUND_IS_NOT_FOUND = "Round is not found";
+    public static final String ROUND_NUMBER_ALREADY_EXISTS = "A round with this round number already exists in the tournament";
+    public static final String ROUND_HAS_MATCHES = "Cannot delete round with existing matches";
+    public static final String ROUND_NOT_COMPLETED = "Round is not completed yet";
+    public static final String INVALID_ROUND_SEQUENCE = "Invalid round sequence order";
+    public static final String GROUP_IS_NOT_FOUND = "Group is not found";
+    public static final String GROUP_NAME_ALREADY_EXISTS = "A group with this name already exists in the round";
+    public static final String GROUP_HAS_TEAMS = "Cannot delete group with assigned teams";
+    public static final String TEAM_ALREADY_IN_GROUP = "Team is already assigned to this group";
+    public static final String TEAM_ALREADY_IN_ROUND = "Team is already assigned to this round";
+    public static final String GROUP_MAX_TEAMS_REACHED = "Group has reached maximum team capacity";
+    public static final String STANDING_NOT_FOUND = "Standing is not found";
+    public static final String ADVANCEMENT_RULE_NOT_FOUND = "Advancement rule is not found";
+
 }

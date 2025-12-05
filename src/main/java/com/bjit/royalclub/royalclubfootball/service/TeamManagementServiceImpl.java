@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
+import com.bjit.royalclub.royalclubfootball.entity.Match;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.PlayerGoalkeepingHistory;
 import com.bjit.royalclub.royalclubfootball.entity.Team;
@@ -15,6 +16,7 @@ import com.bjit.royalclub.royalclubfootball.model.TeamRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentTeamResponse;
+import com.bjit.royalclub.royalclubfootball.repository.MatchRepository;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerGoalkeepingHistoryRepository;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
@@ -28,6 +30,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.bjit.royalclub.royalclubfootball.enums.TeamPlayerRole;
+
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PLAYER_IS_NOT_PARTICIPANT_YET;
@@ -37,6 +41,7 @@ import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDeta
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.enums.FootballPosition.GOALKEEPER;
 import static com.bjit.royalclub.royalclubfootball.enums.FootballPosition.getPositionOrDefault;
+import static com.bjit.royalclub.royalclubfootball.enums.TeamPlayerRole.getRoleOrDefault;
 
 @Service
 @RequiredArgsConstructor
@@ -47,8 +52,8 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     private final PlayerRepository playerRepository;
     private final TeamPlayerRepository teamPlayerRepository;
     private final TournamentParticipantRepository tournamentParticipantRepository;
-
     private final PlayerGoalkeepingHistoryRepository goalkeepingHistoryRepository;
+    private final MatchRepository matchRepository;
 
     @Override
     public TeamResponse createOrUpdateTeam(TeamRequest teamRequest) {
@@ -66,6 +71,14 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     public void deleteTeam(Long teamId) {
         Team team = validateAndGetTeam(teamId);
         validateTournamentDate(team.getTournament());
+
+        // Delete all matches associated with this team (home or away)
+        List<Match> teamMatches = matchRepository.findAllByTeamId(teamId);
+        if (!teamMatches.isEmpty()) {
+            matchRepository.deleteAll(teamMatches);
+        }
+
+        // Now delete the team
         teamRepository.delete(team);
     }
 
@@ -77,6 +90,43 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         TeamPlayer teamPlayer = (teamPlayerRequest.getId() == null)
                 ? createTeamPlayer(teamPlayerRequest, team, player)
                 : updateTeamPlayer(teamPlayerRequest, team, player);
+
+        teamPlayerRepository.save(teamPlayer);
+        return convertToTeamPlayerResponse(teamPlayer);
+    }
+
+    @Override
+    public TeamPlayerResponse updateTeamPlayerDetails(TeamPlayerRequest teamPlayerRequest) {
+        Team team = validateAndGetTeam(teamPlayerRequest.getTeamId());
+        Player player = validateAndGetPlayer(teamPlayerRequest.getPlayerId());
+
+        TeamPlayer teamPlayer = teamPlayerRepository.findByTeamIdAndPlayerId(
+                teamPlayerRequest.getTeamId(),
+                teamPlayerRequest.getPlayerId()
+        ).orElseThrow(() -> new TournamentServiceException(PLAYER_IS_NOT_PART_OF_THIS_TEAM, HttpStatus.NOT_FOUND));
+
+        String previousPosition = teamPlayer.getPlayingPosition().name();
+        String newPosition = getPositionOrDefault(teamPlayerRequest.getPlayingPosition()).name();
+
+        if (isGoalKeeper(previousPosition) && !isGoalKeeper(newPosition)) {
+            removeGoalKeeperRound(player, team.getTournament());
+        } else if (!isGoalKeeper(previousPosition) && isGoalKeeper(newPosition)) {
+            trackGoalKeeperRound(player, team.getTournament());
+        }
+
+        // If making this player captain, remove captain status from other players in the team
+        if (teamPlayerRequest.getIsCaptain() != null && teamPlayerRequest.getIsCaptain()) {
+            removeCaptainStatusFromOtherPlayers(teamPlayerRequest.getTeamId(), teamPlayerRequest.getPlayerId());
+        }
+
+        teamPlayer.setPlayingPosition(getPositionOrDefault(teamPlayerRequest.getPlayingPosition()));
+
+        // Sync isCaptain with teamPlayerRole
+        Boolean newIsCaptain = teamPlayerRequest.getIsCaptain() != null ? teamPlayerRequest.getIsCaptain() : teamPlayer.getIsCaptain();
+        teamPlayer.setIsCaptain(newIsCaptain);
+        teamPlayer.setTeamPlayerRole(newIsCaptain ? TeamPlayerRole.CAPTAIN : TeamPlayerRole.PLAYER);
+
+        teamPlayer.setJerseyNumber(teamPlayerRequest.getJerseyNumber() != null ? teamPlayerRequest.getJerseyNumber() : teamPlayer.getJerseyNumber());
 
         teamPlayerRepository.save(teamPlayer);
         return convertToTeamPlayerResponse(teamPlayer);
@@ -154,6 +204,9 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                         .teamName(team.getTeamName())
                         .playerName(player.getPlayer().getName())
                         .playingPosition(player.getPlayingPosition())
+                        .teamPlayerRole(player.getTeamPlayerRole().name())
+                        .isCaptain(player.getIsCaptain())
+                        .jerseyNumber(player.getJerseyNumber())
                         .build())
                 .toList();
 
@@ -217,10 +270,22 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         if (isPlayerAssignedToAnyTeamInTournament(team.getTournament().getId(), player.getId())) {
             throw new TeamServiceException(PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM, HttpStatus.CONFLICT);
         }
+
+        // If making this player captain, remove captain status from other players in the team
+        if (request.getIsCaptain() != null && request.getIsCaptain()) {
+            removeCaptainStatusFromOtherPlayers(request.getTeamId(), player.getId());
+        }
+
+        // Sync isCaptain with teamPlayerRole
+        boolean isCaptain = request.getIsCaptain() != null ? request.getIsCaptain() : false;
+
         TeamPlayer teamPlayer = TeamPlayer.builder()
                 .team(team)
                 .player(player)
                 .playingPosition(getPositionOrDefault(request.getPlayingPosition()))
+                .isCaptain(isCaptain)
+                .teamPlayerRole(isCaptain ? TeamPlayerRole.CAPTAIN : TeamPlayerRole.PLAYER)
+                .jerseyNumber(request.getJerseyNumber())
                 .build();
 
         // If the player is assigned as a goalkeeper, track goalkeeping round based on previous tournaments
@@ -241,9 +306,22 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         } else if (!isGoalKeeper(previousPosition) && isGoalKeeper(newPosition)) {
             trackGoalKeeperRound(player, team.getTournament());
         }
+
+        // If making this player captain, remove captain status from other players in the team
+        if (request.getIsCaptain() != null && request.getIsCaptain()) {
+            removeCaptainStatusFromOtherPlayers(request.getTeamId(), player.getId());
+        }
+
         teamPlayer.setTeam(team);
         teamPlayer.setPlayer(player);
         teamPlayer.setPlayingPosition(getPositionOrDefault(request.getPlayingPosition()));
+
+        // Sync isCaptain with teamPlayerRole
+        Boolean newIsCaptain = request.getIsCaptain() != null ? request.getIsCaptain() : teamPlayer.getIsCaptain();
+        teamPlayer.setIsCaptain(newIsCaptain);
+        teamPlayer.setTeamPlayerRole(newIsCaptain ? TeamPlayerRole.CAPTAIN : TeamPlayerRole.PLAYER);
+
+        teamPlayer.setJerseyNumber(request.getJerseyNumber() != null ? request.getJerseyNumber() : teamPlayer.getJerseyNumber());
         return teamPlayer;
     }
 
@@ -264,6 +342,9 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                 .playerId(teamPlayer.getPlayer().getId())
                 .playerName(teamPlayer.getPlayer().getName())
                 .playingPosition(teamPlayer.getPlayingPosition())
+                .teamPlayerRole(teamPlayer.getTeamPlayerRole().name())
+                .isCaptain(teamPlayer.getIsCaptain())
+                .jerseyNumber(teamPlayer.getJerseyNumber())
                 .build();
     }
 
@@ -289,6 +370,15 @@ public class TeamManagementServiceImpl implements TeamManagementService {
 
     private void removeGoalKeeperRound(Player player, Tournament tournament) {
         goalkeepingHistoryRepository.deleteByPlayerAndTournament(player.getId(), tournament.getId());
+    }
+
+    private void removeCaptainStatusFromOtherPlayers(Long teamId, Long currentPlayerId) {
+        List<TeamPlayer> teamPlayers = teamPlayerRepository.findAllByTeamId(teamId).stream()
+                .filter(tp -> !tp.getPlayer().getId().equals(currentPlayerId) && tp.getIsCaptain())
+                .toList();
+
+        teamPlayers.forEach(tp -> tp.setIsCaptain(false));
+        teamPlayerRepository.saveAll(teamPlayers);
     }
 
 }

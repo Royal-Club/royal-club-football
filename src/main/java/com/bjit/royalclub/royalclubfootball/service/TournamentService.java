@@ -23,7 +23,10 @@ public interface TournamentService {
     TournamentResponse updateTournament(Long id, TournamentUpdateRequest updateTournamentRequest);
 
     @Transactional
-    void deactivateAndConcludePastTournaments();
+    void updateTournamentStatuses();
+
+    @Transactional
+    void concludeTournament(Long tournamentId);
 
     TournamentResponse getMostRecentTournament();
 

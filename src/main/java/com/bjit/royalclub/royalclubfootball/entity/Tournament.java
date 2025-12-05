@@ -1,7 +1,9 @@
 package com.bjit.royalclub.royalclubfootball.entity;
 
 import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
+import com.bjit.royalclub.royalclubfootball.enums.SportType;
 import com.bjit.royalclub.royalclubfootball.enums.TournamentStatus;
+import com.bjit.royalclub.royalclubfootball.enums.TournamentType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,6 +48,17 @@ public class Tournament extends AuditBase {
     private TournamentStatus tournamentStatus;
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sport_type", nullable = false)
+    private SportType sportType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tournament_type", nullable = false)
+    private TournamentType tournamentType;
+
+    @Column(name = "group_count")
+    private Integer groupCount;
 
     @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Team> teams;  // Add this field to hold the list of teams

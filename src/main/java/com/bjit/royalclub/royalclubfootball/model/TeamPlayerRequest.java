@@ -25,4 +25,10 @@ public class TeamPlayerRequest {
 
     @NotNull(message = "Playing position is required")
     private String playingPosition;
+
+    private Boolean isCaptain;
+
+    private String teamPlayerRole;
+
+    private Integer jerseyNumber;
 }

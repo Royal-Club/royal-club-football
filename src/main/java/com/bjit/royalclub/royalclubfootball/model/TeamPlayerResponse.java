@@ -20,4 +20,7 @@ public class TeamPlayerResponse {
     private String teamName;
     private String playerName;
     private FootballPosition playingPosition;
+    private String teamPlayerRole;
+    private Boolean isCaptain;
+    private Integer jerseyNumber;
 }

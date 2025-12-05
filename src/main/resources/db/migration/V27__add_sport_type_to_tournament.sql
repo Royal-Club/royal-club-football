@@ -1,0 +1,2 @@
+ALTER TABLE `tournament`
+ADD COLUMN `sport_type` VARCHAR(50) NOT NULL DEFAULT 'FOOTBALL' AFTER `is_active`;

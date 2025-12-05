@@ -20,4 +20,9 @@ public class TournamentResponse {
 
     private TournamentStatus tournamentStatus;
     private List<TournamentTeamResponse> teams;
+
+    // Fixture system fields
+    private String sportType;
+    private String tournamentType;
+    private Integer groupCount;
 }

@@ -25,6 +25,7 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final JWTUtil jwtUtil;
     private final JwtUnAuthorizedResponseAuthenticationEntryPoint jwtUnAuthorizedResponseAuthenticationEntryPoint;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final PublicEndpoints publicEndpoints;
 
     @Bean
@@ -40,6 +41,7 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(jwtUnAuthorizedResponseAuthenticationEntryPoint)
+                        .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
