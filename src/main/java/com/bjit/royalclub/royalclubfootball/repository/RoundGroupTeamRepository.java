@@ -2,8 +2,10 @@ package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.RoundGroupTeam;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -61,6 +63,8 @@ public interface RoundGroupTeamRepository extends JpaRepository<RoundGroupTeam, 
     /**
      * Delete team from group
      */
+    @Modifying
+    @Transactional
     @Query("DELETE FROM RoundGroupTeam gt WHERE gt.group.id = :groupId AND gt.team.id = :teamId")
     void deleteByGroupIdAndTeamId(@Param("groupId") Long groupId, @Param("teamId") Long teamId);
 }

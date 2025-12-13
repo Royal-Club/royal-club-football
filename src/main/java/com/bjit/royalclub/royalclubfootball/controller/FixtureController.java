@@ -117,6 +117,20 @@ public class FixtureController {
     }
 
     private MatchResponse convertToResponse(Match match) {
+        // Get roundNumber from TournamentRound if available, otherwise use legacyRound
+        Integer roundNumber = null;
+        if (match.getRound() != null) {
+            roundNumber = match.getRound().getRoundNumber();
+        } else if (match.getLegacyRound() != null) {
+            roundNumber = match.getLegacyRound();
+        }
+        
+        // Get groupName from group relationship if groupName column is null
+        String groupName = match.getGroupName();
+        if (groupName == null && match.getGroup() != null) {
+            groupName = match.getGroup().getGroupName();
+        }
+        
         return MatchResponse.builder()
                 .id(match.getId())
                 .tournamentId(match.getTournament().getId())
@@ -130,8 +144,9 @@ public class FixtureController {
                 .matchDate(match.getMatchDate())
                 .matchStatus(match.getMatchStatus().toString())
                 .matchOrder(match.getMatchOrder())
-                .round(match.getLegacyRound())
-                .groupName(match.getGroupName())
+                .round(match.getLegacyRound())  // Keep legacy round for backward compatibility
+                .roundNumber(roundNumber)  // Add roundNumber from TournamentRound or legacyRound
+                .groupName(groupName)  // Use groupName from column or group relationship
                 .homeTeamScore(match.getHomeTeamScore())
                 .awayTeamScore(match.getAwayTeamScore())
                 .matchDurationMinutes(match.getMatchDurationMinutes())

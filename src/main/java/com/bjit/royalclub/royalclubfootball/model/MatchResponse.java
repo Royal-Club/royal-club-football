@@ -25,7 +25,8 @@ public class MatchResponse {
     private LocalDateTime matchDate;
     private String matchStatus;
     private Integer matchOrder;
-    private Integer round;
+    private Integer round;  // Legacy round field
+    private Integer roundNumber;  // Round number from TournamentRound (for manual fixture system)
     private String groupName;
     private Integer homeTeamScore;
     private Integer awayTeamScore;

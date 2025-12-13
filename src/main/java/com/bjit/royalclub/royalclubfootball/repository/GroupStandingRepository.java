@@ -2,8 +2,10 @@ package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.GroupStanding;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +60,8 @@ public interface GroupStandingRepository extends JpaRepository<GroupStanding, Lo
     /**
      * Delete all standings for a group (for recalculation)
      */
+    @Modifying
+    @Transactional
     @Query("DELETE FROM GroupStanding s WHERE s.group.id = :groupId")
     void deleteByGroupId(@Param("groupId") Long groupId);
 
@@ -76,6 +80,8 @@ public interface GroupStandingRepository extends JpaRepository<GroupStanding, Lo
     /**
      * Delete standing for a specific team in a group
      */
+    @Modifying
+    @Transactional
     @Query("DELETE FROM GroupStanding s WHERE s.group.id = :groupId AND s.team.id = :teamId")
     void deleteByGroupIdAndTeamId(@Param("groupId") Long groupId, @Param("teamId") Long teamId);
 }

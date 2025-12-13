@@ -515,6 +515,20 @@ public class RoundGroupServiceImpl implements RoundGroupService {
      * Convert Match entity to MatchResponse DTO
      */
     private MatchResponse convertToMatchResponse(Match match) {
+        // Get roundNumber from TournamentRound if available, otherwise use legacyRound
+        Integer roundNumber = null;
+        if (match.getRound() != null) {
+            roundNumber = match.getRound().getRoundNumber();
+        } else if (match.getLegacyRound() != null) {
+            roundNumber = match.getLegacyRound();
+        }
+        
+        // Get groupName from group relationship if groupName column is null
+        String groupName = match.getGroupName();
+        if (groupName == null && match.getGroup() != null) {
+            groupName = match.getGroup().getGroupName();
+        }
+        
         return MatchResponse.builder()
                 .id(match.getId())
                 .tournamentId(match.getTournament().getId())
@@ -528,8 +542,9 @@ public class RoundGroupServiceImpl implements RoundGroupService {
                 .matchDate(match.getMatchDate())
                 .matchStatus(match.getMatchStatus().toString())
                 .matchOrder(match.getMatchOrder())
-                .round(match.getLegacyRound())
-                .groupName(match.getGroupName())
+                .round(match.getLegacyRound())  // Keep legacy round for backward compatibility
+                .roundNumber(roundNumber)  // Add roundNumber from TournamentRound or legacyRound
+                .groupName(groupName)  // Use groupName from column or group relationship
                 .homeTeamScore(match.getHomeTeamScore())
                 .awayTeamScore(match.getAwayTeamScore())
                 .matchDurationMinutes(match.getMatchDurationMinutes())
@@ -565,10 +580,13 @@ public class RoundGroupServiceImpl implements RoundGroupService {
     private Match createMatch(RoundGroup group, Team homeTeam, Team awayTeam,
                              LocalDateTime matchDate, int durationMinutes,
                              Venue venue, int matchOrder) {
+        TournamentRound round = group.getRound();
         return Match.builder()
-                .tournament(group.getRound().getTournament())
-                .round(group.getRound())
+                .tournament(round.getTournament())
+                .round(round)
                 .group(group)
+                .groupName(group.getGroupName())  // Set groupName from group
+                .legacyRound(round.getRoundNumber())  // Set legacyRound from roundNumber for backward compatibility
                 .homeTeam(homeTeam)
                 .awayTeam(awayTeam)
                 .matchDate(matchDate)
