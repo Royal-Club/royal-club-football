@@ -61,7 +61,6 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .roundNumber(request.getRoundNumber())
                 .roundName(request.getRoundName())
                 .roundType(RoundType.valueOf(request.getRoundType()))
-                .roundFormat(RoundFormat.valueOf(request.getRoundFormat()))
                 .advancementRule(request.getAdvancementRule())
                 .status(RoundStatus.NOT_STARTED)
                 .sequenceOrder(request.getSequenceOrder())
@@ -99,7 +98,6 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
         round.setRoundNumber(request.getRoundNumber());
         round.setRoundName(request.getRoundName());
         round.setRoundType(RoundType.valueOf(request.getRoundType()));
-        round.setRoundFormat(RoundFormat.valueOf(request.getRoundFormat()));
         round.setAdvancementRule(request.getAdvancementRule());
         round.setSequenceOrder(request.getSequenceOrder());
         round.setStartDate(request.getStartDate());
@@ -185,8 +183,8 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
         TournamentRound round = tournamentRoundRepository.findById(request.getRoundId())
                 .orElseThrow(() -> new RoundServiceException(ROUND_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
-        // Check if all matches in the round are completed
-        boolean allMatchesCompleted = matchRepository.areAllMatchesCompletedInRound(request.getRoundId());
+        // Check if all matches in the round are completed (handles both GROUP_BASED and DIRECT_KNOCKOUT)
+        boolean allMatchesCompleted = areAllMatchesCompletedInRound(round);
         if (!allMatchesCompleted) {
             throw new RoundServiceException(ROUND_NOT_COMPLETED, HttpStatus.BAD_REQUEST);
         }
@@ -200,15 +198,13 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
         round.setStatus(RoundStatus.COMPLETED);
         tournamentRoundRepository.save(round);
 
-        // Advance teams if requested
+        // Advance teams manually (selectedTeamIds is required)
         AdvancedTeamsResponse advancedTeamsResponse = null;
-        if (request.getAutoAdvanceTeams() == null || request.getAutoAdvanceTeams()) {
-            // Use manual team selection if provided, otherwise use automatic rules
-            if (request.getSelectedTeamIds() != null && !request.getSelectedTeamIds().isEmpty()) {
-                advancedTeamsResponse = advanceSelectedTeamsToNextRound(round, request.getSelectedTeamIds());
-            } else {
-                advancedTeamsResponse = advanceTeamsToNextRound(round);
-            }
+        if (request.getSelectedTeamIds() != null && !request.getSelectedTeamIds().isEmpty()) {
+            advancedTeamsResponse = advanceSelectedTeamsToNextRound(round, request.getSelectedTeamIds());
+        } else {
+            // No teams selected - round is completed but no advancement
+            log.info("Round completed without team advancement (no teams selected)");
         }
 
         log.info("Round completed successfully with ID: {}", request.getRoundId());
@@ -269,6 +265,32 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
         return tournamentRoundRepository.findPreviousRoundBySequence(tournamentId, currentSequenceOrder)
                 .map(this::convertToRoundResponse)
                 .orElse(null);
+    }
+
+    /**
+     * Check if all matches in a round are completed
+     * For GROUP_BASED rounds: checks all matches in all groups
+     * For DIRECT_KNOCKOUT rounds: checks all matches directly in the round
+     */
+    private boolean areAllMatchesCompletedInRound(TournamentRound round) {
+        if (round.getRoundType() == RoundType.GROUP_BASED) {
+            // For GROUP_BASED rounds, check all matches in all groups
+            List<RoundGroup> groups = roundGroupRepository.findByRoundId(round.getId());
+            if (groups.isEmpty()) {
+                return false; // No groups means no matches
+            }
+            
+            for (RoundGroup group : groups) {
+                boolean allGroupMatchesCompleted = matchRepository.areAllMatchesCompletedInGroup(group.getId());
+                if (!allGroupMatchesCompleted) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            // For DIRECT_KNOCKOUT rounds, check matches directly in the round
+            return matchRepository.areAllMatchesCompletedInRound(round.getId());
+        }
     }
 
     private void recalculateGroupStandings(TournamentRound round) {
@@ -534,8 +556,24 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .map(this::convertToTeamSimpleResponse)
                 .collect(Collectors.toList());
 
-        long totalMatches = matchRepository.countByRoundId(round.getId());
-        long completedMatches = matchRepository.countCompletedByRoundId(round.getId());
+        // Count matches correctly based on round type
+        long totalMatches;
+        long completedMatches;
+        
+        if (round.getRoundType() == RoundType.GROUP_BASED) {
+            // For GROUP_BASED rounds, count all matches in all groups
+            totalMatches = 0;
+            completedMatches = 0;
+            List<RoundGroup> roundGroups = roundGroupRepository.findByRoundId(round.getId());
+            for (RoundGroup group : roundGroups) {
+                totalMatches += matchRepository.countByGroupId(group.getId());
+                completedMatches += matchRepository.countCompletedByGroupId(group.getId());
+            }
+        } else {
+            // For DIRECT_KNOCKOUT rounds, count matches directly in the round
+            totalMatches = matchRepository.countByRoundId(round.getId());
+            completedMatches = matchRepository.countCompletedByRoundId(round.getId());
+        }
 
         return TournamentRoundResponse.builder()
                 .id(round.getId())
@@ -543,7 +581,6 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .roundNumber(round.getRoundNumber())
                 .roundName(round.getRoundName())
                 .roundType(round.getRoundType().toString())
-                .roundFormat(round.getRoundFormat().toString())
                 .advancementRule(round.getAdvancementRule())
                 .status(round.getStatus().toString())
                 .sequenceOrder(round.getSequenceOrder())
@@ -953,5 +990,34 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .position(standing.getPosition())
                 .isAdvanced(standing.getIsAdvanced())
                 .build();
+    }
+
+    @Override
+    public void checkAndAutoCompleteRound(Long roundId) {
+        TournamentRound round = tournamentRoundRepository.findById(roundId)
+                .orElse(null);
+        
+        if (round == null || round.getStatus() != RoundStatus.ONGOING) {
+            // Only auto-complete rounds that are ONGOING
+            return;
+        }
+
+        // Check if all matches are completed
+        boolean allMatchesCompleted = areAllMatchesCompletedInRound(round);
+        
+        if (allMatchesCompleted) {
+            log.info("Auto-completing round ID: {} - all matches are completed", roundId);
+            
+            // Recalculate standings for group-based rounds
+            if (round.getRoundType() == RoundType.GROUP_BASED) {
+                recalculateGroupStandings(round);
+            }
+            
+            // Update round status to COMPLETED
+            round.setStatus(RoundStatus.COMPLETED);
+            tournamentRoundRepository.save(round);
+            
+            log.info("Round ID: {} auto-completed successfully", roundId);
+        }
     }
 }

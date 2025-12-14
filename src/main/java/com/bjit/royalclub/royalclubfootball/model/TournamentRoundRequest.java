@@ -23,8 +23,6 @@ public class TournamentRoundRequest {
     @NotBlank(message = "Round type is required")
     private String roundType; // GROUP_BASED, DIRECT_KNOCKOUT
 
-    private String roundFormat; // ROUND_ROBIN, SINGLE_ELIMINATION, DOUBLE_ELIMINATION, SWISS_SYSTEM, CUSTOM
-
     private String advancementRule; // JSON string
 
     @NotNull(message = "Sequence order is required")

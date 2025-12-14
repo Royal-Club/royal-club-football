@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.entity.*;
+import com.bjit.royalclub.royalclubfootball.enums.FixtureFormat;
 import com.bjit.royalclub.royalclubfootball.enums.GroupFormat;
 import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
 import com.bjit.royalclub.royalclubfootball.enums.RoundStatus;
@@ -437,8 +438,6 @@ public class RoundGroupServiceImpl implements RoundGroupService {
                 request.getMatchTimeGapMinutes() : 180; // 3 hours default
         int matchDuration = request.getMatchDurationMinutes() != null ?
                 request.getMatchDurationMinutes() : 90;
-        boolean doubleRoundRobin = request.getDoubleRoundRobin() != null ?
-                request.getDoubleRoundRobin() : false;
 
         Venue venue = null;
         if (request.getVenueId() != null) {
@@ -449,6 +448,17 @@ public class RoundGroupServiceImpl implements RoundGroupService {
         List<Match> matches = new ArrayList<>();
         LocalDateTime currentMatchDate = request.getStartDate();
         int matchOrder = 1;
+
+        // Generate matches based on fixture format
+        FixtureFormat format = request.getFixtureFormat();
+        boolean doubleRoundRobin = format == FixtureFormat.DOUBLE_ROUND_ROBIN;
+        
+        // For groups, only ROUND_ROBIN formats are supported
+        if (format != FixtureFormat.ROUND_ROBIN && format != FixtureFormat.DOUBLE_ROUND_ROBIN) {
+            throw new RoundServiceException(
+                    "Group match generation only supports ROUND_ROBIN or DOUBLE_ROUND_ROBIN formats",
+                    HttpStatus.BAD_REQUEST);
+        }
 
         // Generate round-robin matches
         for (int i = 0; i < teams.size(); i++) {

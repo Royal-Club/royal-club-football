@@ -18,7 +18,6 @@ public class TournamentRoundResponse {
     private Integer roundNumber;
     private String roundName;
     private String roundType;
-    private String roundFormat;
     private String advancementRule;
     private String status;
     private Integer sequenceOrder;

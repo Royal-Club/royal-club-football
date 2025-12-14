@@ -44,4 +44,10 @@ public interface TournamentRoundService {
 
     @Transactional
     List<MatchResponse> generateRoundMatches(Long roundId, RoundMatchGenerationRequest request);
+
+    /**
+     * Check if all matches in a round are completed and auto-complete the round
+     * This is called automatically when a match is completed
+     */
+    void checkAndAutoCompleteRound(Long roundId);
 }

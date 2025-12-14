@@ -40,11 +40,11 @@ public class MatchEvent extends AuditBase {
     private MatchEventType eventType;
 
     @ManyToOne
-    @JoinColumn(name = "player_id", nullable = false)
+    @JoinColumn(name = "player_id")
     private Player player;
 
     @ManyToOne
-    @JoinColumn(name = "team_id", nullable = false)
+    @JoinColumn(name = "team_id")
     private Team team;
 
     @Column(name = "event_time", nullable = false)

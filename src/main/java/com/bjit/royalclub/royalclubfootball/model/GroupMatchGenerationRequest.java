@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.model;
 
+import com.bjit.royalclub.royalclubfootball.enums.FixtureFormat;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,9 @@ public class GroupMatchGenerationRequest {
     @NotNull(message = "Start date is required")
     private LocalDateTime startDate;
 
+    @NotNull(message = "Fixture format is required")
+    private FixtureFormat fixtureFormat;
+
     /**
      * Time gap between matches in minutes
      * Default: 180 (3 hours)
@@ -33,10 +37,4 @@ public class GroupMatchGenerationRequest {
      * Venue ID (optional - if all matches in same venue)
      */
     private Long venueId;
-
-    /**
-     * Whether to generate double round-robin (home & away)
-     * Default: false (single round-robin)
-     */
-    private Boolean doubleRoundRobin;
 }

@@ -1,7 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.entity;
 
 import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
-import com.bjit.royalclub.royalclubfootball.enums.RoundFormat;
 import com.bjit.royalclub.royalclubfootball.enums.RoundStatus;
 import com.bjit.royalclub.royalclubfootball.enums.RoundType;
 import jakarta.persistence.CascadeType;
@@ -52,10 +51,6 @@ public class TournamentRound extends AuditBase {
     @Enumerated(EnumType.STRING)
     @Column(name = "round_type", nullable = false, length = 50)
     private RoundType roundType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "round_format", length = 50)
-    private RoundFormat roundFormat;
 
     @Column(name = "advancement_rule", columnDefinition = "TEXT")
     private String advancementRule;

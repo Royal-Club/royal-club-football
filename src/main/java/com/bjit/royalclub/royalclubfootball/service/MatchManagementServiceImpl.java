@@ -14,6 +14,7 @@ import com.bjit.royalclub.royalclubfootball.repository.MatchEventRepository;
 import com.bjit.royalclub.royalclubfootball.repository.MatchRepository;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamRepository;
+import com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
     private final PlayerRepository playerRepository;
     private final TeamRepository teamRepository;
     private final RoundGroupService roundGroupService;
+    private final TournamentRoundService tournamentRoundService;
 
     @Override
     public MatchResponse getMatchById(Long matchId) {
@@ -54,6 +56,26 @@ public class MatchManagementServiceImpl implements MatchManagementService {
         match.setElapsedTimeSeconds(0);
 
         matchRepository.save(match);
+
+        // Create MATCH_STARTED event - use logged-in admin's player ID to track who started the match
+        Player adminPlayer = playerRepository.findById(SecurityUtil.getLoggedInUserId())
+                .orElseThrow(() -> new TournamentServiceException("Admin player not found", HttpStatus.NOT_FOUND));
+        
+        // Use home team as placeholder for system events (database requires team_id)
+        Team homeTeam = match.getHomeTeam();
+        
+        MatchEvent matchStartedEvent = MatchEvent.builder()
+                .match(match)
+                .eventType(com.bjit.royalclub.royalclubfootball.enums.MatchEventType.MATCH_STARTED)
+                .player(adminPlayer)  // Use admin's player ID to track who started the match
+                .team(homeTeam)      // Use home team as placeholder (database constraint requires team_id)
+                .eventTime(0)
+                .description("Match started by " + adminPlayer.getName())
+                .relatedPlayer(null)
+                .details(null)
+                .build();
+        matchEventRepository.save(matchStartedEvent);
+
         return convertToResponse(match);
     }
 
@@ -99,6 +121,25 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         matchRepository.save(match);
 
+        // Create MATCH_COMPLETED event - use logged-in admin's player ID to track who completed the match
+        Player adminPlayer = playerRepository.findById(SecurityUtil.getLoggedInUserId())
+                .orElseThrow(() -> new TournamentServiceException("Admin player not found", HttpStatus.NOT_FOUND));
+        
+        // Use home team as placeholder for system events (database constraint requires team_id)
+        Team homeTeam = match.getHomeTeam();
+        
+        MatchEvent matchCompletedEvent = MatchEvent.builder()
+                .match(match)
+                .eventType(com.bjit.royalclub.royalclubfootball.enums.MatchEventType.MATCH_COMPLETED)
+                .player(adminPlayer)  // Use admin's player ID to track who completed the match
+                .team(homeTeam)       // Use home team as placeholder (database constraint requires team_id)
+                .eventTime(match.getElapsedTimeSeconds() != null ? match.getElapsedTimeSeconds() : 0)
+                .description("Match completed by " + adminPlayer.getName())
+                .relatedPlayer(null)
+                .details(null)
+                .build();
+        matchEventRepository.save(matchCompletedEvent);
+
         // Auto-update group standings if this match is part of a group
         if (match.getGroup() != null) {
             try {
@@ -107,6 +148,16 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                 // Log error but don't fail the match completion
                 // This is important to not break existing functionality
                 System.err.println("Failed to auto-update group standings: " + e.getMessage());
+            }
+        }
+
+        // Auto-complete round if all matches are completed
+        if (match.getRound() != null) {
+            try {
+                tournamentRoundService.checkAndAutoCompleteRound(match.getRound().getId());
+            } catch (Exception e) {
+                // Log error but don't fail the match completion
+                System.err.println("Failed to auto-complete round: " + e.getMessage());
             }
         }
 
@@ -120,6 +171,29 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         if (updateRequest.getMatchStatus() != null) {
             match.setMatchStatus(MatchStatus.valueOf(updateRequest.getMatchStatus()));
+            
+            // If match is being marked as completed, update group standings and check round completion
+            if (match.getMatchStatus() == MatchStatus.COMPLETED && match.getCompletedAt() == null) {
+                match.setCompletedAt(LocalDateTime.now());
+                
+                // Auto-update group standings if this match is part of a group
+                if (match.getGroup() != null) {
+                    try {
+                        roundGroupService.recalculateGroupStandings(match.getGroup().getId());
+                    } catch (Exception e) {
+                        System.err.println("Failed to auto-update group standings: " + e.getMessage());
+                    }
+                }
+                
+                // Auto-complete round if all matches are completed
+                if (match.getRound() != null) {
+                    try {
+                        tournamentRoundService.checkAndAutoCompleteRound(match.getRound().getId());
+                    } catch (Exception e) {
+                        System.err.println("Failed to auto-complete round: " + e.getMessage());
+                    }
+                }
+            }
         }
 
         if (updateRequest.getHomeTeamScore() != null) {
@@ -289,14 +363,20 @@ public class MatchManagementServiceImpl implements MatchManagementService {
     }
 
     private MatchEventResponse convertEventToResponse(MatchEvent event) {
+        // System events (MATCH_STARTED, MATCH_COMPLETED) have admin player and placeholder team
+        boolean isSystemEvent = event.getEventType() == com.bjit.royalclub.royalclubfootball.enums.MatchEventType.MATCH_STARTED 
+                || event.getEventType() == com.bjit.royalclub.royalclubfootball.enums.MatchEventType.MATCH_COMPLETED;
+
         return MatchEventResponse.builder()
                 .id(event.getId())
                 .matchId(event.getMatch().getId())
                 .eventType(event.getEventType().toString())
-                .playerId(event.getPlayer().getId())
-                .playerName(event.getPlayer().getName())
-                .teamId(event.getTeam().getId())
-                .teamName(event.getTeam().getTeamName())
+                // System events have admin player, regular events have match player
+                .playerId(event.getPlayer() != null ? event.getPlayer().getId() : null)
+                .playerName(event.getPlayer() != null ? event.getPlayer().getName() : null)
+                // System events have placeholder team (home team), but we hide it in response for clarity
+                .teamId(isSystemEvent ? null : (event.getTeam() != null ? event.getTeam().getId() : null))
+                .teamName(isSystemEvent ? null : (event.getTeam() != null ? event.getTeam().getTeamName() : null))
                 .eventTime(event.getEventTime())
                 .description(event.getDescription())
                 .relatedPlayerId(event.getRelatedPlayer() != null ? event.getRelatedPlayer().getId() : null)
