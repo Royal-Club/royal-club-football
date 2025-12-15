@@ -50,10 +50,15 @@ public interface TournamentRoundRepository extends JpaRepository<TournamentRound
 
     /**
      * Find previous round before current sequence order
+     * Returns the round with the highest sequenceOrder that is less than the given sequenceOrder
+     * Uses subquery to ensure only one result is returned even if there are duplicate sequenceOrders
+     * Returns List to handle edge cases where duplicates might exist (should be fixed by backend auto-calculation)
      */
     @Query("SELECT r FROM TournamentRound r WHERE r.tournament.id = :tournamentId " +
-           "AND r.sequenceOrder < :sequenceOrder ORDER BY r.sequenceOrder DESC")
-    Optional<TournamentRound> findPreviousRoundBySequence(@Param("tournamentId") Long tournamentId, @Param("sequenceOrder") Integer sequenceOrder);
+           "AND r.sequenceOrder = (SELECT MAX(r2.sequenceOrder) FROM TournamentRound r2 " +
+           "WHERE r2.tournament.id = :tournamentId AND r2.sequenceOrder < :sequenceOrder) " +
+           "ORDER BY r.id ASC")
+    List<TournamentRound> findPreviousRoundBySequence(@Param("tournamentId") Long tournamentId, @Param("sequenceOrder") Integer sequenceOrder);
 
     /**
      * Check if a round exists for tournament and sequence order

@@ -50,10 +50,20 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
             throw new RoundServiceException(ROUND_NUMBER_ALREADY_EXISTS, HttpStatus.CONFLICT);
         }
 
-        // Validate sequence order uniqueness
-        if (tournamentRoundRepository.existsByTournamentIdAndSequenceOrder(
-                request.getTournamentId(), request.getSequenceOrder())) {
-            throw new RoundServiceException(INVALID_ROUND_SEQUENCE, HttpStatus.CONFLICT);
+        // Auto-calculate sequenceOrder to prevent duplicates and race conditions
+        // Get the maximum sequenceOrder for this tournament and add 1
+        List<TournamentRound> existingRounds = tournamentRoundRepository.findByTournamentIdOrderBySequence(request.getTournamentId());
+        int maxSequenceOrder = existingRounds.stream()
+                .mapToInt(TournamentRound::getSequenceOrder)
+                .max()
+                .orElse(0);
+        int calculatedSequenceOrder = maxSequenceOrder + 1;
+        
+        // If frontend provided sequenceOrder, validate it matches our calculation (for safety)
+        // But use our calculated value to ensure uniqueness
+        if (request.getSequenceOrder() != null && request.getSequenceOrder() != calculatedSequenceOrder) {
+            log.warn("Frontend provided sequenceOrder {} but calculated {}, using calculated value to ensure uniqueness", 
+                    request.getSequenceOrder(), calculatedSequenceOrder);
         }
 
         TournamentRound round = TournamentRound.builder()
@@ -63,13 +73,13 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .roundType(RoundType.valueOf(request.getRoundType()))
                 .advancementRule(request.getAdvancementRule())
                 .status(RoundStatus.NOT_STARTED)
-                .sequenceOrder(request.getSequenceOrder())
+                .sequenceOrder(calculatedSequenceOrder) // Use calculated value instead of request value
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .build();
 
         TournamentRound savedRound = tournamentRoundRepository.save(round);
-        log.info("Round created successfully with ID: {}", savedRound.getId());
+        log.info("Round created successfully with ID: {}, sequenceOrder: {}", savedRound.getId(), savedRound.getSequenceOrder());
 
         return convertToRoundResponse(savedRound);
     }
@@ -228,9 +238,9 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
 
         // Check if previous round is completed (if not the first round)
         if (round.getSequenceOrder() > 1) {
-            TournamentRound previousRound = tournamentRoundRepository
-                    .findPreviousRoundBySequence(round.getTournament().getId(), round.getSequenceOrder())
-                    .orElse(null);
+            List<TournamentRound> previousRounds = tournamentRoundRepository
+                    .findPreviousRoundBySequence(round.getTournament().getId(), round.getSequenceOrder());
+            TournamentRound previousRound = previousRounds.isEmpty() ? null : previousRounds.get(0);
 
             if (previousRound != null && previousRound.getStatus() != RoundStatus.COMPLETED) {
                 throw new RoundServiceException(
@@ -262,9 +272,12 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
     public TournamentRoundResponse getPreviousRound(Long tournamentId, Integer currentSequenceOrder) {
         log.info("Fetching previous round for tournament ID: {} before sequence: {}", tournamentId, currentSequenceOrder);
 
-        return tournamentRoundRepository.findPreviousRoundBySequence(tournamentId, currentSequenceOrder)
-                .map(this::convertToRoundResponse)
-                .orElse(null);
+        List<TournamentRound> previousRounds = tournamentRoundRepository.findPreviousRoundBySequence(tournamentId, currentSequenceOrder);
+        if (previousRounds.isEmpty()) {
+            return null;
+        }
+        // Return the first round (ordered by id ASC as tiebreaker)
+        return convertToRoundResponse(previousRounds.get(0));
     }
 
     /**
