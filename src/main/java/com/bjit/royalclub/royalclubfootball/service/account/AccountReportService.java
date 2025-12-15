@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -42,8 +43,10 @@ public class AccountReportService {
     }
 
     public AccountSummaryResponse getAccountSummary() {
-        BigDecimal totalAssets = acVoucherDetailRepository.getTotalAssets();      // Total assets
-        BigDecimal totalExpenses = acVoucherDetailRepository.getTotalExpenses();  // Total expenses
+        BigDecimal totalAssets =
+                Optional.ofNullable(acVoucherDetailRepository.getTotalAssets()).orElse(BigDecimal.ZERO);// Total assets
+        BigDecimal totalExpenses =
+                Optional.ofNullable(acVoucherDetailRepository.getTotalExpenses()).orElse(BigDecimal.ZERO);  // Total expenses
 
         // Calculate current balance as total assets minus total expenses
         BigDecimal currentBalance = totalAssets.subtract(totalExpenses);

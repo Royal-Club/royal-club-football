@@ -65,10 +65,10 @@ public interface AcVoucherDetailRepository extends JpaRepository<AcVoucherDetail
     @Query("SELECT SUM(v.dr) FROM AcVoucherDetail v")
     BigDecimal getTotalDebits();   // Sum of all debit entries
 
-    @Query("SELECT SUM(v.dr) FROM AcVoucherDetail v WHERE v.acChart.acNature.type = 'ASSET'")
+    @Query("SELECT COALESCE(SUM(COALESCE(v.dr, 0)), 0) FROM AcVoucherDetail v WHERE v.acChart.acNature.type = 'ASSET'")
     BigDecimal getTotalAssets();
 
-    @Query("SELECT SUM(v.dr) FROM AcVoucherDetail v WHERE v.acChart.acNature.type = 'EXPENSE'")
+    @Query("SELECT COALESCE(SUM(COALESCE(v.dr, 0)), 0) FROM AcVoucherDetail v WHERE v.acChart.acNature.type = 'EXPENSE'")
     BigDecimal getTotalExpenses();
 
 
