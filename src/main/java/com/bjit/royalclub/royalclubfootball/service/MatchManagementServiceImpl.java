@@ -33,6 +33,10 @@ public class MatchManagementServiceImpl implements MatchManagementService {
     private final TeamRepository teamRepository;
     private final RoundGroupService roundGroupService;
     private final TournamentRoundService tournamentRoundService;
+    private final com.bjit.royalclub.royalclubfootball.repository.TournamentRepository tournamentRepository;
+    private final com.bjit.royalclub.royalclubfootball.repository.TournamentRoundRepository tournamentRoundRepository;
+    private final com.bjit.royalclub.royalclubfootball.repository.RoundGroupRepository roundGroupRepository;
+    private final com.bjit.royalclub.royalclubfootball.repository.VenueRepository venueRepository;
 
     @Override
     public MatchResponse getMatchById(Long matchId) {
@@ -384,6 +388,123 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                 .details(event.getDetails())
                 .createdDate(event.getCreatedDate())
                 .build();
+    }
+
+    @Override
+    @jakarta.transaction.Transactional
+    public MatchResponse createMatch(com.bjit.royalclub.royalclubfootball.model.MatchCreateRequest request) {
+        // Validate tournament exists
+        com.bjit.royalclub.royalclubfootball.entity.Tournament tournament = tournamentRepository.findById(request.getTournamentId())
+                .orElseThrow(() -> new TournamentServiceException("Tournament not found", HttpStatus.NOT_FOUND));
+
+        // Validate teams exist
+        com.bjit.royalclub.royalclubfootball.entity.Team homeTeam = teamRepository.findById(request.getHomeTeamId())
+                .orElseThrow(() -> new TournamentServiceException("Home team not found", HttpStatus.NOT_FOUND));
+        
+        com.bjit.royalclub.royalclubfootball.entity.Team awayTeam = teamRepository.findById(request.getAwayTeamId())
+                .orElseThrow(() -> new TournamentServiceException("Away team not found", HttpStatus.NOT_FOUND));
+
+        // Validate teams are different
+        if (homeTeam.getId().equals(awayTeam.getId())) {
+            throw new TournamentServiceException("Home team and away team cannot be the same", HttpStatus.BAD_REQUEST);
+        }
+
+        // Validate round if provided
+        com.bjit.royalclub.royalclubfootball.entity.TournamentRound round = null;
+        if (request.getRoundId() != null) {
+            round = tournamentRoundRepository.findById(request.getRoundId())
+                    .orElseThrow(() -> new TournamentServiceException("Round not found", HttpStatus.NOT_FOUND));
+            
+            // Validate round belongs to tournament
+            if (!round.getTournament().getId().equals(request.getTournamentId())) {
+                throw new TournamentServiceException("Round does not belong to this tournament", HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        // Validate group if provided
+        com.bjit.royalclub.royalclubfootball.entity.RoundGroup group = null;
+        if (request.getGroupId() != null) {
+            group = roundGroupRepository.findById(request.getGroupId())
+                    .orElseThrow(() -> new TournamentServiceException("Group not found", HttpStatus.NOT_FOUND));
+            
+            // Validate group belongs to round if round is provided
+            if (round != null && !group.getRound().getId().equals(round.getId())) {
+                throw new TournamentServiceException("Group does not belong to the specified round", HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        // Validate venue if provided
+        com.bjit.royalclub.royalclubfootball.entity.Venue venue = null;
+        if (request.getVenueId() != null) {
+            venue = venueRepository.findById(request.getVenueId())
+                    .orElseThrow(() -> new TournamentServiceException("Venue not found", HttpStatus.NOT_FOUND));
+        }
+
+        // Determine match order - if not provided, use the next available order
+        Integer matchOrder = request.getMatchOrder();
+        if (matchOrder == null) {
+            // Get max match order for the tournament and add 1
+            List<Match> tournamentMatches = matchRepository.findByTournamentId(request.getTournamentId());
+            matchOrder = tournamentMatches.stream()
+                    .map(Match::getMatchOrder)
+                    .filter(java.util.Objects::nonNull)
+                    .max(Integer::compareTo)
+                    .orElse(0) + 1;
+        }
+
+        // Create the match
+        Match match = Match.builder()
+                .tournament(tournament)
+                .round(round)
+                .group(group)
+                .homeTeam(homeTeam)
+                .awayTeam(awayTeam)
+                .venue(venue)
+                .matchDate(request.getMatchDate())
+                .matchStatus(MatchStatus.SCHEDULED)
+                .matchOrder(matchOrder)
+                .homeTeamScore(0)
+                .awayTeamScore(0)
+                .elapsedTimeSeconds(0)
+                .isPlaceholderMatch(false)
+                .matchDurationMinutes(request.getMatchDurationMinutes())
+                .groupName(request.getGroupName() != null ? request.getGroupName() : (group != null ? group.getGroupName() : null))
+                .legacyRound(round != null ? round.getRoundNumber() : null)
+                .build();
+
+        match = matchRepository.save(match);
+        return convertToResponse(match);
+    }
+
+    @Override
+    @jakarta.transaction.Transactional
+    public void deleteMatch(Long matchId) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new TournamentServiceException("Match not found", HttpStatus.NOT_FOUND));
+
+        // Prevent deletion of ongoing or completed matches
+        if (match.getMatchStatus() == MatchStatus.ONGOING || match.getMatchStatus() == MatchStatus.PAUSED) {
+            throw new TournamentServiceException("Cannot delete ongoing or paused matches", HttpStatus.CONFLICT);
+        }
+
+        if (match.getMatchStatus() == MatchStatus.COMPLETED) {
+            throw new TournamentServiceException("Cannot delete completed matches", HttpStatus.CONFLICT);
+        }
+
+        // Delete the match (cascade will handle match events and statistics)
+        matchRepository.delete(match);
+    }
+
+    @Override
+    @jakarta.transaction.Transactional
+    public void updateMatchOrder(com.bjit.royalclub.royalclubfootball.model.MatchOrderUpdateRequest request) {
+        for (com.bjit.royalclub.royalclubfootball.model.MatchOrderUpdateRequest.MatchOrderItem item : request.getMatchOrders()) {
+            Match match = matchRepository.findById(item.getMatchId())
+                    .orElseThrow(() -> new TournamentServiceException("Match not found with ID: " + item.getMatchId(), HttpStatus.NOT_FOUND));
+            
+            match.setMatchOrder(item.getMatchOrder());
+            matchRepository.save(match);
+        }
     }
 
 }

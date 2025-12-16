@@ -75,4 +75,22 @@ public interface MatchManagementService {
     @Transactional
     void deleteMatchEvent(Long eventId);
 
+    /**
+     * Create a new match manually
+     */
+    @Transactional
+    MatchResponse createMatch(com.bjit.royalclub.royalclubfootball.model.MatchCreateRequest request);
+
+    /**
+     * Delete a match by ID
+     */
+    @Transactional
+    void deleteMatch(Long matchId);
+
+    /**
+     * Update match order for multiple matches (for drag and drop reordering)
+     */
+    @Transactional
+    void updateMatchOrder(com.bjit.royalclub.royalclubfootball.model.MatchOrderUpdateRequest request);
+
 }

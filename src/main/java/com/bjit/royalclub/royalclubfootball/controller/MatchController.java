@@ -167,4 +167,42 @@ public class MatchController {
                 .build());
     }
 
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Response> createMatch(@Valid @RequestBody com.bjit.royalclub.royalclubfootball.model.MatchCreateRequest request) {
+        MatchResponse match = matchManagementService.createMatch(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Response.builder()
+                        .statusCode(HttpStatus.CREATED.value())
+                        .status("CREATED")
+                        .message("Match created successfully")
+                        .content(match)
+                        .timeStamp(System.currentTimeMillis())
+                        .build());
+    }
+
+    @DeleteMapping("/{matchId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Response> deleteMatch(@PathVariable Long matchId) {
+        matchManagementService.deleteMatch(matchId);
+        return ResponseEntity.ok(Response.builder()
+                .statusCode(HttpStatus.OK.value())
+                .status("OK")
+                .message("Match deleted successfully")
+                .timeStamp(System.currentTimeMillis())
+                .build());
+    }
+
+    @PutMapping("/order")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Response> updateMatchOrder(@Valid @RequestBody com.bjit.royalclub.royalclubfootball.model.MatchOrderUpdateRequest request) {
+        matchManagementService.updateMatchOrder(request);
+        return ResponseEntity.ok(Response.builder()
+                .statusCode(HttpStatus.OK.value())
+                .status("OK")
+                .message("Match order updated successfully")
+                .timeStamp(System.currentTimeMillis())
+                .build());
+    }
+
 }
