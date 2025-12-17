@@ -43,6 +43,9 @@ public interface TournamentRoundService {
     void assignTeamsToRound(Long roundId, TeamAssignmentRequest request);
 
     @Transactional
+    void removeTeamFromRound(Long roundId, Long teamId);
+
+    @Transactional
     List<MatchResponse> generateRoundMatches(Long roundId, RoundMatchGenerationRequest request);
 
     /**

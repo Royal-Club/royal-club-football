@@ -713,6 +713,45 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
 
     @Override
     @Transactional
+    public void removeTeamFromRound(Long roundId, Long teamId) {
+        log.info("Removing team ID: {} from round ID: {}", teamId, roundId);
+
+        TournamentRound round = tournamentRoundRepository.findById(roundId)
+                .orElseThrow(() -> new RoundServiceException(ROUND_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        // Only allow removal from DIRECT_KNOCKOUT rounds
+        if (round.getRoundType() != RoundType.DIRECT_KNOCKOUT) {
+            throw new RoundServiceException(
+                    "Teams can only be removed from DIRECT_KNOCKOUT rounds. Use group team removal for GROUP_BASED rounds.",
+                    HttpStatus.BAD_REQUEST);
+        }
+
+        // Check if round is already started
+        if (round.getStatus() != RoundStatus.NOT_STARTED) {
+            throw new RoundServiceException(
+                    "Cannot remove teams from a round that has already started",
+                    HttpStatus.BAD_REQUEST);
+        }
+
+        // Check if team is in round
+        if (!roundTeamRepository.existsByRoundIdAndTeamId(roundId, teamId)) {
+            throw new RoundServiceException("Team is not in this round", HttpStatus.NOT_FOUND);
+        }
+
+        // Check if team has matches in this round
+        long matchCount = matchRepository.countByRoundIdAndTeamId(roundId, teamId);
+        if (matchCount > 0) {
+            throw new RoundServiceException("Cannot remove team with existing matches",
+                    HttpStatus.CONFLICT);
+        }
+
+        roundTeamRepository.deleteByRoundIdAndTeamId(roundId, teamId);
+
+        log.info("Team removed successfully from round ID: {}", roundId);
+    }
+
+    @Override
+    @Transactional
     public List<MatchResponse> generateRoundMatches(Long roundId, RoundMatchGenerationRequest request) {
         log.info("Generating matches for round ID: {} with format: {}", roundId, request.getFixtureFormat());
 
@@ -842,7 +881,8 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                             roundNumber
                     );
                     matches.add(match);
-                    currentDate = currentDate.plusMinutes(matchTimeGap);
+                    // Next match starts after current match ends + gap
+                    currentDate = currentDate.plusMinutes(matchDuration).plusMinutes(matchTimeGap);
                 }
             }
 
@@ -884,7 +924,8 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                         1
                 );
                 matches.add(match1);
-                currentDate = currentDate.plusMinutes(matchTimeGap);
+                // Next match starts after current match ends + gap
+                currentDate = currentDate.plusMinutes(matchDuration).plusMinutes(matchTimeGap);
 
                 // Second match (away vs home) if double round-robin
                 if (doubleRoundRobin) {
@@ -900,7 +941,8 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                             2
                     );
                     matches.add(match2);
-                    currentDate = currentDate.plusMinutes(matchTimeGap);
+                    // Next match starts after current match ends + gap
+                    currentDate = currentDate.plusMinutes(matchDuration).plusMinutes(matchTimeGap);
                 }
             }
         }

@@ -477,7 +477,8 @@ public class RoundGroupServiceImpl implements RoundGroupService {
                         matchOrder++
                 );
                 matches.add(match1);
-                currentMatchDate = currentMatchDate.plusMinutes(matchTimeGap);
+                // Next match starts after current match ends + gap
+                currentMatchDate = currentMatchDate.plusMinutes(matchDuration).plusMinutes(matchTimeGap);
 
                 // Second match (away vs home) if double round-robin
                 if (doubleRoundRobin) {
@@ -491,7 +492,8 @@ public class RoundGroupServiceImpl implements RoundGroupService {
                             matchOrder++
                     );
                     matches.add(match2);
-                    currentMatchDate = currentMatchDate.plusMinutes(matchTimeGap);
+                    // Next match starts after current match ends + gap
+                    currentMatchDate = currentMatchDate.plusMinutes(matchDuration).plusMinutes(matchTimeGap);
                 }
             }
         }

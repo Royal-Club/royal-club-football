@@ -5,6 +5,7 @@ import com.bjit.royalclub.royalclubfootball.entity.MatchEvent;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Team;
 import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
+import com.bjit.royalclub.royalclubfootball.enums.RoundStatus;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.model.MatchEventRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchEventResponse;
@@ -53,6 +54,22 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         if (!match.getMatchStatus().equals(MatchStatus.SCHEDULED)) {
             throw new TournamentServiceException("Only scheduled matches can be started", HttpStatus.CONFLICT);
+        }
+
+        // Check if the round is NOT_STARTED - prevent starting matches if round hasn't been started yet
+        if (match.getRound() != null) {
+            // Fetch the round to get the latest status (in case it was updated)
+            com.bjit.royalclub.royalclubfootball.entity.TournamentRound round = tournamentRoundRepository.findById(match.getRound().getId())
+                    .orElse(null);
+            if (round != null) {
+                RoundStatus roundStatus = round.getStatus();
+                if (roundStatus == RoundStatus.NOT_STARTED) {
+                    throw new TournamentServiceException(
+                        String.format("Cannot start match. The round '%s' must be started first before individual matches can be started. Please start the round from the tournament management panel.", 
+                            round.getRoundName()),
+                        HttpStatus.CONFLICT);
+                }
+            }
         }
 
         match.setMatchStatus(MatchStatus.ONGOING);

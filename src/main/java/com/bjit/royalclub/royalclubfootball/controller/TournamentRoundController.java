@@ -108,6 +108,15 @@ public class TournamentRoundController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @DeleteMapping("/{roundId}/teams/{teamId}")
+    public ResponseEntity<Object> removeTeamFromRound(
+            @PathVariable Long roundId,
+            @PathVariable Long teamId) {
+        tournamentRoundService.removeTeamFromRound(roundId, teamId);
+        return buildSuccessResponse(HttpStatus.OK, "Team removed from round successfully");
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PostMapping("/{roundId}/matches/generate")
     public ResponseEntity<Object> generateRoundMatches(
             @PathVariable Long roundId,

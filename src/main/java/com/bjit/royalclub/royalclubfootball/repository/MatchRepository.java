@@ -248,4 +248,11 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     @Query("SELECT COUNT(m) FROM Match m WHERE m.group.id = :groupId AND (m.homeTeam.id = :teamId OR m.awayTeam.id = :teamId)")
     long countByGroupIdAndTeamId(@Param("groupId") Long groupId, @Param("teamId") Long teamId);
 
+    /**
+     * Count matches for a team in a round (for DIRECT_KNOCKOUT rounds)
+     */
+    @Query("SELECT COUNT(m) FROM Match m WHERE m.round.id = :roundId " +
+           "AND (m.homeTeam.id = :teamId OR m.awayTeam.id = :teamId)")
+    long countByRoundIdAndTeamId(@Param("roundId") Long roundId, @Param("teamId") Long teamId);
+
 }
