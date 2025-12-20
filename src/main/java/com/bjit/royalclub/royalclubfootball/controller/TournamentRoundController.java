@@ -21,14 +21,14 @@ public class TournamentRoundController {
 
     private final TournamentRoundService tournamentRoundService;
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PostMapping
     public ResponseEntity<Object> createRound(@Valid @RequestBody TournamentRoundRequest request) {
         TournamentRoundResponse response = tournamentRoundService.createRound(request);
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK, response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PutMapping("/{roundId}")
     public ResponseEntity<Object> updateRound(
             @PathVariable Long roundId,
@@ -37,7 +37,7 @@ public class TournamentRoundController {
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @DeleteMapping("/{roundId}")
     public ResponseEntity<Object> deleteRound(@PathVariable Long roundId) {
         tournamentRoundService.deleteRound(roundId);
@@ -62,14 +62,14 @@ public class TournamentRoundController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping("/{roundId}/start")
     public ResponseEntity<Object> startRound(@PathVariable Long roundId) {
         TournamentRoundResponse response = tournamentRoundService.startRound(roundId);
         return buildSuccessResponse(HttpStatus.OK, "Round started successfully", response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping("/complete")
     public ResponseEntity<Object> completeRound(@Valid @RequestBody RoundCompletionRequest request) {
         AdvancedTeamsResponse response = tournamentRoundService.completeRound(request);
@@ -98,7 +98,7 @@ public class TournamentRoundController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping("/{roundId}/teams")
     public ResponseEntity<Object> assignTeamsToRound(
             @PathVariable Long roundId,
@@ -107,7 +107,7 @@ public class TournamentRoundController {
         return buildSuccessResponse(HttpStatus.OK, "Teams assigned to round successfully");
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @DeleteMapping("/{roundId}/teams/{teamId}")
     public ResponseEntity<Object> removeTeamFromRound(
             @PathVariable Long roundId,
@@ -116,7 +116,7 @@ public class TournamentRoundController {
         return buildSuccessResponse(HttpStatus.OK, "Team removed from round successfully");
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping("/{roundId}/matches/generate")
     public ResponseEntity<Object> generateRoundMatches(
             @PathVariable Long roundId,

@@ -36,7 +36,7 @@ public class MatchController {
     }
 
     @PostMapping("/{matchId}/start")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> startMatch(@PathVariable Long matchId) {
         MatchResponse match = matchManagementService.startMatch(matchId);
         return ResponseEntity.ok(Response.builder()
@@ -49,7 +49,7 @@ public class MatchController {
     }
 
     @PostMapping("/{matchId}/pause")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> pauseMatch(@PathVariable Long matchId) {
         MatchResponse match = matchManagementService.pauseMatch(matchId);
         return ResponseEntity.ok(Response.builder()
@@ -62,7 +62,7 @@ public class MatchController {
     }
 
     @PostMapping("/{matchId}/resume")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> resumeMatch(@PathVariable Long matchId) {
         MatchResponse match = matchManagementService.resumeMatch(matchId);
         return ResponseEntity.ok(Response.builder()
@@ -75,7 +75,7 @@ public class MatchController {
     }
 
     @PostMapping("/{matchId}/complete")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> completeMatch(@PathVariable Long matchId) {
         MatchResponse match = matchManagementService.completeMatch(matchId);
         return ResponseEntity.ok(Response.builder()
@@ -88,7 +88,7 @@ public class MatchController {
     }
 
     @PutMapping("/{matchId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> updateMatch(@PathVariable Long matchId,
                                                 @Valid @RequestBody MatchUpdateRequest updateRequest) {
         MatchResponse match = matchManagementService.updateMatch(matchId, updateRequest);
@@ -115,7 +115,7 @@ public class MatchController {
     }
 
     @PostMapping("/events")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> recordMatchEvent(@Valid @RequestBody MatchEventRequest eventRequest) {
         MatchEventResponse event = matchManagementService.recordMatchEvent(eventRequest);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -129,7 +129,7 @@ public class MatchController {
     }
 
     @PutMapping("/{matchId}/elapsed-time")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> updateElapsedTime(@PathVariable Long matchId,
                                                       @RequestParam Integer elapsedSeconds) {
         matchManagementService.updateElapsedTime(matchId, elapsedSeconds);
@@ -142,7 +142,7 @@ public class MatchController {
     }
 
     @PutMapping("/{matchId}/score")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> updateTeamScore(@PathVariable Long matchId,
                                                     @RequestParam Long teamId,
                                                     @RequestParam Integer newScore) {
@@ -156,7 +156,7 @@ public class MatchController {
     }
 
     @DeleteMapping("/events/{eventId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> deleteMatchEvent(@PathVariable Long eventId) {
         matchManagementService.deleteMatchEvent(eventId);
         return ResponseEntity.ok(Response.builder()
@@ -168,7 +168,7 @@ public class MatchController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> createMatch(@Valid @RequestBody com.bjit.royalclub.royalclubfootball.model.MatchCreateRequest request) {
         MatchResponse match = matchManagementService.createMatch(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -182,7 +182,7 @@ public class MatchController {
     }
 
     @DeleteMapping("/{matchId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> deleteMatch(@PathVariable Long matchId) {
         matchManagementService.deleteMatch(matchId);
         return ResponseEntity.ok(Response.builder()
@@ -194,7 +194,7 @@ public class MatchController {
     }
 
     @PutMapping("/order")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
     public ResponseEntity<Response> updateMatchOrder(@Valid @RequestBody com.bjit.royalclub.royalclubfootball.model.MatchOrderUpdateRequest request) {
         matchManagementService.updateMatchOrder(request);
         return ResponseEntity.ok(Response.builder()

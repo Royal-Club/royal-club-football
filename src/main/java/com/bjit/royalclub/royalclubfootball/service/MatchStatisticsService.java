@@ -59,4 +59,9 @@ public interface MatchStatisticsService {
      */
     Integer getPlayerTotalDisciplinaryCardsInTournament(Long tournamentId, Long playerId);
 
+    /**
+     * Get tournament-wide players with most disciplinary cards (red + yellow)
+     */
+    List<MatchStatisticsResponse> getTopCardReceiversByTournament(Long tournamentId);
+
 }

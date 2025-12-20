@@ -22,14 +22,14 @@ public class LogicNodeController {
 
     private final LogicNodeService logicNodeService;
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PostMapping
     public ResponseEntity<Object> createLogicNode(@Valid @RequestBody LogicNodeRequest request) {
         LogicNodeResponse response = logicNodeService.createLogicNode(request);
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK, response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PutMapping("/{nodeId}")
     public ResponseEntity<Object> updateLogicNode(
             @PathVariable Long nodeId,
@@ -38,7 +38,7 @@ public class LogicNodeController {
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @DeleteMapping("/{nodeId}")
     public ResponseEntity<Object> deleteLogicNode(@PathVariable Long nodeId) {
         logicNodeService.deleteLogicNode(nodeId);
@@ -57,7 +57,7 @@ public class LogicNodeController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, responses);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PostMapping("/{nodeId}/execute")
     public ResponseEntity<Object> executeLogicNode(@PathVariable Long nodeId) {
         LogicNodeResponse response = logicNodeService.executeLogicNode(nodeId);

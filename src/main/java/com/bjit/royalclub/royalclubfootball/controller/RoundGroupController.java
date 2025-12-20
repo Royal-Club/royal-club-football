@@ -21,14 +21,14 @@ public class RoundGroupController {
 
     private final RoundGroupService roundGroupService;
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping
     public ResponseEntity<Object> createGroup(@Valid @RequestBody RoundGroupRequest request) {
         RoundGroupResponse response = roundGroupService.createGroup(request);
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK, response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PutMapping("/{groupId}")
     public ResponseEntity<Object> updateGroup(
             @PathVariable Long groupId,
@@ -37,7 +37,7 @@ public class RoundGroupController {
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @DeleteMapping("/{groupId}")
     public ResponseEntity<Object> deleteGroup(@PathVariable Long groupId) {
         roundGroupService.deleteGroup(groupId);
@@ -56,7 +56,7 @@ public class RoundGroupController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, responses);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping("/{groupId}/teams")
     public ResponseEntity<Object> assignTeamsToGroup(
             @PathVariable Long groupId,
@@ -65,14 +65,14 @@ public class RoundGroupController {
         return buildSuccessResponse(HttpStatus.OK, "Teams assigned successfully to group");
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping("/placeholder")
     public ResponseEntity<Object> createPlaceholderTeam(@Valid @RequestBody PlaceholderTeamRequest request) {
         roundGroupService.createPlaceholderTeam(request);
         return buildSuccessResponse(HttpStatus.CREATED, "Placeholder team created successfully");
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @DeleteMapping("/{groupId}/teams/{teamId}")
     public ResponseEntity<Object> removeTeamFromGroup(
             @PathVariable Long groupId,
@@ -87,14 +87,14 @@ public class RoundGroupController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, responses);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping("/{groupId}/standings/recalculate")
     public ResponseEntity<Object> recalculateGroupStandings(@PathVariable Long groupId) {
         roundGroupService.recalculateGroupStandings(groupId);
         return buildSuccessResponse(HttpStatus.OK, "Group standings recalculated successfully");
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping("/{groupId}/generate-matches")
     public ResponseEntity<Object> generateGroupMatches(
             @PathVariable Long groupId,
@@ -111,7 +111,7 @@ public class RoundGroupController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, matches);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @DeleteMapping("/{groupId}/matches")
     public ResponseEntity<Object> clearGroupMatches(@PathVariable Long groupId) {
         roundGroupService.clearGroupMatches(groupId);

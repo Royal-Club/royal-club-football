@@ -34,6 +34,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
     private final TeamRepository teamRepository;
     private final RoundGroupService roundGroupService;
     private final TournamentRoundService tournamentRoundService;
+    private final MatchStatisticsService matchStatisticsService;
     private final com.bjit.royalclub.royalclubfootball.repository.TournamentRepository tournamentRepository;
     private final com.bjit.royalclub.royalclubfootball.repository.TournamentRoundRepository tournamentRoundRepository;
     private final com.bjit.royalclub.royalclubfootball.repository.RoundGroupRepository roundGroupRepository;
@@ -161,6 +162,14 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                 .build();
         matchEventRepository.save(matchCompletedEvent);
 
+        // Aggregate match statistics when completing the match
+        try {
+            matchStatisticsService.aggregateMatchStatistics(match.getId());
+        } catch (Exception e) {
+            // Log error but don't fail the match completion
+            System.err.println("Failed to aggregate match statistics: " + e.getMessage());
+        }
+
         // Auto-update group standings if this match is part of a group
         if (match.getGroup() != null) {
             try {
@@ -273,6 +282,14 @@ public class MatchManagementServiceImpl implements MatchManagementService {
             matchRepository.save(match);
         }
 
+        // Aggregate match statistics after recording the event
+        try {
+            matchStatisticsService.aggregateMatchStatistics(match.getId());
+        } catch (Exception e) {
+            // Log error but don't fail the event recording
+            System.err.println("Failed to aggregate match statistics: " + e.getMessage());
+        }
+
         return convertEventToResponse(matchEvent);
     }
 
@@ -339,6 +356,14 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         // Delete the event
         matchEventRepository.delete(event);
+
+        // Re-aggregate match statistics after deleting the event
+        try {
+            matchStatisticsService.aggregateMatchStatistics(match.getId());
+        } catch (Exception e) {
+            // Log error but don't fail the event deletion
+            System.err.println("Failed to aggregate match statistics after deletion: " + e.getMessage());
+        }
     }
 
     private MatchResponse convertToResponse(Match match) {

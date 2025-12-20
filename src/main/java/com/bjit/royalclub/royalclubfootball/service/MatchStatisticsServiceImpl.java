@@ -61,19 +61,25 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
     public List<MatchStatisticsResponse> getTopScorersByTournament(Long tournamentId) {
         List<MatchStatistics> stats = matchStatisticsRepository.findByTournamentId(tournamentId);
 
-        Map<Long, MatchStatistics> aggregated = new HashMap<>();
+        // Aggregate statistics by player
+        Map<Long, MatchStatisticsResponse> aggregated = new HashMap<>();
         for (MatchStatistics stat : stats) {
             Long playerId = stat.getPlayer().getId();
-            aggregated.computeIfPresent(playerId, (k, v) -> {
-                v.setGoalsScored(v.getGoalsScored() + stat.getGoalsScored());
-                return v;
-            });
-            aggregated.putIfAbsent(playerId, stat);
+
+            if (aggregated.containsKey(playerId)) {
+                MatchStatisticsResponse existing = aggregated.get(playerId);
+                existing.setGoalsScored(existing.getGoalsScored() + stat.getGoalsScored());
+                existing.setAssists(existing.getAssists() + stat.getAssists());
+                existing.setRedCards(existing.getRedCards() + stat.getRedCards());
+                existing.setYellowCards(existing.getYellowCards() + stat.getYellowCards());
+                existing.setMinutesPlayed(existing.getMinutesPlayed() + stat.getMinutesPlayed());
+            } else {
+                aggregated.put(playerId, convertToResponse(stat));
+            }
         }
 
         return aggregated.values().stream()
                 .sorted((a, b) -> Integer.compare(b.getGoalsScored(), a.getGoalsScored()))
-                .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
@@ -81,19 +87,25 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
     public List<MatchStatisticsResponse> getTopAssistProvidersByTournament(Long tournamentId) {
         List<MatchStatistics> stats = matchStatisticsRepository.findByTournamentId(tournamentId);
 
-        Map<Long, MatchStatistics> aggregated = new HashMap<>();
+        // Aggregate statistics by player
+        Map<Long, MatchStatisticsResponse> aggregated = new HashMap<>();
         for (MatchStatistics stat : stats) {
             Long playerId = stat.getPlayer().getId();
-            aggregated.computeIfPresent(playerId, (k, v) -> {
-                v.setAssists(v.getAssists() + stat.getAssists());
-                return v;
-            });
-            aggregated.putIfAbsent(playerId, stat);
+
+            if (aggregated.containsKey(playerId)) {
+                MatchStatisticsResponse existing = aggregated.get(playerId);
+                existing.setGoalsScored(existing.getGoalsScored() + stat.getGoalsScored());
+                existing.setAssists(existing.getAssists() + stat.getAssists());
+                existing.setRedCards(existing.getRedCards() + stat.getRedCards());
+                existing.setYellowCards(existing.getYellowCards() + stat.getYellowCards());
+                existing.setMinutesPlayed(existing.getMinutesPlayed() + stat.getMinutesPlayed());
+            } else {
+                aggregated.put(playerId, convertToResponse(stat));
+            }
         }
 
         return aggregated.values().stream()
                 .sorted((a, b) -> Integer.compare(b.getAssists(), a.getAssists()))
-                .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
@@ -173,23 +185,45 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
 
         Map<Long, MatchStatistics> playerStats = new HashMap<>();
 
+        // Helper method to get or create player stats
+        java.util.function.BiFunction<Long, Team, MatchStatistics> getOrCreateStats = (playerId, team) ->
+                playerStats.computeIfAbsent(playerId, id -> {
+                    // Try to find existing player from events
+                    MatchEvent playerEvent = matchEvents.stream()
+                            .filter(e -> e.getPlayer() != null && e.getPlayer().getId().equals(playerId))
+                            .findFirst()
+                            .orElse(null);
+
+                    return MatchStatistics.builder()
+                            .match(match)
+                            .player(playerEvent != null ? playerEvent.getPlayer() : null)
+                            .team(team)
+                            .goalsScored(0)
+                            .assists(0)
+                            .redCards(0)
+                            .yellowCards(0)
+                            .substitutionIn(0)
+                            .substitutionOut(0)
+                            .minutesPlayed(0)
+                            .build();
+                });
+
         for (MatchEvent event : matchEvents) {
+            if (event.getPlayer() == null) continue;
+
             Long playerId = event.getPlayer().getId();
-            MatchStatistics stats = playerStats.getOrDefault(playerId, MatchStatistics.builder()
-                    .match(match)
-                    .player(event.getPlayer())
-                    .team(event.getTeam())
-                    .goalsScored(0)
-                    .assists(0)
-                    .redCards(0)
-                    .yellowCards(0)
-                    .substitutionIn(0)
-                    .substitutionOut(0)
-                    .minutesPlayed(0)
-                    .build());
+            MatchStatistics stats = getOrCreateStats.apply(playerId, event.getTeam());
 
             switch (event.getEventType()) {
-                case GOAL -> stats.setGoalsScored(stats.getGoalsScored() + 1);
+                case GOAL -> {
+                    stats.setGoalsScored(stats.getGoalsScored() + 1);
+                    // Handle assist from goal event's relatedPlayer
+                    if (event.getRelatedPlayer() != null) {
+                        Long assistPlayerId = event.getRelatedPlayer().getId();
+                        MatchStatistics assistStats = getOrCreateStats.apply(assistPlayerId, event.getTeam());
+                        assistStats.setAssists(assistStats.getAssists() + 1);
+                    }
+                }
                 case ASSIST -> stats.setAssists(stats.getAssists() + 1);
                 case RED_CARD -> stats.setRedCards(stats.getRedCards() + 1);
                 case YELLOW_CARD -> stats.setYellowCards(stats.getYellowCards() + 1);
@@ -203,10 +237,12 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
                 default -> {
                 }
             }
-
-            playerStats.put(playerId, stats);
         }
 
+        // Clear existing statistics for this match to avoid duplicates
+        matchStatisticsRepository.deleteByMatchId(matchId);
+
+        // Save all aggregated statistics
         matchStatisticsRepository.saveAll(playerStats.values());
     }
 
@@ -219,7 +255,38 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
     @Override
     public Integer getPlayerTotalDisciplinaryCardsInTournament(Long tournamentId, Long playerId) {
         Integer redCards = matchStatisticsRepository.getTotalRedCardsByPlayerInTournament(tournamentId, playerId);
-        return redCards != null ? redCards : 0;
+        Integer yellowCards = matchStatisticsRepository.getTotalYellowCardsByPlayerInTournament(tournamentId, playerId);
+        return (redCards != null ? redCards : 0) + (yellowCards != null ? yellowCards : 0);
+    }
+
+    @Override
+    public List<MatchStatisticsResponse> getTopCardReceiversByTournament(Long tournamentId) {
+        List<MatchStatistics> stats = matchStatisticsRepository.findByTournamentId(tournamentId);
+
+        // Aggregate statistics by player
+        Map<Long, MatchStatisticsResponse> aggregated = new HashMap<>();
+        for (MatchStatistics stat : stats) {
+            Long playerId = stat.getPlayer().getId();
+
+            if (aggregated.containsKey(playerId)) {
+                MatchStatisticsResponse existing = aggregated.get(playerId);
+                existing.setGoalsScored(existing.getGoalsScored() + stat.getGoalsScored());
+                existing.setAssists(existing.getAssists() + stat.getAssists());
+                existing.setRedCards(existing.getRedCards() + stat.getRedCards());
+                existing.setYellowCards(existing.getYellowCards() + stat.getYellowCards());
+                existing.setMinutesPlayed(existing.getMinutesPlayed() + stat.getMinutesPlayed());
+            } else {
+                aggregated.put(playerId, convertToResponse(stat));
+            }
+        }
+
+        return aggregated.values().stream()
+                .sorted((a, b) -> {
+                    int totalCardsA = a.getRedCards() + a.getYellowCards();
+                    int totalCardsB = b.getRedCards() + b.getYellowCards();
+                    return Integer.compare(totalCardsB, totalCardsA);
+                })
+                .collect(Collectors.toList());
     }
 
     private MatchStatisticsResponse convertToResponse(MatchStatistics stats) {

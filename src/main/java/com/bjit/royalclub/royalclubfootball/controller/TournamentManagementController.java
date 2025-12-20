@@ -27,7 +27,7 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/teams")
-@PreAuthorize("hasAnyRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'COORDINATOR')")
 public class TournamentManagementController {
     private final TeamManagementService teamManagementService;
 

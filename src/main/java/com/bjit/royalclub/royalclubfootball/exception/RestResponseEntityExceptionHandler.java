@@ -268,6 +268,12 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
     }
 
+    @ExceptionHandler(RoundServiceException.class)
+    public ResponseEntity<Object> handleRoundServiceException(RoundServiceException ex) {
+        log.error(ERROR_LOG, ex.getMessage());
+        return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
+    }
+
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<Object> handleJWTException(SecurityException ex) {
         log.error(ERROR_LOG, "JWT exception: " + ex.getMessage());

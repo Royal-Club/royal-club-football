@@ -250,6 +250,45 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
             }
         }
 
+        // Ensure matches have been generated before starting the round
+        if (round.getRoundType() == RoundType.DIRECT_KNOCKOUT) {
+            // For DIRECT_KNOCKOUT, check matches directly in the round
+            long matchCount = matchRepository.countByRoundId(roundId);
+            if (matchCount == 0) {
+                throw new RoundServiceException(
+                        String.format("Cannot start round '%s'. You must generate matches for this DIRECT_KNOCKOUT round before starting it. Please use the 'Generate Matches' button to create the fixtures first.",
+                                round.getRoundName()),
+                        HttpStatus.BAD_REQUEST);
+            }
+        } else if (round.getRoundType() == RoundType.GROUP_BASED) {
+            // For GROUP_BASED, check if any group has matches
+            List<RoundGroup> groups = roundGroupRepository.findByRoundId(roundId);
+
+            if (groups.isEmpty()) {
+                throw new RoundServiceException(
+                        String.format("Cannot start round '%s'. You must create groups for this GROUP_BASED round before starting it.",
+                                round.getRoundName()),
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            // Check if at least one group has matches
+            boolean hasMatches = false;
+            for (RoundGroup group : groups) {
+                long groupMatchCount = matchRepository.countByGroupId(group.getId());
+                if (groupMatchCount > 0) {
+                    hasMatches = true;
+                    break;
+                }
+            }
+
+            if (!hasMatches) {
+                throw new RoundServiceException(
+                        String.format("Cannot start round '%s'. You must generate matches for the groups in this round before starting it. Please use the 'Generate Matches' button on each group to create the fixtures first.",
+                                round.getRoundName()),
+                        HttpStatus.BAD_REQUEST);
+            }
+        }
+
         // Update round status to ONGOING
         round.setStatus(RoundStatus.ONGOING);
         tournamentRoundRepository.save(round);

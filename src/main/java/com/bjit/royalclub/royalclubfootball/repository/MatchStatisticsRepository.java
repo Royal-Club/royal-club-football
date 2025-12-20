@@ -74,4 +74,16 @@ public interface MatchStatisticsRepository extends JpaRepository<MatchStatistics
     @Query("SELECT SUM(ms.redCards) FROM MatchStatistics ms WHERE ms.match.tournament.id = :tournamentId AND ms.player.id = :playerId")
     Integer getTotalRedCardsByPlayerInTournament(@Param("tournamentId") Long tournamentId, @Param("playerId") Long playerId);
 
+    /**
+     * Get total yellow cards for a player in a tournament
+     */
+    @Query("SELECT SUM(ms.yellowCards) FROM MatchStatistics ms WHERE ms.match.tournament.id = :tournamentId AND ms.player.id = :playerId")
+    Integer getTotalYellowCardsByPlayerInTournament(@Param("tournamentId") Long tournamentId, @Param("playerId") Long playerId);
+
+    /**
+     * Delete all statistics for a specific match
+     * Used when re-aggregating statistics from match events
+     */
+    void deleteByMatchId(Long matchId);
+
 }
