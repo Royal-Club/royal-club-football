@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.MatchEvent;
 import com.bjit.royalclub.royalclubfootball.enums.MatchEventType;
+import com.bjit.royalclub.royalclubfootball.projection.PlayerStatisticsProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -63,7 +64,35 @@ public interface MatchEventRepository extends JpaRepository<MatchEvent, Long> {
      */
     @Query("SELECT COUNT(me) FROM MatchEvent me WHERE me.match.id = :matchId AND me.player.id = :playerId AND me.eventType = :eventType")
     long countEventsByMatchIdAndPlayerIdAndType(@Param("matchId") Long matchId,
-                                                 @Param("playerId") Long playerId,
-                                                 @Param("eventType") MatchEventType eventType);
+                                                @Param("playerId") Long playerId,
+                                                @Param("eventType") MatchEventType eventType);
+
+    /**
+     * Get aggregated player statistics from match events
+     *
+     * When tournamentId IS NULL: Returns ALL players in the system with their statistics from all tournaments
+     * When tournamentId IS PROVIDED: Returns only players who participated in that specific tournament
+     *                                (through team membership), with statistics from that tournament only
+     *
+     * Note: Assists are counted from relatedPlayer field in GOAL events, not from ASSIST event type
+     * Position filtering is handled in service layer for cleaner code
+     * Players with no match events will show 0 for all statistics
+     */
+    @Query("SELECT p.id as playerId, " +
+            "COALESCE(SUM(CASE WHEN me.eventType = 'GOAL' AND me.player.id = p.id THEN 1 ELSE 0 END), 0) as goalsScored, " +
+            "COALESCE(SUM(CASE WHEN me.eventType = 'GOAL' AND me.relatedPlayer.id = p.id THEN 1 ELSE 0 END), 0) as assists, " +
+            "COALESCE(COUNT(DISTINCT CASE WHEN me.player.id = p.id OR me.relatedPlayer.id = p.id THEN me.match.id END), 0) as matchesPlayed, " +
+            "COALESCE(SUM(CASE WHEN me.eventType = 'YELLOW_CARD' AND me.player.id = p.id THEN 1 ELSE 0 END), 0) as yellowCards, " +
+            "COALESCE(SUM(CASE WHEN me.eventType = 'RED_CARD' AND me.player.id = p.id THEN 1 ELSE 0 END), 0) as redCards " +
+            "FROM Player p " +
+            "LEFT JOIN TeamPlayer tp ON tp.player.id = p.id " +
+            "LEFT JOIN Team t ON t.id = tp.team.id " +
+            "LEFT JOIN MatchEvent me ON (me.player.id = p.id OR me.relatedPlayer.id = p.id) " +
+            "AND (:tournamentId IS NULL OR me.match.tournament.id = :tournamentId) " +
+            "WHERE :tournamentId IS NULL OR t.tournament.id = :tournamentId " +
+            "GROUP BY p.id")
+    List<PlayerStatisticsProjection> findAggregatedPlayerStatisticsFromEvents(
+            @Param("tournamentId") Long tournamentId
+    );
 
 }

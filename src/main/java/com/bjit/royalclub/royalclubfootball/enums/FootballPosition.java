@@ -1,8 +1,11 @@
 package com.bjit.royalclub.royalclubfootball.enums;
 
+import lombok.Getter;
+
 import java.util.HashMap;
 import java.util.Map;
 
+@Getter
 public enum FootballPosition {
     UNASSIGNED("Unassigned"),
     GOALKEEPER("Goalkeeper"),

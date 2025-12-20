@@ -1,6 +1,8 @@
 package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.MatchStatistics;
+import com.bjit.royalclub.royalclubfootball.projection.PlayerStatisticsProjection;
+import com.bjit.royalclub.royalclubfootball.projection.TeamInfoProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -85,5 +87,44 @@ public interface MatchStatisticsRepository extends JpaRepository<MatchStatistics
      * Used when re-aggregating statistics from match events
      */
     void deleteByMatchId(Long matchId);
+
+    /**
+     * Get aggregated player statistics across all tournaments or specific tournament
+     * Returns projection with type-safe access to statistics
+     * Returns ALL players (even those without statistics) with stats summed or 0
+     */
+    @Query("SELECT p.id as playerId, " +
+           "COALESCE(SUM(ms.goalsScored), 0) as goalsScored, " +
+           "COALESCE(SUM(ms.assists), 0) as assists, " +
+           "COALESCE(COUNT(DISTINCT ms.match.id), 0) as matchesPlayed, " +
+           "COALESCE(SUM(ms.minutesPlayed), 0) as minutesPlayed, " +
+           "COALESCE(SUM(ms.yellowCards), 0) as yellowCards, " +
+           "COALESCE(SUM(ms.redCards), 0) as redCards " +
+           "FROM Player p " +
+           "LEFT JOIN MatchStatistics ms ON ms.player.id = p.id " +
+           "AND (:tournamentId IS NULL OR ms.match.tournament.id = :tournamentId) " +
+           "WHERE (:position IS NULL OR CAST(p.position AS string) = :position) " +
+           "GROUP BY p.id")
+    List<PlayerStatisticsProjection> findAggregatedPlayerStatistics(
+        @Param("tournamentId") Long tournamentId,
+        @Param("position") String position
+    );
+
+    /**
+     * Get all teams a player has played for with tournament information
+     * Returns projection with type-safe access to team info
+     */
+    @Query("SELECT DISTINCT ms.team.id as teamId, " +
+           "ms.team.teamName as teamName, " +
+           "ms.match.tournament.id as tournamentId, " +
+           "ms.match.tournament.name as tournamentName " +
+           "FROM MatchStatistics ms " +
+           "WHERE ms.player.id = :playerId " +
+           "AND (:tournamentId IS NULL OR ms.match.tournament.id = :tournamentId) " +
+           "ORDER BY ms.match.tournament.tournamentDate DESC")
+    List<TeamInfoProjection> findTeamsByPlayerId(
+        @Param("playerId") Long playerId,
+        @Param("tournamentId") Long tournamentId
+    );
 
 }
