@@ -27,7 +27,7 @@ public class PlayerStatisticsController {
 
     /**
      * Get player statistics with optional filters
-     * Requires PLAYER role
+     * Requires authentication
      *
      * @param tournamentId Filter by tournament participation (optional, null = all players from all tournaments)
      *                     When provided, returns only players who participated in teams for that tournament
@@ -38,7 +38,7 @@ public class PlayerStatisticsController {
      * @param offset       Pagination offset (default: 0)
      * @return List of PlayerStatisticsResponse with filtered and sorted player statistics
      */
-    @PreAuthorize("hasAnyRole('PLAYER')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping
     public ResponseEntity<Object> getPlayerStatistics(
             @RequestParam(required = false) Long tournamentId,
