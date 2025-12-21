@@ -74,22 +74,32 @@ public interface MatchEventRepository extends JpaRepository<MatchEvent, Long> {
      * When tournamentId IS PROVIDED: Returns only players who participated in that specific tournament
      *                                (through team membership), with statistics from that tournament only
      *
-     * Note: Assists are counted from relatedPlayer field in GOAL events, not from ASSIST event type
-     * Position filtering is handled in service layer for cleaner code
-     * Players with no match events will show 0 for all statistics
+     * Note:
+     * - Returns ALL players from tournament teams, even if they have no match events (will show 0 stats)
+     * - Assists are counted from relatedPlayer field in GOAL events, not from ASSIST event type
+     * - matchesPlayed counts via subquery to avoid Cartesian product - counts COMPLETED matches where player's team participated
+     * - This correctly counts all matches participated in, even if player had no events
+     * - Position filtering is handled in service layer for cleaner code
+     * - Players with no match events will show 0 for goals/assists/cards but may have matchesPlayed > 0
      */
     @Query("SELECT p.id as playerId, " +
             "COALESCE(SUM(CASE WHEN me.eventType = 'GOAL' AND me.player.id = p.id THEN 1 ELSE 0 END), 0) as goalsScored, " +
             "COALESCE(SUM(CASE WHEN me.eventType = 'GOAL' AND me.relatedPlayer.id = p.id THEN 1 ELSE 0 END), 0) as assists, " +
-            "COALESCE(COUNT(DISTINCT CASE WHEN me.player.id = p.id OR me.relatedPlayer.id = p.id THEN me.match.id END), 0) as matchesPlayed, " +
+            "COALESCE((SELECT COUNT(DISTINCT m.id) FROM Match m " +
+            "   JOIN TeamPlayer tp2 ON (m.homeTeam.id = tp2.team.id OR m.awayTeam.id = tp2.team.id) " +
+            "   WHERE tp2.player.id = p.id " +
+            "   AND m.matchStatus = 'COMPLETED' " +
+            "   AND (:tournamentId IS NULL OR m.tournament.id = :tournamentId)), 0) as matchesPlayed, " +
             "COALESCE(SUM(CASE WHEN me.eventType = 'YELLOW_CARD' AND me.player.id = p.id THEN 1 ELSE 0 END), 0) as yellowCards, " +
             "COALESCE(SUM(CASE WHEN me.eventType = 'RED_CARD' AND me.player.id = p.id THEN 1 ELSE 0 END), 0) as redCards " +
             "FROM Player p " +
-            "LEFT JOIN TeamPlayer tp ON tp.player.id = p.id " +
-            "LEFT JOIN Team t ON t.id = tp.team.id " +
             "LEFT JOIN MatchEvent me ON (me.player.id = p.id OR me.relatedPlayer.id = p.id) " +
             "AND (:tournamentId IS NULL OR me.match.tournament.id = :tournamentId) " +
-            "WHERE :tournamentId IS NULL OR t.tournament.id = :tournamentId " +
+            "WHERE :tournamentId IS NULL OR EXISTS (" +
+            "   SELECT 1 FROM TeamPlayer tp " +
+            "   JOIN Team t ON t.id = tp.team.id " +
+            "   WHERE tp.player.id = p.id AND t.tournament.id = :tournamentId" +
+            ") " +
             "GROUP BY p.id")
     List<PlayerStatisticsProjection> findAggregatedPlayerStatisticsFromEvents(
             @Param("tournamentId") Long tournamentId
