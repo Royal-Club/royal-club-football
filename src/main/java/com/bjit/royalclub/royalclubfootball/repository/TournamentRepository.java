@@ -47,4 +47,24 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long>, J
             "ORDER BY t.tournamentDate DESC LIMIT 1")
     Tournament findMostRecentTournamentBefore(@Param("currentTournamentDate") java.time.LocalDateTime currentTournamentDate);
 
+    /**
+     * Find all tournaments ordered by tournament date descending
+     */
+    @Query("SELECT t FROM Tournament t ORDER BY t.tournamentDate DESC")
+    List<Tournament> findAllOrderByTournamentDateDesc();
+
+    /**
+     * Find tournaments by year, ordered by tournament date descending
+     * @param year The year to filter tournaments (e.g., 2025)
+     */
+    @Query("SELECT t FROM Tournament t WHERE YEAR(t.tournamentDate) = :year ORDER BY t.tournamentDate DESC")
+    List<Tournament> findByYearOrderByTournamentDateDesc(@Param("year") int year);
+
+    /**
+     * Find distinct years where tournaments exist
+     * Returns years in descending order (newest first)
+     */
+    @Query("SELECT DISTINCT YEAR(t.tournamentDate) FROM Tournament t ORDER BY YEAR(t.tournamentDate) DESC")
+    List<Integer> findDistinctYears();
+
 }

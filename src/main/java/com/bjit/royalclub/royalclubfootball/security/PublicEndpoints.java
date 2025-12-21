@@ -12,7 +12,9 @@ public class PublicEndpoints {
                 "/tournaments/details",
                 "/tournament-participants",
                 "/venues",
-                "/tournaments"
+                "/tournaments",
+                "/tournaments/sessions",
+                "/tournaments/list"
         };
     }
 

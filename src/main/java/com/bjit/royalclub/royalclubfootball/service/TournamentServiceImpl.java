@@ -5,6 +5,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Venue;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.VenueServiceException;
 import com.bjit.royalclub.royalclubfootball.model.PaginatedTournamentResponse;
+import com.bjit.royalclub.royalclubfootball.model.TournamentListResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
@@ -26,6 +27,8 @@ import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDeta
 import static com.bjit.royalclub.royalclubfootball.enums.TournamentStatus.CONCLUDED;
 import static com.bjit.royalclub.royalclubfootball.enums.TournamentStatus.ONGOING;
 import static com.bjit.royalclub.royalclubfootball.enums.TournamentStatus.UPCOMING;
+import static com.bjit.royalclub.royalclubfootball.util.DateUtil.formatDate;
+import static com.bjit.royalclub.royalclubfootball.util.DateUtil.parseYear;
 import static com.bjit.royalclub.royalclubfootball.util.PaginationUtil.createPageable;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
@@ -202,5 +205,41 @@ public class TournamentServiceImpl implements TournamentService {
         return convertToDto(tournament);
     }
 
+    @Override
+    public List<TournamentListResponse> getTournamentList(String year) {
+        List<Tournament> tournaments;
+
+        if (year != null && !year.trim().isEmpty()) {
+            // Parse year string to integer using DateUtil
+            try {
+                int yearValue = parseYear(year);
+                tournaments = tournamentRepository.findByYearOrderByTournamentDateDesc(yearValue);
+            } catch (IllegalArgumentException e) {
+                throw new TournamentServiceException(
+                        e.getMessage(),
+                        HttpStatus.BAD_REQUEST);
+            }
+        } else {
+            tournaments = tournamentRepository.findAllOrderByTournamentDateDesc();
+        }
+
+        // Convert to DTO with formatted date (dd-MM-yyyy)
+        return tournaments.stream()
+                .map(t -> TournamentListResponse.builder()
+                        .id(t.getId())
+                        .name(t.getName())
+                        .tournamentDate(formatDate(t.getTournamentDate()))
+                        .build())
+                .toList();
+    }
+
+
+    @Override
+    public List<String> getTournamentSessions() {
+        List<Integer> years = tournamentRepository.findDistinctYears();
+        return years.stream()
+                .map(String::valueOf)
+                .toList();
+    }
 
 }

@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
 import com.bjit.royalclub.royalclubfootball.model.PaginatedTournamentResponse;
+import com.bjit.royalclub.royalclubfootball.model.TournamentListResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
@@ -94,5 +95,30 @@ public class TournamentController {
     public ResponseEntity<Object> getMostRecentTournament() {
         TournamentResponse response = tournamentService.getMostRecentTournament();
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, response);
+    }
+
+    /**
+     * Get list of tournaments (id, name, and tournamentDate) ordered by tournament date descending
+     *
+     * @param year Optional year filter in format "YYYY" (e.g., "2025" returns tournaments from year 2025)
+     * @return List of tournaments with id, name, and tournamentDate
+     */
+    @GetMapping("/list")
+    public ResponseEntity<Object> getTournamentList(@RequestParam(required = false) String year) {
+        List<TournamentListResponse> tournaments = tournamentService.getTournamentList(year);
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournaments);
+    }
+
+    /**
+     * Get list of unique years where tournaments exist
+     * Returns years in format "YYYY" (e.g., "2025", "2024")
+     * Ordered by year descending (newest first)
+     *
+     * @return List of year strings
+     */
+    @GetMapping("/sessions")
+    public ResponseEntity<Object> getTournamentSessions() {
+        List<String> sessions = tournamentService.getTournamentSessions();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, sessions);
     }
 }
