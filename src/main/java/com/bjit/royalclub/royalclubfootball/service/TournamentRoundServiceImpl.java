@@ -862,8 +862,11 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
     }
 
     /**
-     * Generate single elimination bracket matches
-     * For 8 teams: 4 QF, 2 SF, 1 Final
+     * Generate single elimination bracket matches - FIRST ROUND ONLY
+     * Generates only the initial round of matches. Subsequent rounds should be generated
+     * after winners are determined from previous matches.
+     * For 4 teams: generates 2 matches (semifinals)
+     * For 8 teams: generates 4 matches (quarterfinals)
      */
     private List<Match> generateSingleEliminationMatches(TournamentRound round, List<Team> teams,
                                                          LocalDateTime startDate, int matchTimeGap,
@@ -891,45 +894,36 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
             return seed1.compareTo(seed2);
         });
 
-        int numTeams = teams.size();
-        int currentRoundSize = numTeams;
-        int roundNumber = 1;
+int numTeams = teams.size();
 
-        // Create bracket structure
-        while (currentRoundSize > 1) {
-            int matchesInRound = currentRoundSize / 2;
-            String roundName = getRoundNameForBracket(currentRoundSize);
+        // Generate ONLY first round matches (e.g., semifinals for 4 teams, quarterfinals for 8 teams)
+        // Future rounds with winners should be generated separately after matches complete
+        int matchesInRound = numTeams / 2;
+        String roundName = getRoundNameForBracket(numTeams);
 
-            for (int i = 0; i < matchesInRound; i++) {
-                int team1Index = i * 2;
-                int team2Index = team1Index + 1;
+        for (int i = 0; i < matchesInRound; i++) {
+            int team1Index = i * 2;
+            int team2Index = team1Index + 1;
 
-                if (team2Index < teams.size()) {
-                    Team homeTeam = teams.get(team1Index);
-                    Team awayTeam = teams.get(team2Index);
+            if (team2Index < teams.size()) {
+                Team homeTeam = teams.get(team1Index);
+                Team awayTeam = teams.get(team2Index);
 
-                    Match match = createRoundMatch(
-                            round,
-                            homeTeam,
-                            awayTeam,
-                            currentDate,
-                            matchDuration,
-                            venue,
-                            matchOrder++,
-                            roundName,
-                            roundNumber
-                    );
-                    matches.add(match);
-                    // Next match starts after current match ends + gap
-                    currentDate = currentDate.plusMinutes(matchDuration).plusMinutes(matchTimeGap);
-                }
+                Match match = createRoundMatch(
+                        round,
+                        homeTeam,
+                        awayTeam,
+                        currentDate,
+                        matchDuration,
+                        venue,
+                        matchOrder++,
+                        roundName,
+                        1  // Always round number 1 (first round only)
+                );
+                matches.add(match);
+                // Next match starts after current match ends + gap
+                currentDate = currentDate.plusMinutes(matchDuration).plusMinutes(matchTimeGap);
             }
-
-            // Prepare for next round (winners advance)
-            currentRoundSize = matchesInRound;
-            roundNumber++;
-            // Note: In a real bracket, winners would be determined after matches complete
-            // For now, we just create the bracket structure
         }
 
         return matches;
