@@ -3,12 +3,14 @@ package com.bjit.royalclub.royalclubfootball.controller;
 import com.bjit.royalclub.royalclubfootball.enums.FootballPosition;
 import com.bjit.royalclub.royalclubfootball.model.PlayerStatisticsFilterRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerStatisticsResponse;
+import com.bjit.royalclub.royalclubfootball.model.TournamentTopScorerResponse;
 import com.bjit.royalclub.royalclubfootball.service.PlayerStatisticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -58,6 +60,24 @@ public class PlayerStatisticsController {
                 .build();
 
         List<PlayerStatisticsResponse> response = playerStatisticsService.getPlayerStatistics(filterRequest);
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, response);
+    }
+
+    /**
+     * Get top scorers for a specific tournament
+     *
+     * @param tournamentId The tournament ID (required)
+     * @param limit        Maximum number of top scorers to return (default: 1)
+     * @return List of TournamentTopScorerResponse with top scorers
+     */
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/tournament/{tournamentId}/top-scorers")
+    public ResponseEntity<Object> getTopScorersByTournament(
+            @PathVariable Long tournamentId,
+            @RequestParam(required = false, defaultValue = "1") Integer limit
+    ) {
+        List<TournamentTopScorerResponse> response = playerStatisticsService
+                .getTopScorersByTournament(tournamentId, limit);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, response);
     }
 }

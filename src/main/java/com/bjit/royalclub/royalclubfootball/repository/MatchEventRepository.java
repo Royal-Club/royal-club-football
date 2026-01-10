@@ -3,6 +3,7 @@ package com.bjit.royalclub.royalclubfootball.repository;
 import com.bjit.royalclub.royalclubfootball.entity.MatchEvent;
 import com.bjit.royalclub.royalclubfootball.enums.MatchEventType;
 import com.bjit.royalclub.royalclubfootball.projection.PlayerStatisticsProjection;
+import com.bjit.royalclub.royalclubfootball.projection.TournamentTopScorerProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -104,5 +105,31 @@ public interface MatchEventRepository extends JpaRepository<MatchEvent, Long> {
     List<PlayerStatisticsProjection> findAggregatedPlayerStatisticsFromEvents(
             @Param("tournamentId") Long tournamentId
     );
+
+    /**
+     * Find top scorers for a specific tournament
+     * Returns players with their team info and statistics, ordered by goals scored descending
+     *
+     * @param tournamentId The tournament ID (required)
+     * @return List of players with their statistics ordered by goals scored
+     */
+    @Query("SELECT p.id as playerId, p.name as playerName, " +
+            "t.id as teamId, t.teamName as teamName, " +
+            "CAST(tp.playingPosition AS string) as position, " +
+            "COALESCE(SUM(CASE WHEN me.eventType = 'GOAL' AND me.player.id = p.id THEN 1 ELSE 0 END), 0) as goalsScored, " +
+            "COALESCE(SUM(CASE WHEN me.eventType = 'GOAL' AND me.relatedPlayer.id = p.id THEN 1 ELSE 0 END), 0) as assists, " +
+            "COALESCE((SELECT COUNT(DISTINCT m.id) FROM Match m " +
+            "   WHERE (m.homeTeam.id = t.id OR m.awayTeam.id = t.id) " +
+            "   AND m.matchStatus = 'COMPLETED' " +
+            "   AND m.tournament.id = :tournamentId), 0) as matchesPlayed " +
+            "FROM TeamPlayer tp " +
+            "JOIN tp.player p " +
+            "JOIN tp.team t " +
+            "LEFT JOIN MatchEvent me ON (me.player.id = p.id OR me.relatedPlayer.id = p.id) " +
+            "   AND me.match.tournament.id = :tournamentId " +
+            "WHERE t.tournament.id = :tournamentId " +
+            "GROUP BY p.id, p.name, t.id, t.teamName, tp.playingPosition " +
+            "ORDER BY goalsScored DESC")
+    List<TournamentTopScorerProjection> findTopScorersByTournament(@Param("tournamentId") Long tournamentId);
 
 }

@@ -3,7 +3,9 @@ package com.bjit.royalclub.royalclubfootball.service;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.model.PlayerStatisticsFilterRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerStatisticsResponse;
+import com.bjit.royalclub.royalclubfootball.model.TournamentTopScorerResponse;
 import com.bjit.royalclub.royalclubfootball.projection.PlayerStatisticsProjection;
+import com.bjit.royalclub.royalclubfootball.projection.TournamentTopScorerProjection;
 import com.bjit.royalclub.royalclubfootball.repository.MatchEventRepository;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -147,5 +150,34 @@ public class PlayerStatisticsServiceImpl implements PlayerStatisticsService {
             case "matches" -> Comparator.comparing(p -> p.getStatistics().getMatchesPlayed());
             default -> Comparator.comparing(p -> p.getStatistics().getGoalsScored());
         };
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TournamentTopScorerResponse> getTopScorersByTournament(Long tournamentId, Integer limit) {
+        log.info("Fetching top {} scorers for tournament: {}", limit, tournamentId);
+
+        List<TournamentTopScorerProjection> topScorers = matchEventRepository.findTopScorersByTournament(tournamentId);
+
+        List<TournamentTopScorerResponse> result = topScorers.stream()
+                .limit(limit)
+                .map(this::mapToTopScorerResponse)
+                .toList();
+
+        log.info("Returning {} top scorers for tournament {}", result.size(), tournamentId);
+        return result;
+    }
+
+    private TournamentTopScorerResponse mapToTopScorerResponse(TournamentTopScorerProjection projection) {
+        return TournamentTopScorerResponse.builder()
+                .playerId(projection.getPlayerId())
+                .playerName(projection.getPlayerName())
+                .teamId(projection.getTeamId())
+                .teamName(projection.getTeamName())
+                .position(projection.getPosition())
+                .goalsScored(projection.getGoalsScored() != null ? projection.getGoalsScored().intValue() : 0)
+                .assists(projection.getAssists() != null ? projection.getAssists().intValue() : 0)
+                .matchesPlayed(projection.getMatchesPlayed() != null ? projection.getMatchesPlayed().intValue() : 0)
+                .build();
     }
 }
