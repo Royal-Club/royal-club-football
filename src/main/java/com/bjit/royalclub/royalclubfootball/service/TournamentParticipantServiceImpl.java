@@ -171,8 +171,9 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
         TournamentParticipantPlayer participantPlayer =
                 participantPlayerRepository.findByTournamentIdAndPlayerId(latestTournament.getId(), getLoggedInPlayer().getId());
 
-        // Handle null participantPlayer - user hasn't participated yet
-        boolean isUserParticipated = participantPlayer != null && participantPlayer.getParticipationStatus();
+        boolean isUserParticipated = participantPlayer != null &&
+                participantPlayer.getParticipationStatus() != null &&
+                participantPlayer.getParticipationStatus();
         Long tournamentParticipantId = participantPlayer != null ? participantPlayer.getTournamentParticipantId() : null;
 
         return LatestTournamentWithUserParticipantsResponse.builder()
