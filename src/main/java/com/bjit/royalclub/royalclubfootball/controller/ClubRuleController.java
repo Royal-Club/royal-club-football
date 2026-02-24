@@ -37,14 +37,14 @@ public class ClubRuleController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, clubRuleResponses);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PostMapping
     public ResponseEntity<Object> saveClubRule(@Valid @RequestBody ClubRuleRequest clubRuleRequest) {
         clubRuleService.save(clubRuleRequest);
         return ResponseBuilder.buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<Object> updateClubRule(@PathVariable Long id,
                                                  @Valid @RequestBody ClubRuleRequest clubRuleRequest) {
@@ -52,7 +52,7 @@ public class ClubRuleController {
         return ResponseBuilder.buildSuccessResponse(HttpStatus.OK, UPDATE_OK, updateClubRule);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<Object> getClubRule(@PathVariable Long id) {
         ClubRuleResponse clubRuleResponse = clubRuleService.getById(id);

@@ -42,7 +42,7 @@ public class FixtureController {
     private final MatchRepository matchRepository;
 
     @PostMapping("/generate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     public ResponseEntity<Response> generateFixtures(@Valid @RequestBody FixtureGenerationRequest request) {
         List<Match> matches = fixtureGenerationService.generateFixtures(request.getTournamentId(), request);
         List<MatchResponse> responses = matches.stream()
@@ -90,7 +90,7 @@ public class FixtureController {
     }
 
     @DeleteMapping("/tournament/{tournamentId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     public ResponseEntity<Response> clearFixtures(@PathVariable Long tournamentId) {
         fixtureGenerationService.clearFixtures(tournamentId);
         return ResponseEntity.ok(Response.builder()
@@ -102,7 +102,7 @@ public class FixtureController {
     }
 
     @PutMapping("/{matchId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     public ResponseEntity<Response> updateMatchFixture(@PathVariable Long matchId, @Valid @RequestBody MatchFixtureUpdateRequest request) {
         Match updatedMatch = fixtureGenerationService.updateMatchFixture(matchId, request);
         MatchResponse response = convertToResponse(updatedMatch);

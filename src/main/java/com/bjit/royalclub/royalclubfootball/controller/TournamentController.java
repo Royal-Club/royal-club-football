@@ -37,7 +37,7 @@ public class TournamentController {
     private final TournamentService tournamentService;
     private final TeamManagementService teamManagementService;
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PostMapping
     public ResponseEntity<Object> saveTournament(@Valid @RequestBody TournamentRequest tournamentRequest) {
         TournamentResponse tournamentResponse = tournamentService.saveTournament(tournamentRequest);
@@ -56,28 +56,28 @@ public class TournamentController {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, tournamentResponses);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<Object> getTournamentById(@PathVariable Long id) {
         TournamentResponse tournamentResponse = tournamentService.getTournamentById(id);
         return buildSuccessResponse(HttpStatus.FOUND, CREATE_OK, tournamentResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PutMapping("/{id}/status")
     public ResponseEntity<Object> updateStatus(@PathVariable Long id, @RequestParam boolean active) {
         tournamentService.updateTournamentStatus(id, active);
         return buildSuccessResponse(HttpStatus.OK, STATUS_UPDATE_OK);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PutMapping("/{id}/conclude")
     public ResponseEntity<Object> concludeTournament(@PathVariable Long id) {
         tournamentService.concludeTournament(id);
         return buildSuccessResponse(HttpStatus.OK, "Tournament concluded successfully");
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<Object> updateTournament(@PathVariable Long id, @Valid @RequestBody
     TournamentUpdateRequest tournamentUpdateRequest) {
