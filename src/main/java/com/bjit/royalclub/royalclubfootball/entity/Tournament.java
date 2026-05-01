@@ -60,6 +60,9 @@ public class Tournament extends AuditBase {
     @Column(name = "group_count")
     private Integer groupCount;
 
+    @Column(name = "auction_mode", nullable = false)
+    private boolean auctionMode;
+
     @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Team> teams;  // Add this field to hold the list of teams
+    private List<Team> teams;
 }

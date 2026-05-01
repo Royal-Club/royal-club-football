@@ -21,7 +21,8 @@ public class PublicEndpoints {
     public String[] getPublicPostEndpoints() {
         return new String[]{
                 "/auth/login",
-                "/players"
+                "/players",
+                "/auction/tournaments/*/register"
         };
     }
 

@@ -1,0 +1,22 @@
+CREATE TABLE auction_bids (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    auction_session_id BIGINT NOT NULL,
+    tournament_id BIGINT NOT NULL,
+    auction_player_id BIGINT NOT NULL,
+    team_id BIGINT NOT NULL,
+    bidder_user_id BIGINT NOT NULL,
+    bid_amount INT NOT NULL,
+    bid_time DATETIME NOT NULL,
+    is_winning BOOLEAN NOT NULL DEFAULT FALSE,
+    created_by BIGINT,
+    created_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_modified_by BIGINT,
+    updated_date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (auction_session_id) REFERENCES auction_sessions(id),
+    FOREIGN KEY (tournament_id) REFERENCES tournament(id),
+    FOREIGN KEY (auction_player_id) REFERENCES auction_players(id),
+    FOREIGN KEY (team_id) REFERENCES team(id),
+    FOREIGN KEY (bidder_user_id) REFERENCES players(id),
+    INDEX idx_auction_player_bids (auction_player_id, bid_time),
+    INDEX idx_tournament_bids (tournament_id, bid_time)
+);
