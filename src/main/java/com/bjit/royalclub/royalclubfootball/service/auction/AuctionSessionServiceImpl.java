@@ -42,9 +42,12 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
 
     @Override
     public AuctionSessionResponse getSession(Long tournamentId) {
-        AuctionSession session = sessionRepository.findByTournamentId(tournamentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Auction session not found for tournament: " + tournamentId));
-        return mapSessionToResponse(session);
+        return sessionRepository.findByTournamentId(tournamentId)
+                .map(this::mapSessionToResponse)
+                .orElse(AuctionSessionResponse.builder()
+                        .tournamentId(tournamentId)
+                        .status(AuctionSessionStatus.NOT_STARTED)
+                        .build());
     }
 
     @Override

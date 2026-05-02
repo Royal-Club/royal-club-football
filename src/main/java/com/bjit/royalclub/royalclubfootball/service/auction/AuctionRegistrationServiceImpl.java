@@ -9,6 +9,7 @@ import com.bjit.royalclub.royalclubfootball.enums.ApprovalStatus;
 import com.bjit.royalclub.royalclubfootball.enums.AuctionPlayerCategory;
 import com.bjit.royalclub.royalclubfootball.enums.AuctionPlayerStatus;
 import com.bjit.royalclub.royalclubfootball.enums.AuctionPlayerType;
+import com.bjit.royalclub.royalclubfootball.enums.AuctionSessionStatus;
 import com.bjit.royalclub.royalclubfootball.enums.AvailabilityStatus;
 import com.bjit.royalclub.royalclubfootball.enums.PlayerRole;
 import com.bjit.royalclub.royalclubfootball.exception.ResourceNotFoundException;
@@ -19,6 +20,7 @@ import com.bjit.royalclub.royalclubfootball.repository.RoleRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import com.bjit.royalclub.royalclubfootball.repository.auction.AuctionPlayerRegistrationRepository;
 import com.bjit.royalclub.royalclubfootball.repository.auction.AuctionPlayerRepository;
+import com.bjit.royalclub.royalclubfootball.repository.auction.AuctionSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -42,6 +44,7 @@ public class AuctionRegistrationServiceImpl implements AuctionRegistrationServic
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuctionPlayerRepository auctionPlayerRepository;
+    private final AuctionSessionRepository auctionSessionRepository;
 
     @Value("${player.default-password}")
     private String defaultPassword;
@@ -55,6 +58,7 @@ public class AuctionRegistrationServiceImpl implements AuctionRegistrationServic
         if (!tournament.isAuctionMode()) {
             throw new IllegalStateException("Tournament is not in auction mode");
         }
+        ensureRegistrationOpen(request.getTournamentId());
 
         if (registrationRepository.existsByEmailAndTournamentId(request.getEmail(), request.getTournamentId())) {
             throw new IllegalStateException("Already registered with this email for this tournament");
@@ -95,6 +99,7 @@ public class AuctionRegistrationServiceImpl implements AuctionRegistrationServic
         if (!tournament.isAuctionMode()) {
             throw new IllegalStateException("Tournament is not in auction mode");
         }
+        ensureRegistrationOpen(tournamentId);
 
         // Get current logged-in player
         Long currentUserId = getCurrentUserId();
@@ -123,6 +128,14 @@ public class AuctionRegistrationServiceImpl implements AuctionRegistrationServic
 
         registration = registrationRepository.save(registration);
         return mapToResponse(registration);
+    }
+
+    private void ensureRegistrationOpen(Long tournamentId) {
+        auctionSessionRepository.findByTournamentId(tournamentId).ifPresent(session -> {
+            if (session.getStatus() == AuctionSessionStatus.COMPLETED) {
+                throw new IllegalStateException("Auction registration is closed for this tournament");
+            }
+        });
     }
 
     @Override
