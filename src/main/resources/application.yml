@@ -27,6 +27,11 @@ spring:
   flyway:
     baseline-on-migrate: true  # Ensure Flyway migrates from a clean baseline
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 
 
 server:
@@ -39,6 +44,19 @@ jwt:
 player:
   default-password: JaniNa@123 # Configurable default password assigned at registration
   superadmin-email: rakibccj@gmail.com # Email of the player to assign SUPERADMIN role on application startup. Service will automatically assign this role when app starts. Leave empty to skip.
+
+app:
+  storage:
+    player:
+      provider: ${RC_PLAYER_STORAGE_PROVIDER:local}
+      upload-dir: ${RC_PLAYER_UPLOAD_DIR:./uploads/player-profiles}
+      base-url: ${RC_PLAYER_STORAGE_BASE_URL:http://localhost:${server.port}}
+      r2:
+        endpoint: ${RC_PLAYER_R2_ENDPOINT:}
+        bucket: ${RC_PLAYER_R2_BUCKET:}
+        access-key: ${RC_PLAYER_R2_ACCESS_KEY_ID:}
+        secret-key: ${RC_PLAYER_R2_SECRET_ACCESS_KEY:}
+        presign-duration-minutes: ${RC_PLAYER_R2_PRESIGN_MINUTES:60}
 
 logging:
   level:

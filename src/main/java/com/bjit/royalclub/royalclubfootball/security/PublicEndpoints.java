@@ -9,6 +9,8 @@ public class PublicEndpoints {
         return new String[]{
                 "/football-positions",
                 "/players/{id}",
+                "/files/view-url",
+                "/files/local/**",
                 "/tournaments/details",
                 "/tournament-participants",
                 "/venues",
@@ -22,13 +24,15 @@ public class PublicEndpoints {
         return new String[]{
                 "/auth/login",
                 "/players",
+                "/files/presign",
                 "/auction/tournaments/*/register"
         };
     }
 
     public String[] putPublicPostEndpoints() {
         return new String[]{
-                "/auth/change-password"
+                "/auth/change-password",
+                "/files/local/**"
         };
     }
 }

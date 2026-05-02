@@ -60,6 +60,9 @@ public class Player extends AuditBase {
     @Column(name = "last_password_change_date")
     private LocalDateTime lastPasswordChangeDate;
 
+    @Column(name = "profile_photo", length = 500)
+    private String profilePhoto;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "players_roles", joinColumns = @JoinColumn(name = "player_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))

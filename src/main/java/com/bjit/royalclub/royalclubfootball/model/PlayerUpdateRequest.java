@@ -25,6 +25,10 @@ public class PlayerUpdateRequest {
 
     @Size(max = 255, message = "Mobile No must be less than 255 characters")
     private String mobileNo;
+
+    @Size(max = 500, message = "Profile photo key must be less than 500 characters")
+    private String profilePhoto;
+
     @NotNull(message = "Position is mandatory")
     private FootballPosition playingPosition;
 }

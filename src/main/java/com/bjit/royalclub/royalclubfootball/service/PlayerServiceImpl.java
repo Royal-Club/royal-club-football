@@ -21,6 +21,7 @@ import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.RoleRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
+import com.bjit.royalclub.royalclubfootball.storage.StorageProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -58,6 +59,7 @@ public class PlayerServiceImpl implements PlayerService {
     private final PlayerProperties playerProperties;
     private final TournamentRepository tournamentRepository;
     private final TournamentParticipantRepository tournamentParticipantRepository;
+        private final StorageProvider storageProvider;
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
@@ -78,6 +80,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .mobileNo(registrationRequest.getMobileNo())
                 .skypeId(registrationRequest.getSkypeId())
                 .position(registrationRequest.getPlayingPosition())
+                .profilePhoto(registrationRequest.getProfilePhoto())
                 .isActive(false)
                 .password(passwordEncoder.encode(playerProperties.getDefaultPassword()))
                 .lastPasswordChangeDate(null)
@@ -146,6 +149,13 @@ public class PlayerServiceImpl implements PlayerService {
         player.setMobileNo(normalizeString(updateRequest.getMobileNo()));
         player.setSkypeId(updateRequest.getSkypeId());
         player.setPosition(updateRequest.getPlayingPosition());
+                if (updateRequest.getProfilePhoto() != null && !updateRequest.getProfilePhoto().isBlank()) {
+                        String oldKey = player.getProfilePhoto();
+                        if (oldKey != null && !oldKey.isBlank() && !oldKey.equals(updateRequest.getProfilePhoto())) {
+                                storageProvider.delete(oldKey);
+                        }
+                }
+        player.setProfilePhoto(updateRequest.getProfilePhoto());
         player = playerRepository.save(player);
         /*role need to be handle while update players. and only Admin can change the role*/
         return convertToDto(player);
@@ -221,6 +231,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .skypeId(player.getSkypeId())
                 .employeeId(player.getEmployeeId())
                 .fullName(player.getName() + "[" + player.getEmployeeId() + "]")
+                .profilePhoto(player.getProfilePhoto())
                 .playingPosition(player.getPosition())
                 .isActive(player.isActive())
                 .roles(roleResponses)

@@ -120,6 +120,7 @@ public class AuctionRegistrationServiceImpl implements AuctionRegistrationServic
                 .skypeId(player.getSkypeId())
                 .mobileNo(player.getMobileNo())
                 .playingPosition(player.getPosition())
+            .profilePhoto(player.getProfilePhoto())
                 .availabilityStatus(AvailabilityStatus.AVAILABLE)
                 .approvalStatus(ApprovalStatus.APPROVED)
                 .approvedAt(LocalDateTime.now())
@@ -191,10 +192,14 @@ public class AuctionRegistrationServiceImpl implements AuctionRegistrationServic
                     .skypeId(registration.getSkypeId() != null ? registration.getSkypeId() : registration.getEmployeeId())
                     .mobileNo(registration.getMobileNo())
                     .position(registration.getPlayingPosition())
+                    .profilePhoto(registration.getProfilePhoto())
                     .password(passwordEncoder.encode(defaultPassword))
                     .isActive(true)
                     .roles(roles)
                     .build();
+            existingPlayer = playerRepository.save(existingPlayer);
+        } else if (registration.getProfilePhoto() != null && !registration.getProfilePhoto().isBlank()) {
+            existingPlayer.setProfilePhoto(registration.getProfilePhoto());
             existingPlayer = playerRepository.save(existingPlayer);
         }
 
@@ -276,10 +281,14 @@ public class AuctionRegistrationServiceImpl implements AuctionRegistrationServic
                         .skypeId(registration.getSkypeId() != null ? registration.getSkypeId() : registration.getEmployeeId())
                         .mobileNo(registration.getMobileNo())
                         .position(registration.getPlayingPosition())
+                        .profilePhoto(registration.getProfilePhoto())
                         .password(passwordEncoder.encode(defaultPassword))
                         .isActive(true)
                         .roles(roles)
                         .build();
+                existingPlayer = playerRepository.save(existingPlayer);
+            } else if (registration.getProfilePhoto() != null && !registration.getProfilePhoto().isBlank()) {
+                existingPlayer.setProfilePhoto(registration.getProfilePhoto());
                 existingPlayer = playerRepository.save(existingPlayer);
             }
             registration.setApprovalStatus(ApprovalStatus.APPROVED);

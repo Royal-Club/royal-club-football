@@ -28,6 +28,10 @@ public class PlayerRegistrationRequest {
     private String skypeId;
     @Size(max = 255, message = "mobile No must be less than 255 characters")
     private String mobileNo;
+
+    @Size(max = 500, message = "Profile photo key must be less than 500 characters")
+    private String profilePhoto;
+
     @NotNull(message = "Position is mandatory")
     private FootballPosition playingPosition;
 }
