@@ -17,6 +17,7 @@ public interface AuctionPlayerRepository extends JpaRepository<AuctionPlayer, Lo
     List<AuctionPlayer> findByTournamentIdOrderBySequenceOrderAsc(Long tournamentId);
     List<AuctionPlayer> findByTournamentIdAndStatus(Long tournamentId, AuctionPlayerStatus status);
     boolean existsByTournamentIdAndPlayerId(Long tournamentId, Long playerId);
+    boolean existsByTournamentIdAndPlayerIdAndStatusNot(Long tournamentId, Long playerId, AuctionPlayerStatus status);
     long countByTournamentIdAndStatus(Long tournamentId, AuctionPlayerStatus status);
     long countBySoldToTeamId(Long teamId);
 

@@ -100,7 +100,7 @@ public class AuctionSessionController {
     // === Bidding ===
 
     @PostMapping("/bids")
-    @PreAuthorize("hasAnyRole('TEAM_OWNER', 'ADMIN', 'SUPERADMIN')")
+    @PreAuthorize("hasAnyRole('TEAM_OWNER', 'PLAYER', 'ADMIN', 'SUPERADMIN')")
     public ResponseEntity<BidResponse> placeBid(
             @PathVariable Long tournamentId,
             @Valid @RequestBody BidRequest request) {

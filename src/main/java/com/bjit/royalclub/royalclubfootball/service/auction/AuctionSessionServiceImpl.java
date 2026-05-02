@@ -366,7 +366,12 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
         TeamBudget budget = teamBudgetRepository.findByTournamentIdAndTeamIdForUpdate(tournamentId, request.getTeamId())
                 .orElseThrow(() -> new ResourceNotFoundException("Team budget not found"));
 
-        if (!budget.getOwner().getId().equals(bidderUserId)) {
+        Player bidder = playerRepository.findById(bidderUserId)
+            .orElseThrow(() -> new ResourceNotFoundException("Bidder not found"));
+        boolean isAdminBidder = bidder.getRoles().stream()
+            .anyMatch(role -> PlayerRole.ADMIN.name().equals(role.getName()) || PlayerRole.SUPERADMIN.name().equals(role.getName()));
+
+        if (!isAdminBidder && !budget.getOwner().getId().equals(bidderUserId)) {
             throw new IllegalStateException("You are not the owner of this team");
         }
 
@@ -394,8 +399,6 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
         // Place the bid
         Team team = teamRepository.findById(request.getTeamId())
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-        Player bidder = playerRepository.findById(bidderUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Bidder not found"));
 
         AuctionBid bid = AuctionBid.builder()
                 .auctionSession(session)

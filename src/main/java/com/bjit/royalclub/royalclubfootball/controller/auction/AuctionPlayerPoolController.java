@@ -60,4 +60,12 @@ public class AuctionPlayerPoolController {
         playerPoolService.removePlayer(tournamentId, auctionPlayerId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{auctionPlayerId}/restore")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
+    public ResponseEntity<AuctionPlayerResponse> restorePlayer(
+            @PathVariable Long tournamentId,
+            @PathVariable Long auctionPlayerId) {
+        return ResponseEntity.ok(playerPoolService.restorePlayer(tournamentId, auctionPlayerId));
+    }
 }

@@ -324,7 +324,8 @@ public class AuctionRegistrationServiceImpl implements AuctionRegistrationServic
     private AuctionRegistrationResponse mapToResponse(AuctionPlayerRegistration reg) {
         Long createdPlayerId = reg.getCreatedPlayer() != null ? reg.getCreatedPlayer().getId() : null;
         boolean inPool = createdPlayerId != null &&
-                auctionPlayerRepository.existsByTournamentIdAndPlayerId(reg.getTournament().getId(), createdPlayerId);
+            auctionPlayerRepository.existsByTournamentIdAndPlayerIdAndStatusNot(
+                reg.getTournament().getId(), createdPlayerId, AuctionPlayerStatus.WITHDRAWN);
         return AuctionRegistrationResponse.builder()
                 .id(reg.getId())
                 .tournamentId(reg.getTournament().getId())

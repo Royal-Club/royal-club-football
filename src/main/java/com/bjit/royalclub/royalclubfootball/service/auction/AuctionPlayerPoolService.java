@@ -11,4 +11,5 @@ public interface AuctionPlayerPoolService {
     AuctionPlayerResponse addFromRegistration(Long tournamentId, Long registrationId, AuctionPlayerRequest request);
     AuctionPlayerResponse updatePlayer(Long tournamentId, Long auctionPlayerId, AuctionPlayerRequest request);
     void removePlayer(Long tournamentId, Long auctionPlayerId);
+    AuctionPlayerResponse restorePlayer(Long tournamentId, Long auctionPlayerId);
 }

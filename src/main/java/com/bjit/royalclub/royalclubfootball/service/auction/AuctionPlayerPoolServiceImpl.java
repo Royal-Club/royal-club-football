@@ -163,6 +163,25 @@ public class AuctionPlayerPoolServiceImpl implements AuctionPlayerPoolService {
         auctionPlayerRepository.save(auctionPlayer);
     }
 
+    @Override
+    @Transactional
+    public AuctionPlayerResponse restorePlayer(Long tournamentId, Long auctionPlayerId) {
+        AuctionPlayer auctionPlayer = auctionPlayerRepository.findById(auctionPlayerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Auction player not found: " + auctionPlayerId));
+
+        if (!auctionPlayer.getTournament().getId().equals(tournamentId)) {
+            throw new IllegalStateException("Player does not belong to this tournament");
+        }
+
+        if (auctionPlayer.getStatus() != AuctionPlayerStatus.WITHDRAWN) {
+            throw new IllegalStateException("Only withdrawn players can be restored");
+        }
+
+        auctionPlayer.setStatus(AuctionPlayerStatus.AVAILABLE);
+        auctionPlayer = auctionPlayerRepository.save(auctionPlayer);
+        return mapToResponse(auctionPlayer);
+    }
+
     private AuctionPlayerResponse mapToResponse(AuctionPlayer ap) {
         return AuctionPlayerResponse.builder()
                 .id(ap.getId())
