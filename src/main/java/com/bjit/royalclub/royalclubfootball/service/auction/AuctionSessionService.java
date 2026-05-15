@@ -24,4 +24,5 @@ public interface AuctionSessionService {
     AuctionDashboardResponse getDashboard(Long tournamentId);
     AuctionResultResponse getResults(Long tournamentId);
     void notifyTimerExpired(Long tournamentId);
+    AuctionSessionResponse selectPlayerForAuction(Long tournamentId, Long playerId);
 }

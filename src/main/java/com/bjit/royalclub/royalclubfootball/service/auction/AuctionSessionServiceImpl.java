@@ -134,6 +134,16 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
         AuctionSession session = sessionRepository.findByTournamentId(tournamentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
 
+        // Reset current ON_AUCTION player if any
+        if (session.getCurrentAuctionPlayer() != null
+                && session.getCurrentAuctionPlayer().getStatus() == AuctionPlayerStatus.ON_AUCTION) {
+            AuctionPlayer current = session.getCurrentAuctionPlayer();
+            current.setStatus(AuctionPlayerStatus.UNSOLD);
+            current.setCurrentBid(null);
+            current.setCurrentHighestTeam(null);
+            auctionPlayerRepository.save(current);
+        }
+
         session.setStatus(AuctionSessionStatus.COMPLETED);
         session.setCompletedAt(LocalDateTime.now());
         session.setCurrentAuctionPlayer(null);
@@ -149,6 +159,9 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
     public AuctionSessionResponse nextPlayer(Long tournamentId) {
         AuctionSession session = getRunningSession(tournamentId);
         AuctionSettings settings = getOrCreateDefaultSettings(tournamentId);
+
+        // Fix any orphaned ON_AUCTION players (not the current session player)
+        resetOrphanedOnAuctionPlayers(session, tournamentId);
 
         // Find next available player by sequence order
         Optional<AuctionPlayer> nextPlayer = auctionPlayerRepository
@@ -166,6 +179,9 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
     public AuctionSessionResponse nextPlayerRandom(Long tournamentId) {
         AuctionSession session = getRunningSession(tournamentId);
         AuctionSettings settings = getOrCreateDefaultSettings(tournamentId);
+
+        // Fix any orphaned ON_AUCTION players (not the current session player)
+        resetOrphanedOnAuctionPlayers(session, tournamentId);
 
         List<AuctionPlayer> available = auctionPlayerRepository
                 .findByTournamentIdAndStatus(tournamentId, AuctionPlayerStatus.AVAILABLE);
@@ -314,6 +330,16 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
     public AuctionSessionResponse startUnsoldRound(Long tournamentId) {
         AuctionSession session = sessionRepository.findByTournamentId(tournamentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+
+        // Reset current ON_AUCTION player if any
+        if (session.getCurrentAuctionPlayer() != null
+                && session.getCurrentAuctionPlayer().getStatus() == AuctionPlayerStatus.ON_AUCTION) {
+            AuctionPlayer current = session.getCurrentAuctionPlayer();
+            current.setStatus(AuctionPlayerStatus.UNSOLD);
+            current.setCurrentBid(null);
+            current.setCurrentHighestTeam(null);
+            auctionPlayerRepository.save(current);
+        }
 
         // Move all unsold players back to available
         List<AuctionPlayer> unsoldPlayers = auctionPlayerRepository
@@ -561,7 +587,33 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
         return session;
     }
 
+    private void resetOrphanedOnAuctionPlayers(AuctionSession session, Long tournamentId) {
+        List<AuctionPlayer> onAuction = auctionPlayerRepository
+                .findByTournamentIdAndStatus(tournamentId, AuctionPlayerStatus.ON_AUCTION);
+        Long currentPlayerId = session.getCurrentAuctionPlayer() != null
+                ? session.getCurrentAuctionPlayer().getId() : null;
+        for (AuctionPlayer orphan : onAuction) {
+            if (!orphan.getId().equals(currentPlayerId)) {
+                log.warn("Resetting orphaned ON_AUCTION player id={} back to AVAILABLE", orphan.getId());
+                orphan.setStatus(AuctionPlayerStatus.AVAILABLE);
+                orphan.setCurrentBid(null);
+                orphan.setCurrentHighestTeam(null);
+                auctionPlayerRepository.save(orphan);
+            }
+        }
+    }
+
     private AuctionSessionResponse putPlayerOnAuction(AuctionSession session, AuctionPlayer player, AuctionSettings settings) {
+        // Reset previous player if still ON_AUCTION (prevent orphaning)
+        if (session.getCurrentAuctionPlayer() != null
+                && session.getCurrentAuctionPlayer().getStatus() == AuctionPlayerStatus.ON_AUCTION) {
+            AuctionPlayer previous = session.getCurrentAuctionPlayer();
+            previous.setStatus(AuctionPlayerStatus.AVAILABLE);
+            previous.setCurrentBid(null);
+            previous.setCurrentHighestTeam(null);
+            auctionPlayerRepository.save(previous);
+        }
+
         player.setStatus(AuctionPlayerStatus.ON_AUCTION);
         player.setCurrentBid(null);
         player.setCurrentHighestTeam(null);
@@ -749,5 +801,27 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
                 .totalSpent(budget.getTotalSpent())
                 .playersBought(budget.getPlayersBought())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public AuctionSessionResponse selectPlayerForAuction(Long tournamentId, Long playerId) {
+        AuctionSession session = getRunningSession(tournamentId);
+        AuctionSettings settings = getOrCreateDefaultSettings(tournamentId);
+
+        // Fetch the player by ID
+        AuctionPlayer player = auctionPlayerRepository.findById(playerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Player not found"));
+
+        // Ensure the player is either AVAILABLE or UNSOLD
+        if (player.getStatus() != AuctionPlayerStatus.AVAILABLE && player.getStatus() != AuctionPlayerStatus.UNSOLD) {
+            throw new IllegalStateException("Player is not available for auction");
+        }
+
+        // Reset the status of the current auction player if necessary
+        resetOrphanedOnAuctionPlayers(session, tournamentId);
+
+        // Put the selected player on auction
+        return putPlayerOnAuction(session, player, settings);
     }
 }

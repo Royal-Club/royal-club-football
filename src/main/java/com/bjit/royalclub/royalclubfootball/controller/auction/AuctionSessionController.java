@@ -97,6 +97,14 @@ public class AuctionSessionController {
         return ResponseEntity.ok(sessionService.startUnsoldRound(tournamentId));
     }
 
+    @PostMapping("/session/select-player/{playerId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
+    public ResponseEntity<AuctionSessionResponse> selectPlayerForAuction(
+            @PathVariable Long tournamentId,
+            @PathVariable Long playerId) {
+        return ResponseEntity.ok(sessionService.selectPlayerForAuction(tournamentId, playerId));
+    }
+
     // === Bidding ===
 
     @PostMapping("/bids")
