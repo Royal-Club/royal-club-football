@@ -1,7 +1,9 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
+import com.bjit.royalclub.royalclubfootball.entity.Match;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.entity.Venue;
+import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.VenueServiceException;
 import com.bjit.royalclub.royalclubfootball.model.PaginatedTournamentResponse;
@@ -9,6 +11,7 @@ import com.bjit.royalclub.royalclubfootball.model.TournamentListResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
+import com.bjit.royalclub.royalclubfootball.repository.MatchRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentSpecification;
 import com.bjit.royalclub.royalclubfootball.repository.VenueRepository;
@@ -39,6 +42,7 @@ public class TournamentServiceImpl implements TournamentService {
     private final TournamentRepository tournamentRepository;
     private final VenueRepository venueRepository;
     private final TournamentSpecification tournamentSpecification;
+    private final MatchRepository matchRepository;
 
     private TournamentResponse convertToDto(Tournament tournament) {
         return TournamentResponse.builder()
@@ -157,6 +161,23 @@ public class TournamentServiceImpl implements TournamentService {
         // Process tournaments with fixtures (use match-based logic)
         List<Tournament> tournamentsWithMatches = tournamentRepository.findActiveTournamentsWithMatches();
         for (Tournament tournament : tournamentsWithMatches) {
+
+            // Date-based fallback: if tournament date + 1 day has passed, auto-conclude regardless of match states
+            boolean isOverdue = tournament.getTournamentDate().plusDays(1).isBefore(LocalDateTime.now());
+            if (isOverdue) {
+                List<Match> unfinishedMatches = matchRepository.findUnfinishedMatchesByTournamentId(tournament.getId());
+                for (Match match : unfinishedMatches) {
+                    match.setMatchStatus(MatchStatus.COMPLETED);
+                }
+                if (!unfinishedMatches.isEmpty()) {
+                    matchRepository.saveAll(unfinishedMatches);
+                }
+                tournament.setTournamentStatus(CONCLUDED);
+                tournament.setActive(false);
+                tournamentRepository.save(tournament);
+                continue;
+            }
+
             // Check if any match is ongoing or paused
             boolean hasOngoingMatches = tournamentRepository.hasOngoingMatches(tournament.getId());
 
