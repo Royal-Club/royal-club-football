@@ -206,6 +206,15 @@ public class TournamentServiceImpl implements TournamentService {
     }
 
     @Override
+    public TournamentResponse getMostRecentActiveTournament() {
+        Tournament tournament = tournamentRepository.findNextActiveTournament();
+        if (tournament == null) {
+            return null;
+        }
+        return convertToDto(tournament);
+    }
+
+    @Override
     public List<TournamentListResponse> getTournamentList(String year) {
         List<Tournament> tournaments;
 

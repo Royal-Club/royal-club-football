@@ -33,6 +33,8 @@ public interface TournamentService {
 
     TournamentResponse getMostRecentTournament();
 
+    TournamentResponse getMostRecentActiveTournament();
+
     /**
      * Get list of tournaments (id, name, and tournamentDate) ordered by tournament date descending
      * @param year Optional year filter in format "YYYY" (e.g., "2025")

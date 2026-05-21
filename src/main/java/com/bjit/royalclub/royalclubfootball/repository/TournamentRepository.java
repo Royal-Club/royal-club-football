@@ -43,6 +43,10 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long>, J
 
     Tournament findTopByOrderByTournamentDateDesc();
 
+    @Query("SELECT t FROM Tournament t WHERE t.tournamentStatus IN ('UPCOMING', 'ONGOING') " +
+            "ORDER BY CASE t.tournamentStatus WHEN 'ONGOING' THEN 0 ELSE 1 END ASC, t.tournamentDate ASC LIMIT 1")
+    Tournament findNextActiveTournament();
+
     @Query("SELECT t FROM Tournament t WHERE t.tournamentDate < :currentTournamentDate " +
             "ORDER BY t.tournamentDate DESC LIMIT 1")
     Tournament findMostRecentTournamentBefore(@Param("currentTournamentDate") java.time.LocalDateTime currentTournamentDate);
