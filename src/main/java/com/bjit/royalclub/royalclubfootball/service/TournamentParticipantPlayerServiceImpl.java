@@ -57,6 +57,15 @@ public class TournamentParticipantPlayerServiceImpl implements TournamentPartici
         Tournament tournament = tournamentRepository.findById(tournamentId)
                 .orElseThrow(() -> new TournamentServiceException(TOURNAMENT_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         List<TournamentParticipantPlayer> participants = participantPlayerRepository.findAllByTournamentId(tournament.getId());
+        if (participants == null || participants.isEmpty()) {
+            return TournamentWithPlayersResponse.builder()
+                    .tournamentId(tournament.getId())
+                    .tournamentName(tournament.getName())
+                    .tournamentDate(tournament.getTournamentDate())
+                    .totalParticipants(0L)
+                    .players(List.of())
+                    .build();
+        }
         return buildTournamentWithPlayersResponse(participants);
     }
 }

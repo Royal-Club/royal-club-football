@@ -212,6 +212,14 @@ public class TournamentServiceImpl implements TournamentService {
         Tournament tournament = tournamentRepository.findById(tournamentId)
                 .orElseThrow(() -> new TournamentServiceException(TOURNAMENT_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
+        List<Match> unfinishedMatches = matchRepository.findUnfinishedMatchesByTournamentId(tournamentId);
+        for (Match match : unfinishedMatches) {
+            match.setMatchStatus(MatchStatus.COMPLETED);
+        }
+        if (!unfinishedMatches.isEmpty()) {
+            matchRepository.saveAll(unfinishedMatches);
+        }
+
         tournament.setTournamentStatus(CONCLUDED);
         tournament.setActive(false);
         tournamentRepository.save(tournament);
