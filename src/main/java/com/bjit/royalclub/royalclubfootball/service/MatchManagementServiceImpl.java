@@ -4,6 +4,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Match;
 import com.bjit.royalclub.royalclubfootball.entity.MatchEvent;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Team;
+import com.bjit.royalclub.royalclubfootball.enums.MatchEventType;
 import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
 import com.bjit.royalclub.royalclubfootball.enums.RoundStatus;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
@@ -15,6 +16,7 @@ import com.bjit.royalclub.royalclubfootball.repository.MatchEventRepository;
 import com.bjit.royalclub.royalclubfootball.repository.MatchRepository;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamRepository;
+import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
 import com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -32,6 +34,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
     private final MatchEventRepository matchEventRepository;
     private final PlayerRepository playerRepository;
     private final TeamRepository teamRepository;
+    private final TeamPlayerRepository teamPlayerRepository;
     private final RoundGroupService roundGroupService;
     private final TournamentRoundService tournamentRoundService;
     private final MatchStatisticsService matchStatisticsService;
@@ -259,6 +262,8 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                     .orElseThrow(() -> new TournamentServiceException("Related player not found", HttpStatus.NOT_FOUND));
         }
 
+        validateMatchEvent(match, eventRequest, player, team, relatedPlayer);
+
         MatchEvent matchEvent = MatchEvent.builder()
                 .match(match)
                 .eventType(eventRequest.getEventType())
@@ -271,6 +276,30 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                 .build();
 
         matchEventRepository.save(matchEvent);
+
+            // Auto-convert second yellow card into a red card event for the same player.
+            if (eventRequest.getEventType() == MatchEventType.YELLOW_CARD) {
+                long yellowCardCount = matchEventRepository.countEventsByMatchIdAndPlayerIdAndType(
+                    match.getId(), player.getId(), MatchEventType.YELLOW_CARD
+                );
+                long redCardCount = matchEventRepository.countEventsByMatchIdAndPlayerIdAndType(
+                    match.getId(), player.getId(), MatchEventType.RED_CARD
+                );
+
+                if (yellowCardCount == 2 && redCardCount == 0) {
+                MatchEvent autoRedCardEvent = MatchEvent.builder()
+                    .match(match)
+                    .eventType(MatchEventType.RED_CARD)
+                    .player(player)
+                    .team(team)
+                    .eventTime(eventRequest.getEventTime())
+                    .description("Automatic red card (second yellow)")
+                    .relatedPlayer(null)
+                    .details("AUTO_SECOND_YELLOW")
+                    .build();
+                matchEventRepository.save(autoRedCardEvent);
+                }
+            }
 
         // Auto-update match score if it's a GOAL event
         if (eventRequest.getEventType().toString().equals("GOAL")) {
@@ -291,6 +320,67 @@ public class MatchManagementServiceImpl implements MatchManagementService {
         }
 
         return convertEventToResponse(matchEvent);
+    }
+
+    private void validateMatchEvent(
+            Match match,
+            MatchEventRequest eventRequest,
+            Player player,
+            Team team,
+            Player relatedPlayer
+    ) {
+        Long homeTeamId = match.getHomeTeam().getId();
+        Long awayTeamId = match.getAwayTeam().getId();
+        Long requestTeamId = team.getId();
+
+        if (!requestTeamId.equals(homeTeamId) && !requestTeamId.equals(awayTeamId)) {
+            throw new TournamentServiceException("Selected team is not part of this match", HttpStatus.BAD_REQUEST);
+        }
+
+        if (teamPlayerRepository.findByTeamIdAndPlayerId(requestTeamId, player.getId()).isEmpty()) {
+            throw new TournamentServiceException("Player is not part of the selected team", HttpStatus.BAD_REQUEST);
+        }
+
+        if (relatedPlayer != null &&
+                teamPlayerRepository.findByTeamIdAndPlayerId(requestTeamId, relatedPlayer.getId()).isEmpty()) {
+            throw new TournamentServiceException("Related player must be from the same team", HttpStatus.BAD_REQUEST);
+        }
+
+        if (eventRequest.getEventType() == MatchEventType.RED_CARD) {
+            long redCardCount = matchEventRepository.countEventsByMatchIdAndPlayerIdAndType(
+                    match.getId(), player.getId(), MatchEventType.RED_CARD
+            );
+
+            if (redCardCount >= 1) {
+                throw new TournamentServiceException(
+                        "Player already has a red card in this match",
+                        HttpStatus.CONFLICT
+                );
+            }
+        }
+
+        if (eventRequest.getEventType() == MatchEventType.YELLOW_CARD) {
+            long yellowCardCount = matchEventRepository.countEventsByMatchIdAndPlayerIdAndType(
+                    match.getId(), player.getId(), MatchEventType.YELLOW_CARD
+            );
+            long redCardCount = matchEventRepository.countEventsByMatchIdAndPlayerIdAndType(
+                    match.getId(), player.getId(), MatchEventType.RED_CARD
+            );
+
+            if (redCardCount >= 1) {
+                throw new TournamentServiceException(
+                        "Cannot give a yellow card to a player who already has a red card in this match",
+                        HttpStatus.CONFLICT
+                );
+            }
+
+            if (yellowCardCount >= 2) {
+                throw new TournamentServiceException(
+                        "Player cannot receive more than two yellow cards in this match",
+                        HttpStatus.CONFLICT
+                );
+            }
+        }
     }
 
     @Override
