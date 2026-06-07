@@ -407,6 +407,17 @@ public class MatchManagementServiceImpl implements MatchManagementService {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new TournamentServiceException("Match not found", HttpStatus.NOT_FOUND));
 
+        long recordedGoals = matchEventRepository.findGoalsByMatchIdAndTeamId(matchId, teamId).size();
+        if (newScore == null || newScore.longValue() != recordedGoals) {
+            throw new TournamentServiceException(
+                    String.format(
+                            "Score must match the recorded goal events for this team (%d). Record or delete goal events first.",
+                            recordedGoals
+                    ),
+                    HttpStatus.CONFLICT
+            );
+        }
+
         if (match.getHomeTeam().getId().equals(teamId)) {
             match.setHomeTeamScore(newScore);
         } else if (match.getAwayTeam().getId().equals(teamId)) {
