@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -225,8 +224,16 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
                     }
                 }
                 case ASSIST -> stats.setAssists(stats.getAssists() + 1);
-                case RED_CARD -> stats.setRedCards(stats.getRedCards() + 1);
-                case YELLOW_CARD -> stats.setYellowCards(stats.getYellowCards() + 1);
+                case RED_CARD -> {
+                    if (stats.getRedCards() == 0) {
+                        stats.setRedCards(1);
+                    }
+                }
+                case YELLOW_CARD -> {
+                    if (stats.getYellowCards() < 2) {
+                        stats.setYellowCards(stats.getYellowCards() + 1);
+                    }
+                }
                 case SUBSTITUTION -> {
                     if ("IN".equals(event.getDescription())) {
                         stats.setSubstitutionIn(stats.getSubstitutionIn() + 1);
