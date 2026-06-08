@@ -8,7 +8,6 @@ import com.bjit.royalclub.royalclubfootball.service.PlayerStatisticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,8 +28,6 @@ public class PlayerStatisticsController {
 
     /**
      * Get player statistics with optional filters
-     * Requires authentication
-     *
      * @param tournamentId Filter by tournament participation (optional, null = all players from all tournaments)
      *                     When provided, returns only players who participated in teams for that tournament
      * @param position     Filter by player position (optional)
@@ -40,7 +37,6 @@ public class PlayerStatisticsController {
      * @param offset       Pagination offset (default: 0)
      * @return List of PlayerStatisticsResponse with filtered and sorted player statistics
      */
-    @PreAuthorize("isAuthenticated()")
     @GetMapping
     public ResponseEntity<Object> getPlayerStatistics(
             @RequestParam(required = false) Long tournamentId,
@@ -70,7 +66,6 @@ public class PlayerStatisticsController {
      * @param limit        Maximum number of top scorers to return (default: 1)
      * @return List of TournamentTopScorerResponse with top scorers
      */
-    @PreAuthorize("isAuthenticated()")
     @GetMapping("/tournament/{tournamentId}/top-scorers")
     public ResponseEntity<Object> getTopScorersByTournament(
             @PathVariable Long tournamentId,
