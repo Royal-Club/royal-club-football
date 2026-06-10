@@ -21,4 +21,7 @@ public class TournamentRequest {
     private String tournamentType;
     private Integer groupCount;
 
+    // Viewer default selection field
+    private Boolean defaultTournament;
+
 }

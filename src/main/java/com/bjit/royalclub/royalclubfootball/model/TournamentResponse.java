@@ -17,6 +17,7 @@ public class TournamentResponse {
     private LocalDateTime tournamentDate;
     private String venueName;
     private boolean activeStatus;
+    private boolean defaultTournament;
 
     private TournamentStatus tournamentStatus;
     private List<TournamentTeamResponse> teams;

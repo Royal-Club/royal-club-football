@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -50,6 +51,7 @@ public class TournamentServiceImpl implements TournamentService {
                 .name(tournament.getName())
                 .tournamentDate(tournament.getTournamentDate())
                 .activeStatus(tournament.isActive())
+                .defaultTournament(tournament.isDefaultTournament())
                 .tournamentStatus(tournament.getTournamentStatus())
                 .venueName(tournament.getVenue().getName())
                 .sportType(tournament.getSportType() != null ? tournament.getSportType().toString() : null)
@@ -59,10 +61,13 @@ public class TournamentServiceImpl implements TournamentService {
     }
 
     @Override
+    @Transactional
     public TournamentResponse saveTournament(TournamentRequest tournamentRequest) {
 
         Venue venue = venueRepository.findById(tournamentRequest.getVenueId())
                 .orElseThrow(() -> new VenueServiceException(VENUE_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        boolean defaultTournament = Boolean.TRUE.equals(tournamentRequest.getDefaultTournament());
 
         Tournament tournament = Tournament.builder()
                 .name(normalizeString(tournamentRequest.getTournamentName()))
@@ -78,7 +83,14 @@ public class TournamentServiceImpl implements TournamentService {
                         com.bjit.royalclub.royalclubfootball.enums.TournamentType.valueOf(tournamentRequest.getTournamentType()) :
                         com.bjit.royalclub.royalclubfootball.enums.TournamentType.ROUND_ROBIN)
                 .groupCount(tournamentRequest.getGroupCount())
+                .defaultTournament(defaultTournament)
                 .build();
+
+            if (defaultTournament) {
+                // Keep exactly one default tournament in the system.
+                tournamentRepository.clearDefaultTournament();
+            }
+
         Tournament savedTournament = tournamentRepository.save(tournament);
         return convertToDto(savedTournament);
     }
@@ -124,6 +136,7 @@ public class TournamentServiceImpl implements TournamentService {
     }
 
     @Override
+    @Transactional
     public TournamentResponse updateTournament(Long id, TournamentUpdateRequest tournamentUpdateRequest) {
         Tournament tournament;
         tournament = tournamentRepository.findById(id)
@@ -142,6 +155,16 @@ public class TournamentServiceImpl implements TournamentService {
         if (tournamentUpdateRequest.getGroupCount() != null) {
             tournament.setGroupCount(tournamentUpdateRequest.getGroupCount());
         }
+
+        if (tournamentUpdateRequest.getDefaultTournament() != null) {
+            boolean defaultTournament = Boolean.TRUE.equals(tournamentUpdateRequest.getDefaultTournament());
+            if (defaultTournament) {
+                // Keep exactly one default tournament in the system.
+                tournamentRepository.clearDefaultTournamentExcept(id);
+            }
+            tournament.setDefaultTournament(defaultTournament);
+        }
+
         tournament = tournamentRepository.save(tournament);
         return convertToDto(tournament);
     }
