@@ -49,6 +49,9 @@ public class Tournament extends AuditBase {
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
 
+    @Column(name = "is_default", nullable = false)
+    private boolean defaultTournament;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "sport_type", nullable = false)
     private SportType sportType;

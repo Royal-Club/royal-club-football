@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -70,5 +71,15 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long>, J
      */
     @Query("SELECT DISTINCT YEAR(t.tournamentDate) FROM Tournament t ORDER BY YEAR(t.tournamentDate) DESC")
     List<Integer> findDistinctYears();
+
+        @Modifying
+        @Transactional
+        @Query("UPDATE Tournament t SET t.defaultTournament = false WHERE t.id <> :tournamentId AND t.defaultTournament = true")
+        int clearDefaultTournamentExcept(@Param("tournamentId") Long tournamentId);
+
+        @Modifying
+        @Transactional
+        @Query("UPDATE Tournament t SET t.defaultTournament = false WHERE t.defaultTournament = true")
+        int clearDefaultTournament();
 
 }
