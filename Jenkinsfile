@@ -52,7 +52,12 @@ EOF
 
                         # Ensure systemd service loads app env vars
                         sudo mkdir -p /etc/systemd/system/${SERVICE}.service.d
-                        printf '[Service]\nEnvironmentFile=-${APP_DIR}/app.env\n' | sudo tee /etc/systemd/system/${SERVICE}.service.d/10-env.conf > /dev/null
+                        cat > /tmp/10-env.conf << EOF
+[Service]
+EnvironmentFile=-${APP_DIR}/app.env
+EOF
+                        sudo cp /tmp/10-env.conf /etc/systemd/system/${SERVICE}.service.d/10-env.conf
+                        rm -f /tmp/10-env.conf
 
                         # Copy the built JAR
                         sudo cp target/${JAR_NAME} ${APP_DIR}/app.jar
