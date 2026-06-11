@@ -1,0 +1,2 @@
+ALTER TABLE team
+    ADD COLUMN logo_key VARCHAR(512) NULL;

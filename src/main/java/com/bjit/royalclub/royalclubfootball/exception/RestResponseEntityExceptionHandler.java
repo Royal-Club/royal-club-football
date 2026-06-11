@@ -285,4 +285,10 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         log.error(ERROR_LOG, ex.getMessage());
         return buildFailureResponse(HttpStatus.FORBIDDEN, ACCESS_DENIED_ERROR_MESSAGE);
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.warn(WARN_LOG, ex.getMessage());
+        return buildFailureResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
 }
