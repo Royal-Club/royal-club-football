@@ -1,0 +1,1 @@
+ALTER TABLE players ADD COLUMN photo_key VARCHAR(512) NULL;

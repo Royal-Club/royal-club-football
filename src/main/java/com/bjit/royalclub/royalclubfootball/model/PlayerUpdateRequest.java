@@ -27,4 +27,6 @@ public class PlayerUpdateRequest {
     private String mobileNo;
     @NotNull(message = "Position is mandatory")
     private FootballPosition playingPosition;
+
+    private String photoKey;
 }

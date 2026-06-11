@@ -19,4 +19,6 @@ public class PlayerResponse {
     private boolean isActive;
     private FootballPosition playingPosition;
     private Set<RoleResponse> roles;
+    private String photoKey;
+    private String photoUrl;
 }

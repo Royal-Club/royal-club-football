@@ -25,6 +25,7 @@ import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepo
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import com.bjit.royalclub.royalclubfootball.storage.teamlogo.TeamLogoStorageProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -56,6 +57,9 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     private final PlayerGoalkeepingHistoryRepository goalkeepingHistoryRepository;
     private final MatchRepository matchRepository;
     private final TeamLogoStorageProvider teamLogoStorageProvider;
+
+    @Value("${app.player-photo.base-url:http://localhost:9191}")
+    private String playerPhotoBaseUrl;
 
     @Override
     public TeamResponse createOrUpdateTeam(TeamRequest teamRequest) {
@@ -213,6 +217,8 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                         .teamPlayerRole(player.getTeamPlayerRole().name())
                         .isCaptain(player.getIsCaptain())
                         .jerseyNumber(player.getJerseyNumber())
+                        .photoKey(player.getPlayer().getPhotoKey())
+                        .photoUrl(buildPlayerPhotoUrl(player.getPlayer().getPhotoKey()))
                         .build())
                 .toList();
 
@@ -377,7 +383,17 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                 .teamPlayerRole(teamPlayer.getTeamPlayerRole().name())
                 .isCaptain(teamPlayer.getIsCaptain())
                 .jerseyNumber(teamPlayer.getJerseyNumber())
+                .photoKey(teamPlayer.getPlayer().getPhotoKey())
+                .photoUrl(buildPlayerPhotoUrl(teamPlayer.getPlayer().getPhotoKey()))
                 .build();
+    }
+
+    private String buildPlayerPhotoUrl(String photoKey) {
+        if (photoKey == null || photoKey.isBlank()) return null;
+        String base = playerPhotoBaseUrl.endsWith("/")
+                ? playerPhotoBaseUrl.substring(0, playerPhotoBaseUrl.length() - 1)
+                : playerPhotoBaseUrl;
+        return base + "/files/player-photos/" + photoKey;
     }
 
     private void trackGoalKeeperRound(Player player, Tournament tournament) {
