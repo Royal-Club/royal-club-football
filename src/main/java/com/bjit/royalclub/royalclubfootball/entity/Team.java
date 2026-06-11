@@ -35,6 +35,9 @@ public class Team extends AuditBase {
     @Column(name = "team_name", nullable = false)
     private String teamName;
 
+    @Column(name = "logo_key")
+    private String logoKey;
+
     @ManyToOne
     @JoinColumn(name = "tournament_id", nullable = false)
     private Tournament tournament;

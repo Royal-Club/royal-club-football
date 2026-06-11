@@ -53,3 +53,15 @@ logging:
       total-size-cap: 1GB
       max-history: 7
       clean-history-on-start: true
+
+app:
+  team-logo:
+    storage-provider: ${TEAM_LOGO_STORAGE_PROVIDER:local}
+    upload-dir: ${TEAM_LOGO_UPLOAD_DIR:uploads/team-logos}
+    base-url: ${TEAM_LOGO_BASE_URL:http://localhost:9191}
+    r2:
+      endpoint: ${TEAM_LOGO_R2_ENDPOINT:}
+      bucket: ${TEAM_LOGO_R2_BUCKET:}
+      access-key: ${TEAM_LOGO_R2_ACCESS_KEY:}
+      secret-key: ${TEAM_LOGO_R2_SECRET_KEY:}
+      presign-duration-minutes: ${TEAM_LOGO_R2_PRESIGN_MINUTES:60}

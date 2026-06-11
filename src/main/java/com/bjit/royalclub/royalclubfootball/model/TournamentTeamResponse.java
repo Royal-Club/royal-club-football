@@ -10,5 +10,7 @@ import java.util.List;
 public class TournamentTeamResponse {
     private Long teamId;
     private String teamName;
+    private String logoKey;
+    private String logoUrl;
     private List<TeamPlayerResponse> players;
 }
