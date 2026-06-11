@@ -50,6 +50,13 @@ EOF
                         sudo chown ubuntu:ubuntu ${APP_DIR}/app.env
                         rm -f /tmp/rcf-app.env
 
+                        # Ensure systemd service loads app env vars
+                        sudo mkdir -p /etc/systemd/system/${SERVICE}.service.d
+                        sudo bash -c 'cat > /etc/systemd/system/${SERVICE}.service.d/10-env.conf <<EOF
+[Service]
+EnvironmentFile=-${APP_DIR}/app.env
+EOF'
+
                         # Copy the built JAR
                         sudo cp target/${JAR_NAME} ${APP_DIR}/app.jar
                         sudo chown ubuntu:ubuntu ${APP_DIR}/app.jar
