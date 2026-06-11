@@ -23,7 +23,6 @@ import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepo
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import com.bjit.royalclub.royalclubfootball.storage.playerphoto.PlayerPhotoStorageProvider;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -61,9 +60,6 @@ public class PlayerServiceImpl implements PlayerService {
     private final TournamentRepository tournamentRepository;
     private final TournamentParticipantRepository tournamentParticipantRepository;
     private final PlayerPhotoStorageProvider playerPhotoStorageProvider;
-
-    @Value("${app.player-photo.base-url:http://localhost:9191}")
-    private String playerPhotoBaseUrl;
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
@@ -240,14 +236,9 @@ public class PlayerServiceImpl implements PlayerService {
                 .roles(roleResponses)
                 .photoKey(player.getPhotoKey())
                 .photoUrl(player.getPhotoKey() != null
-                        ? trimTrailingSlash(playerPhotoBaseUrl) + "/files/player-photos/" + player.getPhotoKey()
+                        ? "/files/player-photos/" + player.getPhotoKey()
                         : null)
                 .build();
-    }
-
-    private static String trimTrailingSlash(String value) {
-        if (value == null || value.isBlank()) return "http://localhost:9191";
-        return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }
 
     @Override
