@@ -6,7 +6,7 @@ spring:
     allow-circular-references: true
 
   datasource:
-    url: jdbc:mysql://localhost:3306/royal_club_football?useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3307/royal_club_football
     username: root
     password: brFc129
     driver-class-name: com.mysql.cj.jdbc.Driver

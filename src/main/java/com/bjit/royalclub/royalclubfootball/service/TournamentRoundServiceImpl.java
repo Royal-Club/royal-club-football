@@ -598,7 +598,7 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
     }
 
     private TournamentRoundResponse convertToRoundResponse(TournamentRound round) {
-        List<RoundGroupResponse> groups = roundGroupRepository.findByRoundId(round.getId())
+        List<RoundGroupResponse> groups = roundGroupRepository.findTopLevelByRoundId(round.getId())
                 .stream()
                 .map(this::convertToGroupResponse)
                 .collect(Collectors.toList());
@@ -660,9 +660,14 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
         long totalMatches = matchRepository.countByGroupId(group.getId());
         long completedMatches = matchRepository.countCompletedByGroupId(group.getId());
 
+        List<RoundGroupResponse> childGroups = group.getChildGroups().stream()
+                .map(this::convertToGroupResponse)
+                .collect(Collectors.toList());
+
         return RoundGroupResponse.builder()
                 .id(group.getId())
                 .roundId(group.getRound().getId())
+                .parentGroupId(group.getParentGroup() != null ? group.getParentGroup().getId() : null)
                 .groupName(group.getGroupName())
                 .groupFormat(group.getGroupFormat() != null ? group.getGroupFormat().toString() : null)
                 .advancementRule(group.getAdvancementRule())
@@ -670,6 +675,7 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .status(group.getStatus() != null ? group.getStatus().toString() : null)
                 .teams(teams)
                 .standings(standings.isEmpty() ? null : standings)
+                .childGroups(childGroups.isEmpty() ? null : childGroups)
                 .totalMatches((int) totalMatches)
                 .completedMatches((int) completedMatches)
                 .build();

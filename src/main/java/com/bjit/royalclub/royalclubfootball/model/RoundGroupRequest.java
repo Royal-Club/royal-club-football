@@ -11,6 +11,8 @@ public class RoundGroupRequest {
     @NotNull(message = "Round ID is required")
     private Long roundId;
 
+    private Long parentGroupId;
+
     @NotBlank(message = "Group name is required")
     private String groupName;
 

@@ -47,8 +47,19 @@ public class RoundGroupServiceImpl implements RoundGroupService {
             throw new RoundServiceException(GROUP_NAME_ALREADY_EXISTS, HttpStatus.CONFLICT);
         }
 
+        RoundGroup parentGroup = null;
+        if (request.getParentGroupId() != null) {
+            parentGroup = roundGroupRepository.findById(request.getParentGroupId())
+                    .orElseThrow(() -> new RoundServiceException(GROUP_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+            if (!parentGroup.getRound().getId().equals(request.getRoundId())) {
+                throw new RoundServiceException(PARENT_GROUP_NOT_IN_SAME_ROUND, HttpStatus.BAD_REQUEST);
+            }
+        }
+
         RoundGroup group = RoundGroup.builder()
                 .round(round)
+                .parentGroup(parentGroup)
                 .groupName(request.getGroupName())
                 .groupFormat(request.getGroupFormat() != null ?
                         GroupFormat.valueOf(request.getGroupFormat()) : GroupFormat.MANUAL)
@@ -96,6 +107,11 @@ public class RoundGroupServiceImpl implements RoundGroupService {
         RoundGroup group = roundGroupRepository.findById(groupId)
                 .orElseThrow(() -> new RoundServiceException(GROUP_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
+        // Check if group has sub-groups
+        if (!group.getChildGroups().isEmpty()) {
+            throw new RoundServiceException(GROUP_HAS_SUB_GROUPS, HttpStatus.CONFLICT);
+        }
+
         // Check if group has teams
         long teamCount = roundGroupTeamRepository.countByGroupId(groupId);
         if (teamCount > 0) {
@@ -120,7 +136,7 @@ public class RoundGroupServiceImpl implements RoundGroupService {
     public List<RoundGroupResponse> getGroupsByRoundId(Long roundId) {
         log.info("Fetching all groups for round ID: {}", roundId);
 
-        List<RoundGroup> groups = roundGroupRepository.findByRoundId(roundId);
+        List<RoundGroup> groups = roundGroupRepository.findTopLevelByRoundId(roundId);
 
         return groups.stream()
                 .map(this::convertToGroupResponse)
@@ -362,9 +378,14 @@ public class RoundGroupServiceImpl implements RoundGroupService {
         long totalMatches = matchRepository.countByGroupId(group.getId());
         long completedMatches = matchRepository.countCompletedByGroupId(group.getId());
 
+        List<RoundGroupResponse> childGroups = group.getChildGroups().stream()
+                .map(this::convertToGroupResponse)
+                .collect(Collectors.toList());
+
         return RoundGroupResponse.builder()
                 .id(group.getId())
                 .roundId(group.getRound().getId())
+                .parentGroupId(group.getParentGroup() != null ? group.getParentGroup().getId() : null)
                 .groupName(group.getGroupName())
                 .groupFormat(group.getGroupFormat() != null ? group.getGroupFormat().toString() : null)
                 .advancementRule(group.getAdvancementRule())
@@ -372,6 +393,7 @@ public class RoundGroupServiceImpl implements RoundGroupService {
                 .status(group.getStatus() != null ? group.getStatus().toString() : null)
                 .teams(teams)
                 .standings(standings.isEmpty() ? null : standings)
+                .childGroups(childGroups.isEmpty() ? null : childGroups)
                 .totalMatches((int) totalMatches)
                 .completedMatches((int) completedMatches)
                 .build();

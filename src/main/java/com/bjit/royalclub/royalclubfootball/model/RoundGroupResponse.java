@@ -14,6 +14,7 @@ public class RoundGroupResponse {
     private Long id;
     private Long roundId;
     private String roundName;
+    private Long parentGroupId;
     private String groupName;
     private String groupFormat;
     private String advancementRule;
@@ -23,6 +24,7 @@ public class RoundGroupResponse {
     // Nested data
     private List<TeamSimpleResponse> teams;
     private List<GroupStandingResponse> standings;
+    private List<RoundGroupResponse> childGroups;
     private Integer totalMatches;
     private Integer completedMatches;
 }
