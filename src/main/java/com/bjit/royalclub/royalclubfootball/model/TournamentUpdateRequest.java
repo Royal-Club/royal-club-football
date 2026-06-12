@@ -9,6 +9,10 @@ import java.time.LocalDateTime;
 public class TournamentUpdateRequest {
     private Long id;
     private String tournamentName;
+    private String title;
+    private String season;
+    private String description;
+    private String rules;
     @NotNull(message = "Tournament date is mandatory")
     private LocalDateTime tournamentDate;
     @NotNull(message = "Venue ID is mandatory")
