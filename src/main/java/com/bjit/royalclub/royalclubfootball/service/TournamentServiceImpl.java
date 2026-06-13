@@ -49,6 +49,10 @@ public class TournamentServiceImpl implements TournamentService {
         return TournamentResponse.builder()
                 .id(tournament.getId())
                 .name(tournament.getName())
+                .title(tournament.getTitle())
+                .season(tournament.getSeason())
+                .description(tournament.getDescription())
+                .rules(tournament.getRules())
                 .tournamentDate(tournament.getTournamentDate())
                 .activeStatus(tournament.isActive())
                 .defaultTournament(tournament.isDefaultTournament())
@@ -71,6 +75,10 @@ public class TournamentServiceImpl implements TournamentService {
 
         Tournament tournament = Tournament.builder()
                 .name(normalizeString(tournamentRequest.getTournamentName()))
+                .title(tournamentRequest.getTitle())
+                .season(tournamentRequest.getSeason())
+                .description(tournamentRequest.getDescription())
+                .rules(tournamentRequest.getRules())
                 .tournamentDate(tournamentRequest.getTournamentDate())
                 .venue(venue)
                 .tournamentStatus(tournamentRequest
@@ -144,6 +152,10 @@ public class TournamentServiceImpl implements TournamentService {
         Venue venue = venueRepository.findById(tournamentUpdateRequest.getVenueId())
                 .orElseThrow(() -> new VenueServiceException(VENUE_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
         tournament.setName(normalizeString(tournamentUpdateRequest.getTournamentName()));
+        tournament.setTitle(tournamentUpdateRequest.getTitle());
+        tournament.setSeason(tournamentUpdateRequest.getSeason());
+        tournament.setDescription(tournamentUpdateRequest.getDescription());
+        tournament.setRules(tournamentUpdateRequest.getRules());
         tournament.setTournamentDate(tournamentUpdateRequest.getTournamentDate());
         tournament.setVenue(venue);
         if (tournamentUpdateRequest.getSportType() != null) {
