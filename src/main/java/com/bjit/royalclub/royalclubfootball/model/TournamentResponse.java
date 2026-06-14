@@ -18,6 +18,7 @@ public class TournamentResponse {
     private String season;
     private String description;
     private String rules;
+    private String roadmapImageUrl;
     private LocalDateTime tournamentDate;
     private String venueName;
     private boolean activeStatus;

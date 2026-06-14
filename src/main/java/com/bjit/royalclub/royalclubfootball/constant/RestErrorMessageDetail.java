@@ -84,6 +84,8 @@ public class RestErrorMessageDetail {
     public static final String GROUP_IS_NOT_FOUND = "Group is not found";
     public static final String GROUP_NAME_ALREADY_EXISTS = "A group with this name already exists in the round";
     public static final String GROUP_HAS_TEAMS = "Cannot delete group with assigned teams";
+    public static final String GROUP_HAS_SUB_GROUPS = "Cannot delete a group that has sub-groups. Delete sub-groups first";
+    public static final String PARENT_GROUP_NOT_IN_SAME_ROUND = "Parent group must belong to the same round";
     public static final String TEAM_ALREADY_IN_GROUP = "Team is already assigned to this group";
     public static final String TEAM_ALREADY_IN_ROUND = "Team is already assigned to this round";
     public static final String GROUP_MAX_TEAMS_REACHED = "Group has reached maximum team capacity";
