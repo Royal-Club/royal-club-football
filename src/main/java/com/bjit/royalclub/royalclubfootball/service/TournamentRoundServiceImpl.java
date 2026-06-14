@@ -238,9 +238,7 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
 
         // Check if previous round is completed (if not the first round)
         if (round.getSequenceOrder() > 1) {
-            List<TournamentRound> previousRounds = tournamentRoundRepository
-                    .findPreviousRoundBySequence(round.getTournament().getId(), round.getSequenceOrder());
-            TournamentRound previousRound = previousRounds.isEmpty() ? null : previousRounds.get(0);
+            TournamentRound previousRound = findActualPreviousRound(round);
 
             if (previousRound != null && previousRound.getStatus() != RoundStatus.COMPLETED) {
                 throw new RoundServiceException(
@@ -320,19 +318,73 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
     }
 
     /**
+     * Find the round that actually feeds the given round.
+     * Using "sequenceOrder - 1" breaks for branched knockout brackets: e.g. if
+     * "Cup Final" is sequence 3 and "Plate Final" is sequence 4, "Plate Final"'s
+     * "sequenceOrder - 1" would resolve to "Cup Final" instead of the Semifinal
+     * Stage's PLATE lane. Walk backwards and pick the nearest round whose lane
+     * (first word of the round/group name, e.g. CUP/PLATE) matches this round,
+     * or the nearest GROUP_BASED round with groups (which feeds every lane).
+     */
+    private TournamentRound findActualPreviousRound(TournamentRound round) {
+        List<TournamentRound> candidates = tournamentRoundRepository
+                .findByTournamentIdOrderBySequence(round.getTournament().getId())
+                .stream()
+                .filter(r -> r.getSequenceOrder() < round.getSequenceOrder())
+                .sorted((a, b) -> b.getSequenceOrder() - a.getSequenceOrder())
+                .collect(Collectors.toList());
+
+        String laneKeyword = getLaneKeyword(round.getRoundName());
+
+        for (TournamentRound candidate : candidates) {
+            if (candidate.getRoundType() == RoundType.GROUP_BASED) {
+                List<RoundGroup> topGroups = roundGroupRepository.findTopLevelByRoundId(candidate.getId());
+                if (!topGroups.isEmpty()) {
+                    return candidate;
+                }
+            } else if (laneKeyword.isEmpty() || getLaneKeyword(candidate.getRoundName()).equals(laneKeyword)) {
+                return candidate;
+            }
+        }
+
+        return candidates.isEmpty() ? null : candidates.get(0);
+    }
+
+    private String getLaneKeyword(String name) {
+        if (name == null) {
+            return "";
+        }
+        String trimmed = name.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+        return trimmed.split("\\s+")[0].toUpperCase();
+    }
+
+    /**
      * Check if all matches in a round are completed
      * For GROUP_BASED rounds: checks all matches in all groups
      * For DIRECT_KNOCKOUT rounds: checks all matches directly in the round
      */
     private boolean areAllMatchesCompletedInRound(TournamentRound round) {
         if (round.getRoundType() == RoundType.GROUP_BASED) {
-            // For GROUP_BASED rounds, check all matches in all groups
+            // For GROUP_BASED rounds, check all matches in all groups.
+            // Only leaf groups (groups without child groups) actually hold matches -
+            // parent groups are containers with no matches of their own.
             List<RoundGroup> groups = roundGroupRepository.findByRoundId(round.getId());
             if (groups.isEmpty()) {
                 return false; // No groups means no matches
             }
-            
-            for (RoundGroup group : groups) {
+
+            List<RoundGroup> leafGroups = groups.stream()
+                    .filter(group -> group.getChildGroups() == null || group.getChildGroups().isEmpty())
+                    .collect(Collectors.toList());
+
+            if (leafGroups.isEmpty()) {
+                return false; // No leaf groups means no matches
+            }
+
+            for (RoundGroup group : leafGroups) {
                 boolean allGroupMatchesCompleted = matchRepository.areAllMatchesCompletedInGroup(group.getId());
                 if (!allGroupMatchesCompleted) {
                     return false;
