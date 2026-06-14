@@ -51,6 +51,9 @@ public class Tournament extends AuditBase {
     @Column(name = "rules", columnDefinition = "TEXT")
     private String rules;
 
+    @Column(name = "roadmap_image_url", length = 500)
+    private String roadmapImageUrl;
+
     @Column(name = "tournament_date", nullable = false)
     private LocalDateTime tournamentDate;
     @OneToOne

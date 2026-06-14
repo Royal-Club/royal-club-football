@@ -177,6 +177,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                 .season(tournament.getSeason())
                 .description(tournament.getDescription())
                 .rules(tournament.getRules())
+                .roadmapImageUrl(tournament.getRoadmapImageUrl())
                 .tournamentDate(tournament.getTournamentDate())
                 .venueName(tournament.getVenue().getName())
                 .activeStatus(tournament.isActive())

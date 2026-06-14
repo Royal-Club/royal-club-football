@@ -14,6 +14,7 @@ public class TournamentRequest {
     private String season;
     private String description;
     private String rules;
+    private String roadmapImageUrl;
     @NotNull(message = "Tournament date is mandatory")
     @FutureOrPresent(message = "Tournament date cannot be in the past")
     private LocalDateTime tournamentDate;

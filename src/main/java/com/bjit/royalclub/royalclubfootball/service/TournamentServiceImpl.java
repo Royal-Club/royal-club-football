@@ -53,6 +53,7 @@ public class TournamentServiceImpl implements TournamentService {
                 .season(tournament.getSeason())
                 .description(tournament.getDescription())
                 .rules(tournament.getRules())
+                .roadmapImageUrl(tournament.getRoadmapImageUrl())
                 .tournamentDate(tournament.getTournamentDate())
                 .activeStatus(tournament.isActive())
                 .defaultTournament(tournament.isDefaultTournament())
@@ -79,6 +80,7 @@ public class TournamentServiceImpl implements TournamentService {
                 .season(tournamentRequest.getSeason())
                 .description(tournamentRequest.getDescription())
                 .rules(tournamentRequest.getRules())
+                .roadmapImageUrl(tournamentRequest.getRoadmapImageUrl())
                 .tournamentDate(tournamentRequest.getTournamentDate())
                 .venue(venue)
                 .tournamentStatus(tournamentRequest
@@ -156,6 +158,7 @@ public class TournamentServiceImpl implements TournamentService {
         tournament.setSeason(tournamentUpdateRequest.getSeason());
         tournament.setDescription(tournamentUpdateRequest.getDescription());
         tournament.setRules(tournamentUpdateRequest.getRules());
+        tournament.setRoadmapImageUrl(tournamentUpdateRequest.getRoadmapImageUrl());
         tournament.setTournamentDate(tournamentUpdateRequest.getTournamentDate());
         tournament.setVenue(venue);
         if (tournamentUpdateRequest.getSportType() != null) {
