@@ -32,6 +32,7 @@ public class FixtureGenerationServiceImpl implements FixtureGenerationService {
     private final TournamentRepository tournamentRepository;
     private final TeamRepository teamRepository;
     private final VenueRepository venueRepository;
+    private final LiveMatchUpdatePublisher liveMatchUpdatePublisher;
 
     @Override
     public List<Match> generateFixtures(Long tournamentId, FixtureGenerationRequest fixtureRequest) {
@@ -131,7 +132,9 @@ public class FixtureGenerationServiceImpl implements FixtureGenerationService {
             }
         }
 
-        return matchRepository.saveAll(matches);
+        List<Match> savedMatches = matchRepository.saveAll(matches);
+        liveMatchUpdatePublisher.publishMatchUpdate(tournamentId, null, "FIXTURES_GENERATED");
+        return savedMatches;
     }
 
     @Override
@@ -144,6 +147,7 @@ public class FixtureGenerationServiceImpl implements FixtureGenerationService {
         }
 
         matchRepository.deleteAll(scheduledMatches);
+        liveMatchUpdatePublisher.publishMatchUpdate(tournamentId, null, "FIXTURES_CLEARED");
     }
 
     @Override
@@ -168,7 +172,9 @@ public class FixtureGenerationServiceImpl implements FixtureGenerationService {
             match.setVenue(venue);
         }
 
-        return matchRepository.save(match);
+        Match updatedMatch = matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(updatedMatch.getTournament().getId(), updatedMatch.getId(), "FIXTURE_UPDATED");
+        return updatedMatch;
     }
 
 }

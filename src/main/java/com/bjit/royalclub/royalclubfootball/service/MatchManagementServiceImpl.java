@@ -42,6 +42,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
     private final com.bjit.royalclub.royalclubfootball.repository.TournamentRoundRepository tournamentRoundRepository;
     private final com.bjit.royalclub.royalclubfootball.repository.RoundGroupRepository roundGroupRepository;
     private final com.bjit.royalclub.royalclubfootball.repository.VenueRepository venueRepository;
+    private final LiveMatchUpdatePublisher liveMatchUpdatePublisher;
 
     @Override
     public MatchResponse getMatchById(Long matchId) {
@@ -101,6 +102,8 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                 .build();
         matchEventRepository.save(matchStartedEvent);
 
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_STARTED");
+
         return convertToResponse(match);
     }
 
@@ -115,6 +118,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         match.setMatchStatus(MatchStatus.PAUSED);
         matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_PAUSED");
         return convertToResponse(match);
     }
 
@@ -129,6 +133,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         match.setMatchStatus(MatchStatus.ONGOING);
         matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_RESUMED");
         return convertToResponse(match);
     }
 
@@ -194,6 +199,8 @@ public class MatchManagementServiceImpl implements MatchManagementService {
             }
         }
 
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_COMPLETED");
+
         return convertToResponse(match);
     }
 
@@ -242,6 +249,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
         }
 
         matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_UPDATED");
         return convertToResponse(match);
     }
 
@@ -318,6 +326,8 @@ public class MatchManagementServiceImpl implements MatchManagementService {
             // Log error but don't fail the event recording
             System.err.println("Failed to aggregate match statistics: " + e.getMessage());
         }
+
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_EVENT_RECORDED");
 
         return convertEventToResponse(matchEvent);
     }
@@ -400,6 +410,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         match.setElapsedTimeSeconds(elapsedSeconds);
         matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "ELAPSED_TIME_UPDATED");
     }
 
     @Override
@@ -427,6 +438,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
         }
 
         matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "SCORE_UPDATED");
     }
 
     @Override
@@ -465,6 +477,8 @@ public class MatchManagementServiceImpl implements MatchManagementService {
             // Log error but don't fail the event deletion
             System.err.println("Failed to aggregate match statistics after deletion: " + e.getMessage());
         }
+
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_EVENT_DELETED");
     }
 
     private MatchResponse convertToResponse(Match match) {
@@ -616,6 +630,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                 .build();
 
         match = matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_CREATED");
         return convertToResponse(match);
     }
 
@@ -624,6 +639,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
     public void deleteMatch(Long matchId) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new TournamentServiceException("Match not found", HttpStatus.NOT_FOUND));
+        Long tournamentId = match.getTournament().getId();
 
         // Prevent deletion of ongoing or completed matches
         if (match.getMatchStatus() == MatchStatus.ONGOING || match.getMatchStatus() == MatchStatus.PAUSED) {
@@ -636,17 +652,24 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         // Delete the match (cascade will handle match events and statistics)
         matchRepository.delete(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(tournamentId, matchId, "MATCH_DELETED");
     }
 
     @Override
     @jakarta.transaction.Transactional
     public void updateMatchOrder(com.bjit.royalclub.royalclubfootball.model.MatchOrderUpdateRequest request) {
+        java.util.Set<Long> touchedTournamentIds = new java.util.HashSet<>();
         for (com.bjit.royalclub.royalclubfootball.model.MatchOrderUpdateRequest.MatchOrderItem item : request.getMatchOrders()) {
             Match match = matchRepository.findById(item.getMatchId())
                     .orElseThrow(() -> new TournamentServiceException("Match not found with ID: " + item.getMatchId(), HttpStatus.NOT_FOUND));
             
             match.setMatchOrder(item.getMatchOrder());
             matchRepository.save(match);
+            touchedTournamentIds.add(match.getTournament().getId());
+        }
+
+        for (Long tournamentId : touchedTournamentIds) {
+            liveMatchUpdatePublisher.publishMatchUpdate(tournamentId, null, "MATCH_ORDER_UPDATED");
         }
     }
 
