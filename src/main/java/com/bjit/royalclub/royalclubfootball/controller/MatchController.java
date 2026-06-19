@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.controller;
 
 import com.bjit.royalclub.royalclubfootball.model.MatchEventRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchEventResponse;
+import com.bjit.royalclub.royalclubfootball.model.MatchEventUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchResponse;
 import com.bjit.royalclub.royalclubfootball.model.MatchUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.model.Response;
@@ -127,6 +128,20 @@ public class MatchController {
                         .timeStamp(System.currentTimeMillis())
                         .build());
     }
+
+        @PutMapping("/events/{eventId}")
+        @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
+        public ResponseEntity<Response> updateMatchEvent(@PathVariable Long eventId,
+                                                                                                         @Valid @RequestBody MatchEventUpdateRequest eventRequest) {
+                MatchEventResponse event = matchManagementService.updateMatchEvent(eventId, eventRequest);
+                return ResponseEntity.ok(Response.builder()
+                                .statusCode(HttpStatus.OK.value())
+                                .status("OK")
+                                .message("Match event updated successfully")
+                                .content(event)
+                                .timeStamp(System.currentTimeMillis())
+                                .build());
+        }
 
     @PutMapping("/{matchId}/elapsed-time")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")

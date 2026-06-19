@@ -3,6 +3,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 import com.bjit.royalclub.royalclubfootball.entity.Match;
 import com.bjit.royalclub.royalclubfootball.model.MatchEventRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchEventResponse;
+import com.bjit.royalclub.royalclubfootball.model.MatchEventUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchResponse;
 import com.bjit.royalclub.royalclubfootball.model.MatchUpdateRequest;
 import jakarta.transaction.Transactional;
@@ -51,6 +52,12 @@ public interface MatchManagementService {
      */
     @Transactional
     MatchEventResponse recordMatchEvent(MatchEventRequest eventRequest);
+
+    /**
+     * Update an existing match event (time/details).
+     */
+    @Transactional
+    MatchEventResponse updateMatchEvent(Long eventId, MatchEventUpdateRequest eventRequest);
 
     /**
      * Get all events for a specific match

@@ -10,6 +10,7 @@ import com.bjit.royalclub.royalclubfootball.enums.RoundStatus;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.model.MatchEventRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchEventResponse;
+import com.bjit.royalclub.royalclubfootball.model.MatchEventUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchResponse;
 import com.bjit.royalclub.royalclubfootball.model.MatchUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.repository.MatchEventRepository;
@@ -20,6 +21,8 @@ import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
 import com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -332,6 +335,49 @@ public class MatchManagementServiceImpl implements MatchManagementService {
         return convertEventToResponse(matchEvent);
     }
 
+    @Override
+    public MatchEventResponse updateMatchEvent(Long eventId, MatchEventUpdateRequest eventRequest) {
+        MatchEvent event = matchEventRepository.findById(eventId)
+                .orElseThrow(() -> new TournamentServiceException("Match event not found", HttpStatus.NOT_FOUND));
+
+        Match match = event.getMatch();
+        if (match.getMatchStatus().equals(MatchStatus.COMPLETED) && !isCurrentUserSuperAdmin()) {
+            throw new TournamentServiceException("Only SUPERADMIN can edit events from completed matches", HttpStatus.CONFLICT);
+        }
+
+        event.setEventTime(eventRequest.getEventTime());
+        event.setDescription(eventRequest.getDescription());
+        event.setDetails(eventRequest.getDetails());
+
+        matchEventRepository.save(event);
+
+        // Recalculate score from goal events to keep consistency after edits.
+        int homeGoals = matchEventRepository.findGoalsByMatchIdAndTeamId(match.getId(), match.getHomeTeam().getId()).size();
+        int awayGoals = matchEventRepository.findGoalsByMatchIdAndTeamId(match.getId(), match.getAwayTeam().getId()).size();
+        match.setHomeTeamScore(homeGoals);
+        match.setAwayTeamScore(awayGoals);
+        matchRepository.save(match);
+
+        try {
+            matchStatisticsService.aggregateMatchStatistics(match.getId());
+        } catch (Exception e) {
+            System.err.println("Failed to aggregate match statistics after event update: " + e.getMessage());
+        }
+
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_EVENT_UPDATED");
+        return convertEventToResponse(event);
+    }
+
+    private boolean isCurrentUserSuperAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return false;
+        }
+
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_SUPERADMIN".equals(authority.getAuthority()));
+    }
+
     private void validateMatchEvent(
             Match match,
             MatchEventRequest eventRequest,
@@ -448,9 +494,9 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         Match match = event.getMatch();
 
-        // Validate match is still ongoing (not completed)
-        if (match.getMatchStatus().equals(MatchStatus.COMPLETED)) {
-            throw new TournamentServiceException("Cannot delete events from completed matches", HttpStatus.CONFLICT);
+        // Allow SUPERADMIN to delete events from completed matches.
+        if (match.getMatchStatus().equals(MatchStatus.COMPLETED) && !isCurrentUserSuperAdmin()) {
+            throw new TournamentServiceException("Only SUPERADMIN can delete events from completed matches", HttpStatus.CONFLICT);
         }
 
         // If deleting a goal event, reverse the score
