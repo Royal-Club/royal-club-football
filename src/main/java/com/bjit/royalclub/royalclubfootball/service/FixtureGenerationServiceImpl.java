@@ -14,6 +14,8 @@ import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import com.bjit.royalclub.royalclubfootball.repository.VenueRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -155,8 +157,10 @@ public class FixtureGenerationServiceImpl implements FixtureGenerationService {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new TournamentServiceException(MATCH_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
-        // Validate match status - can only update scheduled matches
-        if (match.getMatchStatus() != MatchStatus.SCHEDULED) {
+        // Validate match status - can only update scheduled matches (SUPERADMIN can bypass)
+        boolean isSuperAdmin = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SUPERADMIN"));
+        if (!isSuperAdmin && match.getMatchStatus() != MatchStatus.SCHEDULED) {
             throw new TournamentServiceException("Cannot update match fixture details once match has started", HttpStatus.BAD_REQUEST);
         }
 
