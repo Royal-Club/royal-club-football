@@ -31,6 +31,7 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
     private final RoundTeamRepository roundTeamRepository;
     private final GroupStandingRepository groupStandingRepository;
     private final AdvancementRuleRepository advancementRuleRepository;
+    private final LogicNodeRepository logicNodeRepository;
     private final MatchRepository matchRepository;
     private final TournamentRepository tournamentRepository;
     private final TeamRepository teamRepository;
@@ -237,14 +238,16 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                     HttpStatus.CONFLICT);
         }
 
-        // Check if previous round is completed (if not the first round)
-        if (round.getSequenceOrder() > 1) {
-            TournamentRound previousRound = findActualPreviousRound(round);
-
-            if (previousRound != null && previousRound.getStatus() != RoundStatus.COMPLETED) {
+        // Gate on the round's actual feeder rounds (bracket logic-node edges),
+        // not the adjacent sequence number. This keeps parallel brackets
+        // independent: e.g. the Plate Final only waits on the Plate Semifinal(s),
+        // never the Cup Final. A round with no feeders is an entry round.
+        for (Long sourceRoundId : findSourceRoundIds(round)) {
+            TournamentRound sourceRound = tournamentRoundRepository.findById(sourceRoundId).orElse(null);
+            if (sourceRound != null && sourceRound.getStatus() != RoundStatus.COMPLETED) {
                 throw new RoundServiceException(
-                        String.format("Cannot start round '%s'. Previous round '%s' (Sequence %d) must be completed first.",
-                                round.getRoundName(), previousRound.getRoundName(), previousRound.getSequenceOrder()),
+                        String.format("Cannot start round '%s'. Feeder round '%s' (Sequence %d) must be completed first.",
+                                round.getRoundName(), sourceRound.getRoundName(), sourceRound.getSequenceOrder()),
                         HttpStatus.BAD_REQUEST);
             }
         }
@@ -318,49 +321,6 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
         return convertToRoundResponse(previousRounds.get(0));
     }
 
-    /**
-     * Find the round that actually feeds the given round.
-     * Using "sequenceOrder - 1" breaks for branched knockout brackets: e.g. if
-     * "Cup Final" is sequence 3 and "Plate Final" is sequence 4, "Plate Final"'s
-     * "sequenceOrder - 1" would resolve to "Cup Final" instead of the Semifinal
-     * Stage's PLATE lane. Walk backwards and pick the nearest round whose lane
-     * (first word of the round/group name, e.g. CUP/PLATE) matches this round,
-     * or the nearest GROUP_BASED round with groups (which feeds every lane).
-     */
-    private TournamentRound findActualPreviousRound(TournamentRound round) {
-        List<TournamentRound> candidates = tournamentRoundRepository
-                .findByTournamentIdOrderBySequence(round.getTournament().getId())
-                .stream()
-                .filter(r -> r.getSequenceOrder() < round.getSequenceOrder())
-                .sorted((a, b) -> b.getSequenceOrder() - a.getSequenceOrder())
-                .collect(Collectors.toList());
-
-        String laneKeyword = getLaneKeyword(round.getRoundName());
-
-        for (TournamentRound candidate : candidates) {
-            if (candidate.getRoundType() == RoundType.GROUP_BASED) {
-                List<RoundGroup> topGroups = roundGroupRepository.findTopLevelByRoundId(candidate.getId());
-                if (!topGroups.isEmpty()) {
-                    return candidate;
-                }
-            } else if (laneKeyword.isEmpty() || getLaneKeyword(candidate.getRoundName()).equals(laneKeyword)) {
-                return candidate;
-            }
-        }
-
-        return candidates.isEmpty() ? null : candidates.get(0);
-    }
-
-    private String getLaneKeyword(String name) {
-        if (name == null) {
-            return "";
-        }
-        String trimmed = name.trim();
-        if (trimmed.isEmpty()) {
-            return "";
-        }
-        return trimmed.split("\\s+")[0].toUpperCase();
-    }
 
     /**
      * Check if all matches in a round are completed
@@ -671,7 +631,33 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .teams(teams.isEmpty() ? null : teams)
                 .totalMatches((int) totalMatches)
                 .completedMatches((int) completedMatches)
+                .sourceRoundIds(findSourceRoundIds(round))
                 .build();
+    }
+
+    /**
+     * Resolve the rounds that feed into the given round using the bracket's
+     * logic-node edges. A feeder is the source round of any logic node whose
+     * target is this round; when a node's source is a group, the group's round
+     * is used. Self-references are excluded. Returns an empty list for an entry
+     * round (no incoming edges).
+     */
+    private List<Long> findSourceRoundIds(TournamentRound round) {
+        return logicNodeRepository.findByTargetRoundId(round.getId())
+                .stream()
+                .map(node -> {
+                    if (node.getSourceRound() != null) {
+                        return node.getSourceRound().getId();
+                    }
+                    if (node.getSourceGroup() != null && node.getSourceGroup().getRound() != null) {
+                        return node.getSourceGroup().getRound().getId();
+                    }
+                    return null;
+                })
+                .filter(java.util.Objects::nonNull)
+                .filter(id -> !id.equals(round.getId()))
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     private RoundGroupResponse convertToGroupResponse(RoundGroup group) {

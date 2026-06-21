@@ -29,4 +29,13 @@ public class TournamentRoundResponse {
     private List<TeamSimpleResponse> teams;
     private Integer totalMatches;
     private Integer completedMatches;
+
+    /**
+     * IDs of the rounds that feed into this one, derived from the bracket's
+     * logic-node edges (source -> target). Empty/absent for an entry round.
+     * Used to gate "Start Round" on the actual predecessors rather than the
+     * adjacent sequence number, so parallel brackets (e.g. Cup vs Plate) stay
+     * independent.
+     */
+    private List<Long> sourceRoundIds;
 }
