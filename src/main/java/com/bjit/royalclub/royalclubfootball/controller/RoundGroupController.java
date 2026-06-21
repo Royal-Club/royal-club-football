@@ -95,6 +95,15 @@ public class RoundGroupController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
+    @PostMapping("/{groupId}/standings/tiebreak")
+    public ResponseEntity<Object> applyGroupTiebreak(
+            @PathVariable Long groupId,
+            @Valid @RequestBody GroupTiebreakRequest request) {
+        List<GroupStandingResponse> responses = roundGroupService.applyGroupTiebreak(groupId, request);
+        return buildSuccessResponse(HttpStatus.OK, "Group tiebreak applied successfully", responses);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping("/{groupId}/generate-matches")
     public ResponseEntity<Object> generateGroupMatches(
             @PathVariable Long groupId,

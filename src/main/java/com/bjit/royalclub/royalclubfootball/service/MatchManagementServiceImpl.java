@@ -330,6 +330,15 @@ public class MatchManagementServiceImpl implements MatchManagementService {
             System.err.println("Failed to aggregate match statistics: " + e.getMessage());
         }
 
+        // Recalculate group standings when events are added to a completed match
+        if (match.getMatchStatus() == MatchStatus.COMPLETED && match.getGroup() != null) {
+            try {
+                roundGroupService.recalculateGroupStandings(match.getGroup().getId());
+            } catch (Exception e) {
+                System.err.println("Failed to recalculate group standings after event add: " + e.getMessage());
+            }
+        }
+
         liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_EVENT_RECORDED");
 
         return convertEventToResponse(matchEvent);
@@ -362,6 +371,15 @@ public class MatchManagementServiceImpl implements MatchManagementService {
             matchStatisticsService.aggregateMatchStatistics(match.getId());
         } catch (Exception e) {
             System.err.println("Failed to aggregate match statistics after event update: " + e.getMessage());
+        }
+
+        // Recalculate group standings when events are edited on a completed match
+        if (match.getMatchStatus() == MatchStatus.COMPLETED && match.getGroup() != null) {
+            try {
+                roundGroupService.recalculateGroupStandings(match.getGroup().getId());
+            } catch (Exception e) {
+                System.err.println("Failed to recalculate group standings after event update: " + e.getMessage());
+            }
         }
 
         liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_EVENT_UPDATED");
@@ -522,6 +540,15 @@ public class MatchManagementServiceImpl implements MatchManagementService {
         } catch (Exception e) {
             // Log error but don't fail the event deletion
             System.err.println("Failed to aggregate match statistics after deletion: " + e.getMessage());
+        }
+
+        // Recalculate group standings when events are deleted from a completed match
+        if (match.getMatchStatus() == MatchStatus.COMPLETED && match.getGroup() != null) {
+            try {
+                roundGroupService.recalculateGroupStandings(match.getGroup().getId());
+            } catch (Exception e) {
+                System.err.println("Failed to recalculate group standings after event delete: " + e.getMessage());
+            }
         }
 
         liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_EVENT_DELETED");

@@ -36,6 +36,7 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
     private final TeamRepository teamRepository;
     private final VenueRepository venueRepository;
     private final LogicNodeService logicNodeService;
+    private final RoundGroupService roundGroupService;
 
     @Override
     public TournamentRoundResponse createRound(TournamentRoundRequest request) {
@@ -407,35 +408,11 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
 
         List<RoundGroup> groups = roundGroupRepository.findByRoundId(round.getId());
 
+        // Delegate to RoundGroupService so the full ranking sequence
+        // (points -> GD -> GF -> head-to-head -> fair play -> penalty tiebreak)
+        // and card aggregation are applied from a single source of truth.
         for (RoundGroup group : groups) {
-            List<GroupStanding> standings = groupStandingRepository.findByGroupId(group.getId());
-
-            // Reset all standings
-            for (GroupStanding standing : standings) {
-                standing.setMatchesPlayed(0);
-                standing.setWins(0);
-                standing.setDraws(0);
-                standing.setLosses(0);
-                standing.setGoalsFor(0);
-                standing.setGoalsAgainst(0);
-                standing.setGoalDifference(0);
-                standing.setPoints(0);
-            }
-
-            // Recalculate from matches
-            List<Match> matches = matchRepository.findCompletedByGroupId(group.getId());
-
-            for (Match match : matches) {
-                updateStandingsForMatch(standings, match);
-            }
-
-            // Calculate positions and save
-            standings = groupStandingRepository.findByGroupIdOrderByRankingCriteria(group.getId());
-            for (int i = 0; i < standings.size(); i++) {
-                standings.get(i).setPosition(i + 1);
-            }
-
-            groupStandingRepository.saveAll(standings);
+            roundGroupService.recalculateGroupStandings(group.getId());
         }
 
         log.info("Group standings recalculated successfully for round ID: {}", round.getId());
@@ -703,8 +680,9 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .map(this::convertToTeamSimpleResponse)
                 .collect(Collectors.toList());
 
+        // Order by the persisted position computed via the full ranking sequence.
         List<GroupStandingResponse> standings = groupStandingRepository
-                .findByGroupIdOrderByRankingCriteria(group.getId())
+                .findByGroupIdOrderByPosition(group.getId())
                 .stream()
                 .map(this::convertToStandingResponse)
                 .collect(Collectors.toList());
@@ -1133,6 +1111,10 @@ int numTeams = teams.size();
                 .goalsAgainst(standing.getGoalsAgainst())
                 .goalDifference(standing.getGoalDifference())
                 .points(standing.getPoints())
+                .yellowCards(standing.getYellowCards())
+                .redCards(standing.getRedCards())
+                .fairPlayPoints(standing.getFairPlayPoints())
+                .tiebreakRank(standing.getTiebreakRank())
                 .position(standing.getPosition())
                 .isAdvanced(standing.getIsAdvanced())
                 .build();
