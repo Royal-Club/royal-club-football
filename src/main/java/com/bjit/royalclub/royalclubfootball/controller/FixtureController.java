@@ -1,6 +1,8 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
 import com.bjit.royalclub.royalclubfootball.entity.Match;
+import com.bjit.royalclub.royalclubfootball.entity.MatchEvent;
+import com.bjit.royalclub.royalclubfootball.enums.MatchEventType;
 import com.bjit.royalclub.royalclubfootball.model.FixtureGenerationRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchFixtureUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchResponse;
@@ -130,7 +132,33 @@ public class FixtureController {
         if (groupName == null && match.getGroup() != null) {
             groupName = match.getGroup().getGroupName();
         }
-        
+
+        // Count disciplinary cards per side from match events.
+        int homeYellow = 0;
+        int homeRed = 0;
+        int awayYellow = 0;
+        int awayRed = 0;
+        Long homeTeamId = match.getHomeTeam().getId();
+        Long awayTeamId = match.getAwayTeam().getId();
+        if (match.getMatchEvents() != null) {
+            for (MatchEvent event : match.getMatchEvents()) {
+                MatchEventType type = event.getEventType();
+                if ((type != MatchEventType.YELLOW_CARD && type != MatchEventType.RED_CARD)
+                        || event.getTeam() == null) {
+                    continue;
+                }
+                boolean isHome = homeTeamId.equals(event.getTeam().getId());
+                boolean isAway = awayTeamId.equals(event.getTeam().getId());
+                if (type == MatchEventType.YELLOW_CARD) {
+                    if (isHome) homeYellow++;
+                    else if (isAway) awayYellow++;
+                } else {
+                    if (isHome) homeRed++;
+                    else if (isAway) awayRed++;
+                }
+            }
+        }
+
         return MatchResponse.builder()
                 .id(match.getId())
                 .tournamentId(match.getTournament().getId())
@@ -149,6 +177,10 @@ public class FixtureController {
                 .groupName(groupName)  // Use groupName from column or group relationship
                 .homeTeamScore(match.getHomeTeamScore())
                 .awayTeamScore(match.getAwayTeamScore())
+                .homeYellowCards(homeYellow)
+                .homeRedCards(homeRed)
+                .awayYellowCards(awayYellow)
+                .awayRedCards(awayRed)
                 .matchDurationMinutes(match.getMatchDurationMinutes())
                 .elapsedTimeSeconds(match.getElapsedTimeSeconds())
                 .startedAt(match.getStartedAt())

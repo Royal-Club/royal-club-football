@@ -5,6 +5,7 @@ import com.bjit.royalclub.royalclubfootball.model.RoundGroupResponse;
 import com.bjit.royalclub.royalclubfootball.model.TeamAssignmentRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlaceholderTeamRequest;
 import com.bjit.royalclub.royalclubfootball.model.GroupStandingResponse;
+import com.bjit.royalclub.royalclubfootball.model.GroupTiebreakRequest;
 import com.bjit.royalclub.royalclubfootball.model.GroupMatchGenerationRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchResponse;
 import jakarta.transaction.Transactional;
@@ -39,6 +40,13 @@ public interface RoundGroupService {
 
     @Transactional
     void recalculateGroupStandings(Long groupId);
+
+    /**
+     * Record a manual penalty-shootout tiebreak for teams that are level on
+     * every other criterion, then re-rank the group.
+     */
+    @Transactional
+    List<GroupStandingResponse> applyGroupTiebreak(Long groupId, GroupTiebreakRequest request);
 
     /**
      * Generate round-robin matches for all teams in a group

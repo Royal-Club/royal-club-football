@@ -22,6 +22,10 @@ public class GroupStandingResponse {
     private Integer goalsAgainst;
     private Integer goalDifference;
     private Integer points;
+    private Integer yellowCards;
+    private Integer redCards;
+    private Integer fairPlayPoints;
+    private Integer tiebreakRank;
     private Integer position;
     private Boolean isAdvanced;
 }

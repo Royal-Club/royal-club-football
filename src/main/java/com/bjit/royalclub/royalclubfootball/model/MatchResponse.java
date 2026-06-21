@@ -30,6 +30,10 @@ public class MatchResponse {
     private String groupName;
     private Integer homeTeamScore;
     private Integer awayTeamScore;
+    private Integer homeYellowCards;
+    private Integer homeRedCards;
+    private Integer awayYellowCards;
+    private Integer awayRedCards;
     private Integer matchDurationMinutes;
     private Integer elapsedTimeSeconds;
     private LocalDateTime startedAt;
