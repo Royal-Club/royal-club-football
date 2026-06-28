@@ -23,21 +23,55 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh """
-                    # Create deploy dir if not exists
-                    sudo -u ubuntu mkdir -p ${APP_DIR}
+                withCredentials([
+                    string(credentialsId: 'TEAM_LOGO_STORAGE_PROVIDER', variable: 'TEAM_LOGO_STORAGE_PROVIDER'),
+                    string(credentialsId: 'TEAM_LOGO_R2_ENDPOINT',      variable: 'TEAM_LOGO_R2_ENDPOINT'),
+                    string(credentialsId: 'TEAM_LOGO_R2_ACCESS_KEY',    variable: 'TEAM_LOGO_R2_ACCESS_KEY'),
+                    string(credentialsId: 'TEAM_LOGO_R2_SECRET_KEY',    variable: 'TEAM_LOGO_R2_SECRET_KEY'),
+                    string(credentialsId: 'TEAM_LOGO_R2_BUCKET',        variable: 'TEAM_LOGO_R2_BUCKET')
+                ]) {
+                    // Write env file using single-quoted sh to avoid Groovy interpolation of secrets
+                    sh '''
+                        cat > /tmp/rcf-app.env << EOF
+TEAM_LOGO_STORAGE_PROVIDER=$TEAM_LOGO_STORAGE_PROVIDER
+TEAM_LOGO_R2_ENDPOINT=$TEAM_LOGO_R2_ENDPOINT
+TEAM_LOGO_R2_ACCESS_KEY=$TEAM_LOGO_R2_ACCESS_KEY
+TEAM_LOGO_R2_SECRET_KEY=$TEAM_LOGO_R2_SECRET_KEY
+TEAM_LOGO_R2_BUCKET=$TEAM_LOGO_R2_BUCKET
+TEAM_LOGO_BASE_URL=https://royalfootball.club
+EOF
+                        chmod 600 /tmp/rcf-app.env
+                    '''
+                    sh """
+                        sudo mkdir -p ${APP_DIR}
 
-                    # Copy the built JAR
-                    sudo cp target/${JAR_NAME} ${APP_DIR}/app.jar
-                    sudo chown ubuntu:ubuntu ${APP_DIR}/app.jar
+                        # Move env file into place
+                        sudo cp /tmp/rcf-app.env ${APP_DIR}/app.env
+                        sudo chown ubuntu:ubuntu ${APP_DIR}/app.env
+                        rm -f /tmp/rcf-app.env
 
-                    # Restart the systemd service
-                    sudo systemctl restart ${SERVICE}
+                        # Ensure systemd service loads app env vars
+                        sudo mkdir -p /etc/systemd/system/${SERVICE}.service.d
+                        cat > /tmp/10-env.conf << EOF
+[Service]
+EnvironmentFile=-${APP_DIR}/app.env
+EOF
+                        sudo cp /tmp/10-env.conf /etc/systemd/system/${SERVICE}.service.d/10-env.conf
+                        rm -f /tmp/10-env.conf
 
-                    # Wait and verify
-                    sleep 5
-                    sudo systemctl is-active ${SERVICE}
-                """
+                        # Copy the built JAR
+                        sudo cp target/${JAR_NAME} ${APP_DIR}/app.jar
+                        sudo chown ubuntu:ubuntu ${APP_DIR}/app.jar
+
+                        # Restart the systemd service
+                        sudo systemctl daemon-reload
+                        sudo systemctl restart ${SERVICE}
+
+                        # Wait and verify
+                        sleep 5
+                        sudo systemctl is-active ${SERVICE}
+                    """
+                }
             }
         }
     }

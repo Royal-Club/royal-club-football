@@ -38,6 +38,22 @@ public class Tournament extends AuditBase {
     private Long id;
 
     private String name;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "season")
+    private String season;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "rules", columnDefinition = "TEXT")
+    private String rules;
+
+    @Column(name = "roadmap_image_url", length = 500)
+    private String roadmapImageUrl;
+
     @Column(name = "tournament_date", nullable = false)
     private LocalDateTime tournamentDate;
     @OneToOne
@@ -48,6 +64,9 @@ public class Tournament extends AuditBase {
     private TournamentStatus tournamentStatus;
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
+
+    @Column(name = "is_default", nullable = false)
+    private boolean defaultTournament;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "sport_type", nullable = false)

@@ -23,6 +23,7 @@ import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
+import com.bjit.royalclub.royalclubfootball.storage.teamlogo.TeamLogoStorageProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     private final TournamentParticipantRepository tournamentParticipantRepository;
     private final PlayerGoalkeepingHistoryRepository goalkeepingHistoryRepository;
     private final MatchRepository matchRepository;
+    private final TeamLogoStorageProvider teamLogoStorageProvider;
 
     @Override
     public TeamResponse createOrUpdateTeam(TeamRequest teamRequest) {
@@ -80,6 +82,10 @@ public class TeamManagementServiceImpl implements TeamManagementService {
 
         // Now delete the team
         teamRepository.delete(team);
+
+        if (team.getLogoKey() != null && !team.getLogoKey().isBlank()) {
+            teamLogoStorageProvider.delete(team.getLogoKey());
+        }
     }
 
     @Override
@@ -167,6 +173,11 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         return TournamentResponse.builder()
                 .id(tournament.getId())
                 .name(tournament.getName())
+                .title(tournament.getTitle())
+                .season(tournament.getSeason())
+                .description(tournament.getDescription())
+                .rules(tournament.getRules())
+                .roadmapImageUrl(tournament.getRoadmapImageUrl())
                 .tournamentDate(tournament.getTournamentDate())
                 .venueName(tournament.getVenue().getName())
                 .activeStatus(tournament.isActive())
@@ -186,6 +197,10 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                     return TournamentResponse.builder()
                             .id(tournament.getId())
                             .name(tournament.getName())
+                            .title(tournament.getTitle())
+                            .season(tournament.getSeason())
+                            .description(tournament.getDescription())
+                            .rules(tournament.getRules())
                             .tournamentDate(tournament.getTournamentDate())
                             .venueName(tournament.getVenue().getName())
                             .activeStatus(tournament.isActive())
@@ -207,12 +222,16 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                         .teamPlayerRole(player.getTeamPlayerRole().name())
                         .isCaptain(player.getIsCaptain())
                         .jerseyNumber(player.getJerseyNumber())
+                        .photoKey(player.getPlayer().getPhotoKey())
+                        .photoUrl(buildPlayerPhotoUrl(player.getPlayer().getPhotoKey()))
                         .build())
                 .toList();
 
         return TournamentTeamResponse.builder()
                 .teamId(team.getId())
                 .teamName(team.getTeamName())
+            .logoKey(team.getLogoKey())
+            .logoUrl(buildTeamLogoUrl(team.getLogoKey()))
                 .players(players)
                 .build();
     }
@@ -247,14 +266,29 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     private Team createTeam(TeamRequest teamRequest, Tournament tournament) {
         return Team.builder()
                 .teamName(teamRequest.getTeamName())
+                .logoKey(teamRequest.getLogoKey())
                 .tournament(tournament)
                 .build();
     }
 
     private Team updateTeam(TeamRequest teamRequest, Tournament tournament) {
         Team team = validateAndGetTeam(teamRequest.getId());
+        String previousLogoKey = team.getLogoKey();
+
         team.setTeamName(teamRequest.getTeamName());
+        if (teamRequest.getLogoKey() != null) {
+            team.setLogoKey(teamRequest.getLogoKey());
+        }
         team.setTournament(tournament);
+
+        String currentLogoKey = team.getLogoKey();
+        if (previousLogoKey != null
+                && !previousLogoKey.isBlank()
+                && currentLogoKey != null
+                && !currentLogoKey.equals(previousLogoKey)) {
+            teamLogoStorageProvider.delete(previousLogoKey);
+        }
+
         return team;
     }
 
@@ -329,9 +363,18 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         return TeamResponse.builder()
                 .teamId(team.getId())
                 .teamName(team.getTeamName())
+                .logoKey(team.getLogoKey())
+                .logoUrl(buildTeamLogoUrl(team.getLogoKey()))
                 .tournamentName(team.getTournament().getName())
                 .tournamentId(team.getTournament().getId())
                 .build();
+    }
+
+    private String buildTeamLogoUrl(String logoKey) {
+        if (logoKey == null || logoKey.isBlank()) {
+            return null;
+        }
+        return "/files/team-logos/" + logoKey;
     }
 
     private TeamPlayerResponse convertToTeamPlayerResponse(TeamPlayer teamPlayer) {
@@ -345,7 +388,14 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                 .teamPlayerRole(teamPlayer.getTeamPlayerRole().name())
                 .isCaptain(teamPlayer.getIsCaptain())
                 .jerseyNumber(teamPlayer.getJerseyNumber())
+                .photoKey(teamPlayer.getPlayer().getPhotoKey())
+                .photoUrl(buildPlayerPhotoUrl(teamPlayer.getPlayer().getPhotoKey()))
                 .build();
+    }
+
+    private String buildPlayerPhotoUrl(String photoKey) {
+        if (photoKey == null || photoKey.isBlank()) return null;
+        return "/files/player-photos/" + photoKey;
     }
 
     private void trackGoalKeeperRound(Player player, Tournament tournament) {

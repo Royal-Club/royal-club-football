@@ -69,6 +69,30 @@ public class GroupStanding extends AuditBase {
     @Column(name = "points", nullable = false)
     private Integer points = 0;
 
+    @Builder.Default
+    @Column(name = "yellow_cards", nullable = false)
+    private Integer yellowCards = 0;
+
+    @Builder.Default
+    @Column(name = "red_cards", nullable = false)
+    private Integer redCards = 0;
+
+    /**
+     * Fair-play points using the UEFA deduction model (lower is better).
+     * yellow = -1, second yellow (indirect red) = -3, direct red = -4,
+     * yellow + direct red = -5.
+     */
+    @Builder.Default
+    @Column(name = "fair_play_points", nullable = false)
+    private Integer fairPlayPoints = 0;
+
+    /**
+     * Manually-recorded penalty-shootout tiebreak order for teams that are
+     * level on every other criterion. Lower value ranks higher; null = unset.
+     */
+    @Column(name = "tiebreak_rank")
+    private Integer tiebreakRank;
+
     @Column(name = "position")
     private Integer position;
 

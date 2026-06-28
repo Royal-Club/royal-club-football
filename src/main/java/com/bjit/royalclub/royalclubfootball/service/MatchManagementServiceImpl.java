@@ -4,20 +4,25 @@ import com.bjit.royalclub.royalclubfootball.entity.Match;
 import com.bjit.royalclub.royalclubfootball.entity.MatchEvent;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Team;
+import com.bjit.royalclub.royalclubfootball.enums.MatchEventType;
 import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
 import com.bjit.royalclub.royalclubfootball.enums.RoundStatus;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.model.MatchEventRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchEventResponse;
+import com.bjit.royalclub.royalclubfootball.model.MatchEventUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.model.MatchResponse;
 import com.bjit.royalclub.royalclubfootball.model.MatchUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.repository.MatchEventRepository;
 import com.bjit.royalclub.royalclubfootball.repository.MatchRepository;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamRepository;
+import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
 import com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -32,6 +37,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
     private final MatchEventRepository matchEventRepository;
     private final PlayerRepository playerRepository;
     private final TeamRepository teamRepository;
+    private final TeamPlayerRepository teamPlayerRepository;
     private final RoundGroupService roundGroupService;
     private final TournamentRoundService tournamentRoundService;
     private final MatchStatisticsService matchStatisticsService;
@@ -39,6 +45,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
     private final com.bjit.royalclub.royalclubfootball.repository.TournamentRoundRepository tournamentRoundRepository;
     private final com.bjit.royalclub.royalclubfootball.repository.RoundGroupRepository roundGroupRepository;
     private final com.bjit.royalclub.royalclubfootball.repository.VenueRepository venueRepository;
+    private final LiveMatchUpdatePublisher liveMatchUpdatePublisher;
 
     @Override
     public MatchResponse getMatchById(Long matchId) {
@@ -98,6 +105,8 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                 .build();
         matchEventRepository.save(matchStartedEvent);
 
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_STARTED");
+
         return convertToResponse(match);
     }
 
@@ -112,6 +121,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         match.setMatchStatus(MatchStatus.PAUSED);
         matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_PAUSED");
         return convertToResponse(match);
     }
 
@@ -126,6 +136,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         match.setMatchStatus(MatchStatus.ONGOING);
         matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_RESUMED");
         return convertToResponse(match);
     }
 
@@ -191,6 +202,8 @@ public class MatchManagementServiceImpl implements MatchManagementService {
             }
         }
 
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_COMPLETED");
+
         return convertToResponse(match);
     }
 
@@ -239,6 +252,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
         }
 
         matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_UPDATED");
         return convertToResponse(match);
     }
 
@@ -259,6 +273,8 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                     .orElseThrow(() -> new TournamentServiceException("Related player not found", HttpStatus.NOT_FOUND));
         }
 
+        validateMatchEvent(match, eventRequest, player, team, relatedPlayer);
+
         MatchEvent matchEvent = MatchEvent.builder()
                 .match(match)
                 .eventType(eventRequest.getEventType())
@@ -271,6 +287,30 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                 .build();
 
         matchEventRepository.save(matchEvent);
+
+            // Auto-convert second yellow card into a red card event for the same player.
+            if (eventRequest.getEventType() == MatchEventType.YELLOW_CARD) {
+                long yellowCardCount = matchEventRepository.countEventsByMatchIdAndPlayerIdAndType(
+                    match.getId(), player.getId(), MatchEventType.YELLOW_CARD
+                );
+                long redCardCount = matchEventRepository.countEventsByMatchIdAndPlayerIdAndType(
+                    match.getId(), player.getId(), MatchEventType.RED_CARD
+                );
+
+                if (yellowCardCount == 2 && redCardCount == 0) {
+                MatchEvent autoRedCardEvent = MatchEvent.builder()
+                    .match(match)
+                    .eventType(MatchEventType.RED_CARD)
+                    .player(player)
+                    .team(team)
+                    .eventTime(eventRequest.getEventTime())
+                    .description("Automatic red card (second yellow)")
+                    .relatedPlayer(null)
+                    .details("AUTO_SECOND_YELLOW")
+                    .build();
+                matchEventRepository.save(autoRedCardEvent);
+                }
+            }
 
         // Auto-update match score if it's a GOAL event
         if (eventRequest.getEventType().toString().equals("GOAL")) {
@@ -290,7 +330,131 @@ public class MatchManagementServiceImpl implements MatchManagementService {
             System.err.println("Failed to aggregate match statistics: " + e.getMessage());
         }
 
+        // Recalculate group standings when events are added to a completed match
+        if (match.getMatchStatus() == MatchStatus.COMPLETED && match.getGroup() != null) {
+            try {
+                roundGroupService.recalculateGroupStandings(match.getGroup().getId());
+            } catch (Exception e) {
+                System.err.println("Failed to recalculate group standings after event add: " + e.getMessage());
+            }
+        }
+
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_EVENT_RECORDED");
+
         return convertEventToResponse(matchEvent);
+    }
+
+    @Override
+    public MatchEventResponse updateMatchEvent(Long eventId, MatchEventUpdateRequest eventRequest) {
+        MatchEvent event = matchEventRepository.findById(eventId)
+                .orElseThrow(() -> new TournamentServiceException("Match event not found", HttpStatus.NOT_FOUND));
+
+        Match match = event.getMatch();
+        if (match.getMatchStatus().equals(MatchStatus.COMPLETED) && !isCurrentUserSuperAdmin()) {
+            throw new TournamentServiceException("Only SUPERADMIN can edit events from completed matches", HttpStatus.CONFLICT);
+        }
+
+        event.setEventTime(eventRequest.getEventTime());
+        event.setDescription(eventRequest.getDescription());
+        event.setDetails(eventRequest.getDetails());
+
+        matchEventRepository.save(event);
+
+        // Recalculate score from goal events to keep consistency after edits.
+        int homeGoals = matchEventRepository.findGoalsByMatchIdAndTeamId(match.getId(), match.getHomeTeam().getId()).size();
+        int awayGoals = matchEventRepository.findGoalsByMatchIdAndTeamId(match.getId(), match.getAwayTeam().getId()).size();
+        match.setHomeTeamScore(homeGoals);
+        match.setAwayTeamScore(awayGoals);
+        matchRepository.save(match);
+
+        try {
+            matchStatisticsService.aggregateMatchStatistics(match.getId());
+        } catch (Exception e) {
+            System.err.println("Failed to aggregate match statistics after event update: " + e.getMessage());
+        }
+
+        // Recalculate group standings when events are edited on a completed match
+        if (match.getMatchStatus() == MatchStatus.COMPLETED && match.getGroup() != null) {
+            try {
+                roundGroupService.recalculateGroupStandings(match.getGroup().getId());
+            } catch (Exception e) {
+                System.err.println("Failed to recalculate group standings after event update: " + e.getMessage());
+            }
+        }
+
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_EVENT_UPDATED");
+        return convertEventToResponse(event);
+    }
+
+    private boolean isCurrentUserSuperAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return false;
+        }
+
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_SUPERADMIN".equals(authority.getAuthority()));
+    }
+
+    private void validateMatchEvent(
+            Match match,
+            MatchEventRequest eventRequest,
+            Player player,
+            Team team,
+            Player relatedPlayer
+    ) {
+        Long homeTeamId = match.getHomeTeam().getId();
+        Long awayTeamId = match.getAwayTeam().getId();
+        Long requestTeamId = team.getId();
+
+        if (!requestTeamId.equals(homeTeamId) && !requestTeamId.equals(awayTeamId)) {
+            throw new TournamentServiceException("Selected team is not part of this match", HttpStatus.BAD_REQUEST);
+        }
+
+        if (teamPlayerRepository.findByTeamIdAndPlayerId(requestTeamId, player.getId()).isEmpty()) {
+            throw new TournamentServiceException("Player is not part of the selected team", HttpStatus.BAD_REQUEST);
+        }
+
+        if (relatedPlayer != null &&
+                teamPlayerRepository.findByTeamIdAndPlayerId(requestTeamId, relatedPlayer.getId()).isEmpty()) {
+            throw new TournamentServiceException("Related player must be from the same team", HttpStatus.BAD_REQUEST);
+        }
+
+        if (eventRequest.getEventType() == MatchEventType.RED_CARD) {
+            long redCardCount = matchEventRepository.countEventsByMatchIdAndPlayerIdAndType(
+                    match.getId(), player.getId(), MatchEventType.RED_CARD
+            );
+
+            if (redCardCount >= 1) {
+                throw new TournamentServiceException(
+                        "Player already has a red card in this match",
+                        HttpStatus.CONFLICT
+                );
+            }
+        }
+
+        if (eventRequest.getEventType() == MatchEventType.YELLOW_CARD) {
+            long yellowCardCount = matchEventRepository.countEventsByMatchIdAndPlayerIdAndType(
+                    match.getId(), player.getId(), MatchEventType.YELLOW_CARD
+            );
+            long redCardCount = matchEventRepository.countEventsByMatchIdAndPlayerIdAndType(
+                    match.getId(), player.getId(), MatchEventType.RED_CARD
+            );
+
+            if (redCardCount >= 1) {
+                throw new TournamentServiceException(
+                        "Cannot give a yellow card to a player who already has a red card in this match",
+                        HttpStatus.CONFLICT
+                );
+            }
+
+            if (yellowCardCount >= 2) {
+                throw new TournamentServiceException(
+                        "Player cannot receive more than two yellow cards in this match",
+                        HttpStatus.CONFLICT
+                );
+            }
+        }
     }
 
     @Override
@@ -310,12 +474,24 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         match.setElapsedTimeSeconds(elapsedSeconds);
         matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "ELAPSED_TIME_UPDATED");
     }
 
     @Override
     public void updateTeamScore(Long matchId, Long teamId, Integer newScore) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new TournamentServiceException("Match not found", HttpStatus.NOT_FOUND));
+
+        long recordedGoals = matchEventRepository.findGoalsByMatchIdAndTeamId(matchId, teamId).size();
+        if (newScore == null || newScore.longValue() != recordedGoals) {
+            throw new TournamentServiceException(
+                    String.format(
+                            "Score must match the recorded goal events for this team (%d). Record or delete goal events first.",
+                            recordedGoals
+                    ),
+                    HttpStatus.CONFLICT
+            );
+        }
 
         if (match.getHomeTeam().getId().equals(teamId)) {
             match.setHomeTeamScore(newScore);
@@ -326,6 +502,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
         }
 
         matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "SCORE_UPDATED");
     }
 
     @Override
@@ -335,9 +512,9 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         Match match = event.getMatch();
 
-        // Validate match is still ongoing (not completed)
-        if (match.getMatchStatus().equals(MatchStatus.COMPLETED)) {
-            throw new TournamentServiceException("Cannot delete events from completed matches", HttpStatus.CONFLICT);
+        // Allow SUPERADMIN to delete events from completed matches.
+        if (match.getMatchStatus().equals(MatchStatus.COMPLETED) && !isCurrentUserSuperAdmin()) {
+            throw new TournamentServiceException("Only SUPERADMIN can delete events from completed matches", HttpStatus.CONFLICT);
         }
 
         // If deleting a goal event, reverse the score
@@ -364,6 +541,17 @@ public class MatchManagementServiceImpl implements MatchManagementService {
             // Log error but don't fail the event deletion
             System.err.println("Failed to aggregate match statistics after deletion: " + e.getMessage());
         }
+
+        // Recalculate group standings when events are deleted from a completed match
+        if (match.getMatchStatus() == MatchStatus.COMPLETED && match.getGroup() != null) {
+            try {
+                roundGroupService.recalculateGroupStandings(match.getGroup().getId());
+            } catch (Exception e) {
+                System.err.println("Failed to recalculate group standings after event delete: " + e.getMessage());
+            }
+        }
+
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_EVENT_DELETED");
     }
 
     private MatchResponse convertToResponse(Match match) {
@@ -515,6 +703,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
                 .build();
 
         match = matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(match.getTournament().getId(), match.getId(), "MATCH_CREATED");
         return convertToResponse(match);
     }
 
@@ -523,6 +712,7 @@ public class MatchManagementServiceImpl implements MatchManagementService {
     public void deleteMatch(Long matchId) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new TournamentServiceException("Match not found", HttpStatus.NOT_FOUND));
+        Long tournamentId = match.getTournament().getId();
 
         // Prevent deletion of ongoing or completed matches
         if (match.getMatchStatus() == MatchStatus.ONGOING || match.getMatchStatus() == MatchStatus.PAUSED) {
@@ -535,17 +725,24 @@ public class MatchManagementServiceImpl implements MatchManagementService {
 
         // Delete the match (cascade will handle match events and statistics)
         matchRepository.delete(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(tournamentId, matchId, "MATCH_DELETED");
     }
 
     @Override
     @jakarta.transaction.Transactional
     public void updateMatchOrder(com.bjit.royalclub.royalclubfootball.model.MatchOrderUpdateRequest request) {
+        java.util.Set<Long> touchedTournamentIds = new java.util.HashSet<>();
         for (com.bjit.royalclub.royalclubfootball.model.MatchOrderUpdateRequest.MatchOrderItem item : request.getMatchOrders()) {
             Match match = matchRepository.findById(item.getMatchId())
                     .orElseThrow(() -> new TournamentServiceException("Match not found with ID: " + item.getMatchId(), HttpStatus.NOT_FOUND));
             
             match.setMatchOrder(item.getMatchOrder());
             matchRepository.save(match);
+            touchedTournamentIds.add(match.getTournament().getId());
+        }
+
+        for (Long tournamentId : touchedTournamentIds) {
+            liveMatchUpdatePublisher.publishMatchUpdate(tournamentId, null, "MATCH_ORDER_UPDATED");
         }
     }
 

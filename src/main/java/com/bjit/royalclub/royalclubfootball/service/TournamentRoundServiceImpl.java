@@ -31,11 +31,13 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
     private final RoundTeamRepository roundTeamRepository;
     private final GroupStandingRepository groupStandingRepository;
     private final AdvancementRuleRepository advancementRuleRepository;
+    private final LogicNodeRepository logicNodeRepository;
     private final MatchRepository matchRepository;
     private final TournamentRepository tournamentRepository;
     private final TeamRepository teamRepository;
     private final VenueRepository venueRepository;
     private final LogicNodeService logicNodeService;
+    private final RoundGroupService roundGroupService;
 
     @Override
     public TournamentRoundResponse createRound(TournamentRoundRequest request) {
@@ -236,16 +238,16 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                     HttpStatus.CONFLICT);
         }
 
-        // Check if previous round is completed (if not the first round)
-        if (round.getSequenceOrder() > 1) {
-            List<TournamentRound> previousRounds = tournamentRoundRepository
-                    .findPreviousRoundBySequence(round.getTournament().getId(), round.getSequenceOrder());
-            TournamentRound previousRound = previousRounds.isEmpty() ? null : previousRounds.get(0);
-
-            if (previousRound != null && previousRound.getStatus() != RoundStatus.COMPLETED) {
+        // Gate on the round's actual feeder rounds (bracket logic-node edges),
+        // not the adjacent sequence number. This keeps parallel brackets
+        // independent: e.g. the Plate Final only waits on the Plate Semifinal(s),
+        // never the Cup Final. A round with no feeders is an entry round.
+        for (Long sourceRoundId : findSourceRoundIds(round)) {
+            TournamentRound sourceRound = tournamentRoundRepository.findById(sourceRoundId).orElse(null);
+            if (sourceRound != null && sourceRound.getStatus() != RoundStatus.COMPLETED) {
                 throw new RoundServiceException(
-                        String.format("Cannot start round '%s'. Previous round '%s' (Sequence %d) must be completed first.",
-                                round.getRoundName(), previousRound.getRoundName(), previousRound.getSequenceOrder()),
+                        String.format("Cannot start round '%s'. Feeder round '%s' (Sequence %d) must be completed first.",
+                                round.getRoundName(), sourceRound.getRoundName(), sourceRound.getSequenceOrder()),
                         HttpStatus.BAD_REQUEST);
             }
         }
@@ -319,6 +321,7 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
         return convertToRoundResponse(previousRounds.get(0));
     }
 
+
     /**
      * Check if all matches in a round are completed
      * For GROUP_BASED rounds: checks all matches in all groups
@@ -326,13 +329,23 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
      */
     private boolean areAllMatchesCompletedInRound(TournamentRound round) {
         if (round.getRoundType() == RoundType.GROUP_BASED) {
-            // For GROUP_BASED rounds, check all matches in all groups
+            // For GROUP_BASED rounds, check all matches in all groups.
+            // Only leaf groups (groups without child groups) actually hold matches -
+            // parent groups are containers with no matches of their own.
             List<RoundGroup> groups = roundGroupRepository.findByRoundId(round.getId());
             if (groups.isEmpty()) {
                 return false; // No groups means no matches
             }
-            
-            for (RoundGroup group : groups) {
+
+            List<RoundGroup> leafGroups = groups.stream()
+                    .filter(group -> group.getChildGroups() == null || group.getChildGroups().isEmpty())
+                    .collect(Collectors.toList());
+
+            if (leafGroups.isEmpty()) {
+                return false; // No leaf groups means no matches
+            }
+
+            for (RoundGroup group : leafGroups) {
                 boolean allGroupMatchesCompleted = matchRepository.areAllMatchesCompletedInGroup(group.getId());
                 if (!allGroupMatchesCompleted) {
                     return false;
@@ -355,35 +368,11 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
 
         List<RoundGroup> groups = roundGroupRepository.findByRoundId(round.getId());
 
+        // Delegate to RoundGroupService so the full ranking sequence
+        // (points -> GD -> GF -> head-to-head -> fair play -> penalty tiebreak)
+        // and card aggregation are applied from a single source of truth.
         for (RoundGroup group : groups) {
-            List<GroupStanding> standings = groupStandingRepository.findByGroupId(group.getId());
-
-            // Reset all standings
-            for (GroupStanding standing : standings) {
-                standing.setMatchesPlayed(0);
-                standing.setWins(0);
-                standing.setDraws(0);
-                standing.setLosses(0);
-                standing.setGoalsFor(0);
-                standing.setGoalsAgainst(0);
-                standing.setGoalDifference(0);
-                standing.setPoints(0);
-            }
-
-            // Recalculate from matches
-            List<Match> matches = matchRepository.findCompletedByGroupId(group.getId());
-
-            for (Match match : matches) {
-                updateStandingsForMatch(standings, match);
-            }
-
-            // Calculate positions and save
-            standings = groupStandingRepository.findByGroupIdOrderByRankingCriteria(group.getId());
-            for (int i = 0; i < standings.size(); i++) {
-                standings.get(i).setPosition(i + 1);
-            }
-
-            groupStandingRepository.saveAll(standings);
+            roundGroupService.recalculateGroupStandings(group.getId());
         }
 
         log.info("Group standings recalculated successfully for round ID: {}", round.getId());
@@ -598,7 +587,7 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
     }
 
     private TournamentRoundResponse convertToRoundResponse(TournamentRound round) {
-        List<RoundGroupResponse> groups = roundGroupRepository.findByRoundId(round.getId())
+        List<RoundGroupResponse> groups = roundGroupRepository.findTopLevelByRoundId(round.getId())
                 .stream()
                 .map(this::convertToGroupResponse)
                 .collect(Collectors.toList());
@@ -642,7 +631,33 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .teams(teams.isEmpty() ? null : teams)
                 .totalMatches((int) totalMatches)
                 .completedMatches((int) completedMatches)
+                .sourceRoundIds(findSourceRoundIds(round))
                 .build();
+    }
+
+    /**
+     * Resolve the rounds that feed into the given round using the bracket's
+     * logic-node edges. A feeder is the source round of any logic node whose
+     * target is this round; when a node's source is a group, the group's round
+     * is used. Self-references are excluded. Returns an empty list for an entry
+     * round (no incoming edges).
+     */
+    private List<Long> findSourceRoundIds(TournamentRound round) {
+        return logicNodeRepository.findByTargetRoundId(round.getId())
+                .stream()
+                .map(node -> {
+                    if (node.getSourceRound() != null) {
+                        return node.getSourceRound().getId();
+                    }
+                    if (node.getSourceGroup() != null && node.getSourceGroup().getRound() != null) {
+                        return node.getSourceGroup().getRound().getId();
+                    }
+                    return null;
+                })
+                .filter(java.util.Objects::nonNull)
+                .filter(id -> !id.equals(round.getId()))
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     private RoundGroupResponse convertToGroupResponse(RoundGroup group) {
@@ -651,8 +666,9 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .map(this::convertToTeamSimpleResponse)
                 .collect(Collectors.toList());
 
+        // Order by the persisted position computed via the full ranking sequence.
         List<GroupStandingResponse> standings = groupStandingRepository
-                .findByGroupIdOrderByRankingCriteria(group.getId())
+                .findByGroupIdOrderByPosition(group.getId())
                 .stream()
                 .map(this::convertToStandingResponse)
                 .collect(Collectors.toList());
@@ -660,9 +676,14 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
         long totalMatches = matchRepository.countByGroupId(group.getId());
         long completedMatches = matchRepository.countCompletedByGroupId(group.getId());
 
+        List<RoundGroupResponse> childGroups = group.getChildGroups().stream()
+                .map(this::convertToGroupResponse)
+                .collect(Collectors.toList());
+
         return RoundGroupResponse.builder()
                 .id(group.getId())
                 .roundId(group.getRound().getId())
+                .parentGroupId(group.getParentGroup() != null ? group.getParentGroup().getId() : null)
                 .groupName(group.getGroupName())
                 .groupFormat(group.getGroupFormat() != null ? group.getGroupFormat().toString() : null)
                 .advancementRule(group.getAdvancementRule())
@@ -670,6 +691,7 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
                 .status(group.getStatus() != null ? group.getStatus().toString() : null)
                 .teams(teams)
                 .standings(standings.isEmpty() ? null : standings)
+                .childGroups(childGroups.isEmpty() ? null : childGroups)
                 .totalMatches((int) totalMatches)
                 .completedMatches((int) completedMatches)
                 .build();
@@ -1075,6 +1097,10 @@ int numTeams = teams.size();
                 .goalsAgainst(standing.getGoalsAgainst())
                 .goalDifference(standing.getGoalDifference())
                 .points(standing.getPoints())
+                .yellowCards(standing.getYellowCards())
+                .redCards(standing.getRedCards())
+                .fairPlayPoints(standing.getFairPlayPoints())
+                .tiebreakRank(standing.getTiebreakRank())
                 .position(standing.getPosition())
                 .isAdvanced(standing.getIsAdvanced())
                 .build();

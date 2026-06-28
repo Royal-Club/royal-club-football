@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.config.PlayerProperties;
+import com.bjit.royalclub.royalclubfootball.util.PaginationUtil;
 import com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.PlayerGoalkeepingHistory;
@@ -22,6 +23,7 @@ import com.bjit.royalclub.royalclubfootball.repository.RoleRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentParticipantRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import com.bjit.royalclub.royalclubfootball.storage.StorageProvider;
+import com.bjit.royalclub.royalclubfootball.storage.playerphoto.PlayerPhotoStorageProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -59,7 +61,8 @@ public class PlayerServiceImpl implements PlayerService {
     private final PlayerProperties playerProperties;
     private final TournamentRepository tournamentRepository;
     private final TournamentParticipantRepository tournamentParticipantRepository;
-        private final StorageProvider storageProvider;
+    private final StorageProvider storageProvider;
+    private final PlayerPhotoStorageProvider playerPhotoStorageProvider;
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
@@ -81,6 +84,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .skypeId(registrationRequest.getSkypeId())
                 .position(registrationRequest.getPlayingPosition())
                 .profilePhoto(registrationRequest.getProfilePhoto())
+                .photoKey(registrationRequest.getPhotoKey())
                 .isActive(false)
                 .password(passwordEncoder.encode(playerProperties.getDefaultPassword()))
                 .lastPasswordChangeDate(null)
@@ -90,7 +94,7 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public List<PlayerResponse> getAllPlayers() {
-        List<Player> players = playerRepository.findAll();
+        List<Player> players = playerRepository.findAll(PaginationUtil.cappedListByIdDesc()).getContent();
         return players.stream().map(this::convertToDto).toList();
     }
 
@@ -149,13 +153,20 @@ public class PlayerServiceImpl implements PlayerService {
         player.setMobileNo(normalizeString(updateRequest.getMobileNo()));
         player.setSkypeId(updateRequest.getSkypeId());
         player.setPosition(updateRequest.getPlayingPosition());
-                if (updateRequest.getProfilePhoto() != null && !updateRequest.getProfilePhoto().isBlank()) {
-                        String oldKey = player.getProfilePhoto();
-                        if (oldKey != null && !oldKey.isBlank() && !oldKey.equals(updateRequest.getProfilePhoto())) {
-                                storageProvider.delete(oldKey);
-                        }
-                }
+        if (updateRequest.getProfilePhoto() != null && !updateRequest.getProfilePhoto().isBlank()) {
+            String oldKey = player.getProfilePhoto();
+            if (oldKey != null && !oldKey.isBlank() && !oldKey.equals(updateRequest.getProfilePhoto())) {
+                storageProvider.delete(oldKey);
+            }
+        }
         player.setProfilePhoto(updateRequest.getProfilePhoto());
+        // Handle photo replacement: delete old photo if a new one is provided
+        if (updateRequest.getPhotoKey() != null && !updateRequest.getPhotoKey().isBlank()) {
+            if (player.getPhotoKey() != null && !player.getPhotoKey().equals(updateRequest.getPhotoKey())) {
+                playerPhotoStorageProvider.delete(player.getPhotoKey());
+            }
+            player.setPhotoKey(updateRequest.getPhotoKey());
+        }
         player = playerRepository.save(player);
         /*role need to be handle while update players. and only Admin can change the role*/
         return convertToDto(player);
@@ -235,6 +246,10 @@ public class PlayerServiceImpl implements PlayerService {
                 .playingPosition(player.getPosition())
                 .isActive(player.isActive())
                 .roles(roleResponses)
+                .photoKey(player.getPhotoKey())
+                .photoUrl(player.getPhotoKey() != null
+                        ? "/files/player-photos/" + player.getPhotoKey()
+                        : null)
                 .build();
     }
 

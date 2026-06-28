@@ -161,7 +161,11 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
     }
 
     public LatestTournamentWithUserParticipantsResponse getLatestTournamentWithUserStatus() {
-        TournamentResponse latestTournament = tournamentService.getMostRecentTournament();
+        TournamentResponse latestTournament = tournamentService.getMostRecentActiveTournament();
+
+        if (latestTournament == null) {
+            return null;
+        }
 
         int totalPlayers = playerService.countActivePlayers();
 

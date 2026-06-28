@@ -79,6 +79,12 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     boolean hasScheduledFixtures(@Param("tournamentId") Long tournamentId);
 
     /**
+     * Find all unfinished (non-completed) matches for a tournament
+     */
+    @Query("SELECT m FROM Match m WHERE m.tournament.id = :tournamentId AND m.matchStatus IN ('SCHEDULED', 'ONGOING', 'PAUSED')")
+    List<Match> findUnfinishedMatchesByTournamentId(@Param("tournamentId") Long tournamentId);
+
+    /**
      * Find team's matches within a date range (for conflict detection)
      */
     @Query("SELECT m FROM Match m WHERE (m.homeTeam.id = :teamId OR m.awayTeam.id = :teamId) " +

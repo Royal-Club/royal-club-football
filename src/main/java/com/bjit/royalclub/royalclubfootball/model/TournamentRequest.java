@@ -10,6 +10,11 @@ import java.time.LocalDateTime;
 public class TournamentRequest {
 
     private String tournamentName;
+    private String title;
+    private String season;
+    private String description;
+    private String rules;
+    private String roadmapImageUrl;
     @NotNull(message = "Tournament date is mandatory")
     @FutureOrPresent(message = "Tournament date cannot be in the past")
     private LocalDateTime tournamentDate;
@@ -23,4 +28,7 @@ public class TournamentRequest {
 
     // Auction
     private boolean auctionMode;
+
+    // Viewer default selection field
+    private Boolean defaultTournament;
 }

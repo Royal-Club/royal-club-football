@@ -3,6 +3,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 import com.bjit.royalclub.royalclubfootball.entity.*;
 import com.bjit.royalclub.royalclubfootball.enums.FixtureFormat;
 import com.bjit.royalclub.royalclubfootball.enums.GroupFormat;
+import com.bjit.royalclub.royalclubfootball.enums.MatchEventType;
 import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
 import com.bjit.royalclub.royalclubfootball.enums.RoundStatus;
 import com.bjit.royalclub.royalclubfootball.enums.TeamAssignmentType;
@@ -17,7 +18,12 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.*;
@@ -33,6 +39,7 @@ public class RoundGroupServiceImpl implements RoundGroupService {
     private final GroupStandingRepository groupStandingRepository;
     private final TeamRepository teamRepository;
     private final MatchRepository matchRepository;
+    private final MatchEventRepository matchEventRepository;
     private final VenueRepository venueRepository;
 
     @Override
@@ -47,8 +54,19 @@ public class RoundGroupServiceImpl implements RoundGroupService {
             throw new RoundServiceException(GROUP_NAME_ALREADY_EXISTS, HttpStatus.CONFLICT);
         }
 
+        RoundGroup parentGroup = null;
+        if (request.getParentGroupId() != null) {
+            parentGroup = roundGroupRepository.findById(request.getParentGroupId())
+                    .orElseThrow(() -> new RoundServiceException(GROUP_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+            if (!parentGroup.getRound().getId().equals(request.getRoundId())) {
+                throw new RoundServiceException(PARENT_GROUP_NOT_IN_SAME_ROUND, HttpStatus.BAD_REQUEST);
+            }
+        }
+
         RoundGroup group = RoundGroup.builder()
                 .round(round)
+                .parentGroup(parentGroup)
                 .groupName(request.getGroupName())
                 .groupFormat(request.getGroupFormat() != null ?
                         GroupFormat.valueOf(request.getGroupFormat()) : GroupFormat.MANUAL)
@@ -96,6 +114,11 @@ public class RoundGroupServiceImpl implements RoundGroupService {
         RoundGroup group = roundGroupRepository.findById(groupId)
                 .orElseThrow(() -> new RoundServiceException(GROUP_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
+        // Check if group has sub-groups
+        if (!group.getChildGroups().isEmpty()) {
+            throw new RoundServiceException(GROUP_HAS_SUB_GROUPS, HttpStatus.CONFLICT);
+        }
+
         // Check if group has teams
         long teamCount = roundGroupTeamRepository.countByGroupId(groupId);
         if (teamCount > 0) {
@@ -120,7 +143,7 @@ public class RoundGroupServiceImpl implements RoundGroupService {
     public List<RoundGroupResponse> getGroupsByRoundId(Long roundId) {
         log.info("Fetching all groups for round ID: {}", roundId);
 
-        List<RoundGroup> groups = roundGroupRepository.findByRoundId(roundId);
+        List<RoundGroup> groups = roundGroupRepository.findTopLevelByRoundId(roundId);
 
         return groups.stream()
                 .map(this::convertToGroupResponse)
@@ -246,13 +269,7 @@ public class RoundGroupServiceImpl implements RoundGroupService {
         RoundGroup group = roundGroupRepository.findById(groupId)
                 .orElseThrow(() -> new RoundServiceException(GROUP_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
-        List<GroupStanding> standings = groupStandingRepository
-                .findByGroupIdOrderByRankingCriteria(groupId);
-
-        // Update positions
-        for (int i = 0; i < standings.size(); i++) {
-            standings.get(i).setPosition(i + 1);
-        }
+        List<GroupStanding> standings = rankStandings(groupId, groupStandingRepository.findByGroupId(groupId));
 
         return standings.stream()
                 .map(this::convertToStandingResponse)
@@ -268,7 +285,7 @@ public class RoundGroupServiceImpl implements RoundGroupService {
 
         List<GroupStanding> standings = groupStandingRepository.findByGroupId(groupId);
 
-        // Reset all standings
+        // Reset all standings (tiebreakRank is preserved: it is a manual override)
         for (GroupStanding standing : standings) {
             standing.setMatchesPlayed(0);
             standing.setWins(0);
@@ -278,6 +295,9 @@ public class RoundGroupServiceImpl implements RoundGroupService {
             standing.setGoalsAgainst(0);
             standing.setGoalDifference(0);
             standing.setPoints(0);
+            standing.setYellowCards(0);
+            standing.setRedCards(0);
+            standing.setFairPlayPoints(0);
         }
 
         // Recalculate from completed matches
@@ -285,19 +305,250 @@ public class RoundGroupServiceImpl implements RoundGroupService {
 
         for (Match match : matches) {
             updateStandingsForMatch(standings, match);
+            aggregateCardsForMatch(standings, match);
         }
+
+        // Rank using the full criteria sequence and assign positions
+        rankStandings(groupId, standings);
 
         // Save updated standings
         groupStandingRepository.saveAll(standings);
 
-        // Update positions
-        standings = groupStandingRepository.findByGroupIdOrderByRankingCriteria(groupId);
-        for (int i = 0; i < standings.size(); i++) {
-            standings.get(i).setPosition(i + 1);
+        log.info("Group standings recalculated successfully for group ID: {}", groupId);
+    }
+
+    @Override
+    public List<GroupStandingResponse> applyGroupTiebreak(Long groupId, GroupTiebreakRequest request) {
+        log.info("Applying manual tiebreak for group ID: {}", groupId);
+
+        roundGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RoundServiceException(GROUP_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        List<GroupStanding> standings = groupStandingRepository.findByGroupId(groupId);
+        Map<Long, GroupStanding> standingByTeamId = standings.stream()
+                .collect(Collectors.toMap(s -> s.getTeam().getId(), s -> s));
+
+        List<Long> orderedTeamIds = request.getOrderedTeamIds();
+        for (int i = 0; i < orderedTeamIds.size(); i++) {
+            Long teamId = orderedTeamIds.get(i);
+            GroupStanding standing = standingByTeamId.get(teamId);
+            if (standing == null) {
+                throw new RoundServiceException("Team " + teamId + " is not in this group", HttpStatus.BAD_REQUEST);
+            }
+            standing.setTiebreakRank(i + 1);
         }
+
+        rankStandings(groupId, standings);
         groupStandingRepository.saveAll(standings);
 
-        log.info("Group standings recalculated successfully for group ID: {}", groupId);
+        log.info("Manual tiebreak applied and group {} re-ranked", groupId);
+        return standings.stream()
+                .sorted(Comparator.comparing(GroupStanding::getPosition,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(this::convertToStandingResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Aggregate yellow/red cards and UEFA fair-play deductions for one match
+     * into the affected team standings.
+     */
+    private void aggregateCardsForMatch(List<GroupStanding> standings, Match match) {
+        List<MatchEvent> events = matchEventRepository.findByMatchId(match.getId());
+        if (events.isEmpty()) {
+            return;
+        }
+
+        // teamId -> (playerId -> [yellowCount, redCount]); null player bucketed under -1
+        Map<Long, Map<Long, int[]>> cardsByTeamPlayer = new HashMap<>();
+        for (MatchEvent event : events) {
+            MatchEventType type = event.getEventType();
+            if (type != MatchEventType.YELLOW_CARD && type != MatchEventType.RED_CARD) {
+                continue;
+            }
+            if (event.getTeam() == null) {
+                continue;
+            }
+            Long teamId = event.getTeam().getId();
+            Long playerId = event.getPlayer() != null ? event.getPlayer().getId() : -1L;
+            int[] tally = cardsByTeamPlayer
+                    .computeIfAbsent(teamId, k -> new HashMap<>())
+                    .computeIfAbsent(playerId, k -> new int[2]);
+            if (type == MatchEventType.YELLOW_CARD) {
+                tally[0]++;
+            } else {
+                tally[1]++;
+            }
+        }
+
+        cardsByTeamPlayer.forEach((teamId, playerTallies) -> {
+            GroupStanding standing = standings.stream()
+                    .filter(s -> s.getTeam().getId().equals(teamId))
+                    .findFirst()
+                    .orElse(null);
+            if (standing == null) {
+                return;
+            }
+            int yellow = 0;
+            int red = 0;
+            int fairPlayDeduction = 0;
+            for (int[] tally : playerTallies.values()) {
+                yellow += tally[0];
+                red += tally[1];
+                fairPlayDeduction += fairPlayDeduction(tally[0], tally[1]);
+            }
+            standing.setYellowCards(standing.getYellowCards() + yellow);
+            standing.setRedCards(standing.getRedCards() + red);
+            standing.setFairPlayPoints(standing.getFairPlayPoints() + fairPlayDeduction);
+        });
+    }
+
+    /**
+     * UEFA fair-play deduction for a single player in a single match
+     * (lower total is worse). Standard cases:
+     * single yellow = -1, second yellow (indirect red) = -3,
+     * direct red = -4, yellow then direct red = -5.
+     */
+    private int fairPlayDeduction(int yellowCount, int redCount) {
+        if (yellowCount >= 2) {
+            return -3;
+        }
+        if (yellowCount == 1 && redCount >= 1) {
+            return -5;
+        }
+        if (redCount >= 1) {
+            return -4;
+        }
+        if (yellowCount == 1) {
+            return -1;
+        }
+        return 0;
+    }
+
+    /**
+     * Rank standings using the full group ordering sequence and assign 1-based
+     * positions in place:
+     * Points -> Goal Difference -> Goals For -> Head-to-Head -> Fair Play
+     * -> Penalty Shootout (manual tiebreak) -> Team name.
+     * Returns the standings sorted in ranking order.
+     */
+    private List<GroupStanding> rankStandings(Long groupId, List<GroupStanding> standings) {
+        List<Match> completedMatches = matchRepository.findCompletedByGroupId(groupId);
+        List<GroupStanding> ranked = rankCluster(new ArrayList<>(standings), completedMatches, 0);
+        for (int i = 0; i < ranked.size(); i++) {
+            ranked.get(i).setPosition(i + 1);
+        }
+        return ranked;
+    }
+
+    // Ordering stages applied in sequence; ties at one stage are broken by the next.
+    private static final int STAGE_POINTS = 0;
+    private static final int STAGE_GOAL_DIFFERENCE = 1;
+    private static final int STAGE_GOALS_FOR = 2;
+    private static final int STAGE_HEAD_TO_HEAD = 3;
+    private static final int STAGE_FAIR_PLAY = 4;
+    private static final int STAGE_TIEBREAK = 5;
+    private static final int STAGE_TEAM_NAME = 6;
+
+    /**
+     * Recursively rank a cluster of teams that are tied up to {@code stage}.
+     * At each stage the cluster is sorted, then sub-clusters that remain tied
+     * are resolved by the next stage. Head-to-head is computed relative to the
+     * current (tied) cluster only, which keeps multi-team ties correct.
+     */
+    private List<GroupStanding> rankCluster(List<GroupStanding> cluster, List<Match> matches, int stage) {
+        if (cluster.size() <= 1 || stage > STAGE_TEAM_NAME) {
+            return cluster;
+        }
+
+        Comparator<GroupStanding> comparator = comparatorForStage(stage, cluster, matches);
+        cluster.sort(comparator);
+
+        List<GroupStanding> result = new ArrayList<>(cluster.size());
+        int i = 0;
+        while (i < cluster.size()) {
+            int j = i + 1;
+            while (j < cluster.size() && comparator.compare(cluster.get(i), cluster.get(j)) == 0) {
+                j++;
+            }
+            List<GroupStanding> tied = new ArrayList<>(cluster.subList(i, j));
+            if (tied.size() > 1) {
+                result.addAll(rankCluster(tied, matches, stage + 1));
+            } else {
+                result.addAll(tied);
+            }
+            i = j;
+        }
+        return result;
+    }
+
+    private Comparator<GroupStanding> comparatorForStage(int stage, List<GroupStanding> cluster, List<Match> matches) {
+        switch (stage) {
+            case STAGE_POINTS:
+                return Comparator.comparingInt(GroupStanding::getPoints).reversed();
+            case STAGE_GOAL_DIFFERENCE:
+                return Comparator.comparingInt(GroupStanding::getGoalDifference).reversed();
+            case STAGE_GOALS_FOR:
+                return Comparator.comparingInt(GroupStanding::getGoalsFor).reversed();
+            case STAGE_HEAD_TO_HEAD:
+                return headToHeadComparator(cluster, matches);
+            case STAGE_FAIR_PLAY:
+                // Higher (closer to 0) fair-play points = fewer cards = ranks higher.
+                return Comparator.comparingInt(GroupStanding::getFairPlayPoints).reversed();
+            case STAGE_TIEBREAK:
+                // Manual penalty-shootout order: lower rank wins, unset (null) sorts last.
+                return Comparator.comparing(GroupStanding::getTiebreakRank,
+                        Comparator.nullsLast(Comparator.naturalOrder()));
+            case STAGE_TEAM_NAME:
+            default:
+                return Comparator.comparing(s -> s.getTeam().getTeamName(),
+                        Comparator.nullsLast(Comparator.naturalOrder()));
+        }
+    }
+
+    /**
+     * Build a head-to-head comparator from a mini-table of only the matches
+     * played among the teams in {@code cluster}. Orders by head-to-head points,
+     * then head-to-head goal difference, then head-to-head goals for.
+     */
+    private Comparator<GroupStanding> headToHeadComparator(List<GroupStanding> cluster, List<Match> matches) {
+        Set<Long> clusterTeamIds = cluster.stream()
+                .map(s -> s.getTeam().getId())
+                .collect(Collectors.toCollection(HashSet::new));
+
+        // teamId -> [points, goalDifference, goalsFor] within the cluster
+        Map<Long, int[]> h2h = new HashMap<>();
+        clusterTeamIds.forEach(id -> h2h.put(id, new int[3]));
+
+        for (Match match : matches) {
+            Long homeId = match.getHomeTeam().getId();
+            Long awayId = match.getAwayTeam().getId();
+            if (!clusterTeamIds.contains(homeId) || !clusterTeamIds.contains(awayId)) {
+                continue;
+            }
+            int homeScore = match.getHomeTeamScore() != null ? match.getHomeTeamScore() : 0;
+            int awayScore = match.getAwayTeamScore() != null ? match.getAwayTeamScore() : 0;
+
+            int[] home = h2h.get(homeId);
+            int[] away = h2h.get(awayId);
+            home[2] += homeScore;
+            away[2] += awayScore;
+            home[1] += (homeScore - awayScore);
+            away[1] += (awayScore - homeScore);
+            if (homeScore > awayScore) {
+                home[0] += 3;
+            } else if (homeScore < awayScore) {
+                away[0] += 3;
+            } else {
+                home[0] += 1;
+                away[0] += 1;
+            }
+        }
+
+        return Comparator
+                .comparingInt((GroupStanding s) -> h2h.get(s.getTeam().getId())[0]).reversed()
+                .thenComparing(Comparator.comparingInt((GroupStanding s) -> h2h.get(s.getTeam().getId())[1]).reversed())
+                .thenComparing(Comparator.comparingInt((GroupStanding s) -> h2h.get(s.getTeam().getId())[2]).reversed());
     }
 
     private void updateStandingsForMatch(List<GroupStanding> standings, Match match) {
@@ -353,8 +604,10 @@ public class RoundGroupServiceImpl implements RoundGroupService {
                 .map(this::convertToTeamSimpleResponse)
                 .collect(Collectors.toList());
 
+        // Order by the persisted position (computed via the full ranking sequence
+        // in recalculateGroupStandings); falls back to ranking criteria for nulls.
         List<GroupStandingResponse> standings = groupStandingRepository
-                .findByGroupIdOrderByRankingCriteria(group.getId())
+                .findByGroupIdOrderByPosition(group.getId())
                 .stream()
                 .map(this::convertToStandingResponse)
                 .collect(Collectors.toList());
@@ -362,9 +615,14 @@ public class RoundGroupServiceImpl implements RoundGroupService {
         long totalMatches = matchRepository.countByGroupId(group.getId());
         long completedMatches = matchRepository.countCompletedByGroupId(group.getId());
 
+        List<RoundGroupResponse> childGroups = group.getChildGroups().stream()
+                .map(this::convertToGroupResponse)
+                .collect(Collectors.toList());
+
         return RoundGroupResponse.builder()
                 .id(group.getId())
                 .roundId(group.getRound().getId())
+                .parentGroupId(group.getParentGroup() != null ? group.getParentGroup().getId() : null)
                 .groupName(group.getGroupName())
                 .groupFormat(group.getGroupFormat() != null ? group.getGroupFormat().toString() : null)
                 .advancementRule(group.getAdvancementRule())
@@ -372,6 +630,7 @@ public class RoundGroupServiceImpl implements RoundGroupService {
                 .status(group.getStatus() != null ? group.getStatus().toString() : null)
                 .teams(teams)
                 .standings(standings.isEmpty() ? null : standings)
+                .childGroups(childGroups.isEmpty() ? null : childGroups)
                 .totalMatches((int) totalMatches)
                 .completedMatches((int) completedMatches)
                 .build();
@@ -402,6 +661,10 @@ public class RoundGroupServiceImpl implements RoundGroupService {
                 .goalsAgainst(standing.getGoalsAgainst())
                 .goalDifference(standing.getGoalDifference())
                 .points(standing.getPoints())
+                .yellowCards(standing.getYellowCards())
+                .redCards(standing.getRedCards())
+                .fairPlayPoints(standing.getFairPlayPoints())
+                .tiebreakRank(standing.getTiebreakRank())
                 .position(standing.getPosition())
                 .isAdvanced(standing.getIsAdvanced())
                 .build();

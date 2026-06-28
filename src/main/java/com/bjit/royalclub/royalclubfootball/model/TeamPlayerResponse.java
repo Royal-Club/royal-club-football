@@ -23,4 +23,6 @@ public class TeamPlayerResponse {
     private String teamPlayerRole;
     private Boolean isCaptain;
     private Integer jerseyNumber;
+    private String photoKey;
+    private String photoUrl;
 }

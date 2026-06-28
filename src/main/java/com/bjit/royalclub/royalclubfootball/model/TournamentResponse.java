@@ -14,9 +14,15 @@ import java.util.List;
 public class TournamentResponse {
     private Long id;
     private String name;
+    private String title;
+    private String season;
+    private String description;
+    private String rules;
+    private String roadmapImageUrl;
     private LocalDateTime tournamentDate;
     private String venueName;
     private boolean activeStatus;
+    private boolean defaultTournament;
 
     private TournamentStatus tournamentStatus;
     private List<TournamentTeamResponse> teams;

@@ -1,6 +1,5 @@
 package com.bjit.royalclub.royalclubfootball.model;
 
-import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -10,8 +9,12 @@ import java.time.LocalDateTime;
 public class TournamentUpdateRequest {
     private Long id;
     private String tournamentName;
+    private String title;
+    private String season;
+    private String description;
+    private String rules;
+    private String roadmapImageUrl;
     @NotNull(message = "Tournament date is mandatory")
-    @FutureOrPresent(message = "Tournament date cannot be in the past")
     private LocalDateTime tournamentDate;
     @NotNull(message = "Venue ID is mandatory")
     private Long venueId;
@@ -23,4 +26,7 @@ public class TournamentUpdateRequest {
 
     // Auction
     private boolean auctionMode;
+
+    // Viewer default selection field
+    private Boolean defaultTournament;
 }

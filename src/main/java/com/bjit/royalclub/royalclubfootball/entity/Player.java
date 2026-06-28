@@ -63,6 +63,9 @@ public class Player extends AuditBase {
     @Column(name = "profile_photo", length = 500)
     private String profilePhoto;
 
+    @Column(name = "photo_key")
+    private String photoKey;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "players_roles", joinColumns = @JoinColumn(name = "player_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))

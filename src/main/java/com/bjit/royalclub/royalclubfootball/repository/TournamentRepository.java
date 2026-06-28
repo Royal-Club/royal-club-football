@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -43,6 +44,10 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long>, J
 
     Tournament findTopByOrderByTournamentDateDesc();
 
+    @Query("SELECT t FROM Tournament t WHERE t.tournamentStatus IN ('UPCOMING', 'ONGOING') " +
+            "ORDER BY CASE t.tournamentStatus WHEN 'ONGOING' THEN 0 ELSE 1 END ASC, t.tournamentDate ASC LIMIT 1")
+    Tournament findNextActiveTournament();
+
     @Query("SELECT t FROM Tournament t WHERE t.tournamentDate < :currentTournamentDate " +
             "ORDER BY t.tournamentDate DESC LIMIT 1")
     Tournament findMostRecentTournamentBefore(@Param("currentTournamentDate") java.time.LocalDateTime currentTournamentDate);
@@ -66,5 +71,15 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long>, J
      */
     @Query("SELECT DISTINCT YEAR(t.tournamentDate) FROM Tournament t ORDER BY YEAR(t.tournamentDate) DESC")
     List<Integer> findDistinctYears();
+
+        @Modifying
+        @Transactional
+        @Query("UPDATE Tournament t SET t.defaultTournament = false WHERE t.id <> :tournamentId AND t.defaultTournament = true")
+        int clearDefaultTournamentExcept(@Param("tournamentId") Long tournamentId);
+
+        @Modifying
+        @Transactional
+        @Query("UPDATE Tournament t SET t.defaultTournament = false WHERE t.defaultTournament = true")
+        int clearDefaultTournament();
 
 }

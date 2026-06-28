@@ -18,6 +18,12 @@ public interface RoundGroupRepository extends JpaRepository<RoundGroup, Long> {
     List<RoundGroup> findByRoundId(@Param("roundId") Long roundId);
 
     /**
+     * Find only top-level groups (no parent group) for a specific round
+     */
+    @Query("SELECT g FROM RoundGroup g WHERE g.round.id = :roundId AND g.parentGroup IS NULL ORDER BY g.groupName ASC")
+    List<RoundGroup> findTopLevelByRoundId(@Param("roundId") Long roundId);
+
+    /**
      * Find group by round and group name
      */
     @Query("SELECT g FROM RoundGroup g WHERE g.round.id = :roundId AND g.groupName = :groupName")

@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -40,6 +41,14 @@ public class RoundGroup extends AuditBase {
     @ManyToOne
     @JoinColumn(name = "round_id", nullable = false)
     private TournamentRound round;
+
+    @ManyToOne
+    @JoinColumn(name = "parent_group_id")
+    private RoundGroup parentGroup;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "parentGroup", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RoundGroup> childGroups = new ArrayList<>();
 
     @Column(name = "group_name", nullable = false, length = 100)
     private String groupName;

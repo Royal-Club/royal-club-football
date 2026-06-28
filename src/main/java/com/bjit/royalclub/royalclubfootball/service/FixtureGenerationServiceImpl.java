@@ -14,6 +14,8 @@ import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import com.bjit.royalclub.royalclubfootball.repository.VenueRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -32,6 +34,7 @@ public class FixtureGenerationServiceImpl implements FixtureGenerationService {
     private final TournamentRepository tournamentRepository;
     private final TeamRepository teamRepository;
     private final VenueRepository venueRepository;
+    private final LiveMatchUpdatePublisher liveMatchUpdatePublisher;
 
     @Override
     public List<Match> generateFixtures(Long tournamentId, FixtureGenerationRequest fixtureRequest) {
@@ -131,7 +134,9 @@ public class FixtureGenerationServiceImpl implements FixtureGenerationService {
             }
         }
 
-        return matchRepository.saveAll(matches);
+        List<Match> savedMatches = matchRepository.saveAll(matches);
+        liveMatchUpdatePublisher.publishMatchUpdate(tournamentId, null, "FIXTURES_GENERATED");
+        return savedMatches;
     }
 
     @Override
@@ -144,6 +149,7 @@ public class FixtureGenerationServiceImpl implements FixtureGenerationService {
         }
 
         matchRepository.deleteAll(scheduledMatches);
+        liveMatchUpdatePublisher.publishMatchUpdate(tournamentId, null, "FIXTURES_CLEARED");
     }
 
     @Override
@@ -151,8 +157,10 @@ public class FixtureGenerationServiceImpl implements FixtureGenerationService {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new TournamentServiceException(MATCH_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
-        // Validate match status - can only update scheduled matches
-        if (match.getMatchStatus() != MatchStatus.SCHEDULED) {
+        // Validate match status - can only update scheduled matches (SUPERADMIN can bypass)
+        boolean isSuperAdmin = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SUPERADMIN"));
+        if (!isSuperAdmin && match.getMatchStatus() != MatchStatus.SCHEDULED) {
             throw new TournamentServiceException("Cannot update match fixture details once match has started", HttpStatus.BAD_REQUEST);
         }
 
@@ -168,7 +176,9 @@ public class FixtureGenerationServiceImpl implements FixtureGenerationService {
             match.setVenue(venue);
         }
 
-        return matchRepository.save(match);
+        Match updatedMatch = matchRepository.save(match);
+        liveMatchUpdatePublisher.publishMatchUpdate(updatedMatch.getTournament().getId(), updatedMatch.getId(), "FIXTURE_UPDATED");
+        return updatedMatch;
     }
 
 }

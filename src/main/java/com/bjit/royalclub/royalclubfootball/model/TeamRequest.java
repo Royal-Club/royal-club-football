@@ -20,4 +20,6 @@ public class TeamRequest {
 
     @NotNull(message = "Tournament ID is required")
     private Long tournamentId;
+
+    private String logoKey;
 }
