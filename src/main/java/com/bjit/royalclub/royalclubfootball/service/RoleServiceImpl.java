@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.config.RoleProperties;
+import com.bjit.royalclub.royalclubfootball.util.PaginationUtil;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Role;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
@@ -125,7 +126,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public List<PlayerWithRolesResponse> getAllPlayersWithRoles() {
-        return playerRepository.findAll()
+        return playerRepository.findAll(PaginationUtil.cappedListByIdDesc())
                 .stream()
                 .map(this::convertPlayerToDto)
                 .toList();

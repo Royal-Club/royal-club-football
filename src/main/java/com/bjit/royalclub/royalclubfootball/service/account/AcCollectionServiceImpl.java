@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.service.account;
 
 import com.bjit.royalclub.royalclubfootball.entity.CostType;
+import com.bjit.royalclub.royalclubfootball.util.PaginationUtil;
 import com.bjit.royalclub.royalclubfootball.entity.MonthlyCost;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.account.AcCollection;
@@ -117,7 +118,7 @@ public class AcCollectionServiceImpl implements AcCollectionService {
      */
     @Override
     public List<AcCollectionResponse> getAllAcCollections() {
-        List<AcCollection> entities = repository.findAll();
+        List<AcCollection> entities = repository.findAll(PaginationUtil.cappedListByIdDesc()).getContent();
         return entities.stream().map(this::convertToPaymentResponse).toList();
     }
 

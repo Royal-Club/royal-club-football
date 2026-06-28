@@ -11,7 +11,23 @@ public class PaginationUtil {
 
     private static final String DEFAULT_SORTED_COLUMN = "id";
 
+    /**
+     * Upper bound applied to "fetch all" list endpoints that do not yet expose
+     * pagination. It keeps the result set (and therefore heap usage) bounded as
+     * the underlying tables grow, instead of loading every row into memory.
+     */
+    public static final int MAX_LIST_SIZE = 1000;
+
     private PaginationUtil() {
+    }
+
+    /**
+     * Pageable that returns at most {@link #MAX_LIST_SIZE} rows, newest first
+     * (descending by {@code id}). Use for legacy list endpoints that return a
+     * plain array until proper server-side pagination is added.
+     */
+    public static Pageable cappedListByIdDesc() {
+        return PageRequest.of(DEFAULT_PAGE_NUMBER, MAX_LIST_SIZE, Sort.by(DEFAULT_SORTED_COLUMN).descending());
     }
 
     public static Pageable createPageable(int offSet, int pageSize, String sortedBy, String sortDirection) {

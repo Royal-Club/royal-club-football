@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.config.PlayerProperties;
+import com.bjit.royalclub.royalclubfootball.util.PaginationUtil;
 import com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.PlayerGoalkeepingHistory;
@@ -90,7 +91,7 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public List<PlayerResponse> getAllPlayers() {
-        List<Player> players = playerRepository.findAll();
+        List<Player> players = playerRepository.findAll(PaginationUtil.cappedListByIdDesc()).getContent();
         return players.stream().map(this::convertToDto).toList();
     }
 
