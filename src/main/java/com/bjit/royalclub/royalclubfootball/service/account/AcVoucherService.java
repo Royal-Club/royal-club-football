@@ -13,6 +13,7 @@ import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherResponse;
 import com.bjit.royalclub.royalclubfootball.repository.account.AcVoucherDetailRepository;
 import com.bjit.royalclub.royalclubfootball.repository.account.AcVoucherRepository;
 import com.bjit.royalclub.royalclubfootball.service.PlayerService;
+import com.bjit.royalclub.royalclubfootball.util.PaginationUtil;
 import com.bjit.royalclub.royalclubfootball.util.RandomUtil;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -56,7 +57,7 @@ public class AcVoucherService {
      * Retrieves all vouchers, with optional detailed response.
      */
     public List<AcVoucherResponse> getAllAcVouchers(Boolean isDetailsResponse) {
-        return acVoucherRepository.findAll()
+        return acVoucherRepository.findAll(PaginationUtil.cappedListByIdDesc())
                 .stream()
                 .map(entity -> getAcVoucherResponse(entity.getId(), isDetailsResponse))
                 .toList();

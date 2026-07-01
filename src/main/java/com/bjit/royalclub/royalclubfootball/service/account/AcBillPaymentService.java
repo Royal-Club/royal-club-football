@@ -8,6 +8,7 @@ import com.bjit.royalclub.royalclubfootball.model.account.AcBillPaymentResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherDetailRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherRequest;
 import com.bjit.royalclub.royalclubfootball.repository.account.AcBillPaymentRepository;
+import com.bjit.royalclub.royalclubfootball.util.PaginationUtil;
 import com.bjit.royalclub.royalclubfootball.service.CostTypeService;
 import com.bjit.royalclub.royalclubfootball.util.RandomUtil;
 import jakarta.transaction.Transactional;
@@ -38,7 +39,7 @@ public class AcBillPaymentService {
      * Retrieves all bill payments.
      */
     public List<AcBillPaymentResponse> getAllBillPayments() {
-        List<AcBillPayment> billPayments = repository.findAll();
+        List<AcBillPayment> billPayments = repository.findAll(PaginationUtil.cappedListByIdDesc()).getContent();
         return billPayments.stream().map(this::convertBillPaymentDto).toList();
     }
 
