@@ -38,6 +38,9 @@ public class TournamentParticipantPlayer {
     @Column(name = "player_employee_id")
     private String playerEmployeeId;
 
+    @Column(name = "photo_key")
+    private String photoKey;
+
     @Column(name = "comments")
     private String comments;
 

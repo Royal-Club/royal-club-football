@@ -40,6 +40,8 @@ public class TournamentParticipantPlayerServiceImpl implements TournamentPartici
                         .participationStatus(player.getParticipationStatus())
                         .tournamentParticipantId(player.getTournamentParticipantId())
                         .comments(player.getComments())
+                        .photoKey(player.getPhotoKey())
+                        .photoUrl(buildPlayerPhotoUrl(player.getPhotoKey()))
                         .build()))
                 .filter(player -> Boolean.TRUE.equals(player.getParticipationStatus()))
                 .count();
@@ -67,5 +69,10 @@ public class TournamentParticipantPlayerServiceImpl implements TournamentPartici
                     .build();
         }
         return buildTournamentWithPlayersResponse(participants);
+    }
+
+    private String buildPlayerPhotoUrl(String photoKey) {
+        if (photoKey == null || photoKey.isBlank()) return null;
+        return "/files/player-photos/" + photoKey;
     }
 }
