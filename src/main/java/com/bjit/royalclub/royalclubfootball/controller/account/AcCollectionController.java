@@ -38,6 +38,7 @@ public class AcCollectionController {
      * @return A ResponseEntity containing all payment collections.
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'PLAYER')")
     public ResponseEntity<Object> getAllAcCollections() {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, service.getAllAcCollections());
     }
@@ -49,6 +50,7 @@ public class AcCollectionController {
      * @return A ResponseEntity containing the payment collection.
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'PLAYER')")
     public ResponseEntity<Object> getAcCollection(@PathVariable Long id) {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, service.getAcCollection(id));
     }

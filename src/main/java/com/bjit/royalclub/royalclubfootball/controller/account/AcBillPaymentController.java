@@ -36,6 +36,7 @@ public class AcBillPaymentController {
     }
 
     @GetMapping("/ajax-collections")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'PLAYER')")
     public ResponseEntity<Object> getAcBillPayments(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -54,6 +55,7 @@ public class AcBillPaymentController {
      * @return A response containing a list of all bill payments.
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'PLAYER')")
     public ResponseEntity<Object> getAllAcBillPayments() {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, service.getAllBillPayments());
     }
@@ -65,6 +67,7 @@ public class AcBillPaymentController {
      * @return A response containing the bill payment data.
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'PLAYER')")
     public ResponseEntity<Object> getAcBillPaymentById(@PathVariable Long id) {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, service.getAcBillPaymentResponse(service.getAcBillPaymentEntity(id)));
     }
