@@ -1,0 +1,2 @@
+INSERT INTO roles (name) VALUES ('TEAM_OWNER');
+INSERT INTO roles (name) VALUES ('OUTSIDE_PLAYER');

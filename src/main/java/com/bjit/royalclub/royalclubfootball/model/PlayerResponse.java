@@ -16,6 +16,7 @@ public class PlayerResponse {
     private String skypeId;
     private String employeeId;
     private String fullName;
+    private String profilePhoto;
     private boolean isActive;
     private FootballPosition playingPosition;
     private Set<RoleResponse> roles;

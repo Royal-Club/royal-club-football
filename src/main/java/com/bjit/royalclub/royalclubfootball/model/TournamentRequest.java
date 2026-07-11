@@ -26,7 +26,9 @@ public class TournamentRequest {
     private String tournamentType;
     private Integer groupCount;
 
+    // Auction
+    private boolean auctionMode;
+
     // Viewer default selection field
     private Boolean defaultTournament;
-
 }

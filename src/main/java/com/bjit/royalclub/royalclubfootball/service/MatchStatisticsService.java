@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.model.MatchStatisticsResponse;
+import com.bjit.royalclub.royalclubfootball.model.PlayerMatchHistoryResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentStandingResponse;
 import jakarta.transaction.Transactional;
 
@@ -12,6 +13,11 @@ public interface MatchStatisticsService {
      * Get statistics for a specific player in a specific match
      */
     MatchStatisticsResponse getPlayerMatchStatistics(Long matchId, Long playerId);
+
+    /**
+     * A player's full match-by-match history across all tournaments (newest first).
+     */
+    List<PlayerMatchHistoryResponse> getPlayerMatchHistory(Long playerId);
 
     /**
      * Get all player statistics for a specific match

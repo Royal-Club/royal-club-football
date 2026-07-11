@@ -11,4 +11,9 @@ public class ResourceNotFoundException extends RuntimeException {
         super(errorMessage);
         this.httpStatus = httpStatus;
     }
+
+    public ResourceNotFoundException(String errorMessage) {
+        super(errorMessage);
+        this.httpStatus = HttpStatus.NOT_FOUND;
+    }
 }

@@ -60,6 +60,9 @@ public class Player extends AuditBase {
     @Column(name = "last_password_change_date")
     private LocalDateTime lastPasswordChangeDate;
 
+    @Column(name = "profile_photo", length = 500)
+    private String profilePhoto;
+
     @Column(name = "photo_key")
     private String photoKey;
 
