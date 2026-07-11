@@ -76,6 +76,15 @@ public class StatisticsController {
     }
 
     /**
+     * Get a player's full match-by-match history across all tournaments (newest first)
+     */
+    @GetMapping("/players/{playerId}/match-history")
+    public ResponseEntity<Object> getPlayerMatchHistory(@PathVariable Long playerId) {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK,
+                matchStatisticsService.getPlayerMatchHistory(playerId));
+    }
+
+    /**
      * Get all player statistics for a specific match
      */
     @GetMapping("/matches/{matchId}")

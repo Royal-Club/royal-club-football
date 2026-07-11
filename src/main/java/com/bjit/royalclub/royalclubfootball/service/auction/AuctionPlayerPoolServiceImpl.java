@@ -189,6 +189,9 @@ public class AuctionPlayerPoolServiceImpl implements AuctionPlayerPoolService {
                 .playerId(ap.getPlayer().getId())
                 .playerName(ap.getPlayer().getName())
                 .playerEmail(ap.getPlayer().getEmail())
+                .photoUrl(ap.getPlayer().getPhotoKey() != null
+                        ? "/files/player-photos/" + ap.getPlayer().getPhotoKey()
+                        : null)
                 .playingPosition(ap.getPlayer().getPosition())
                 .playerType(ap.getPlayerType())
                 .category(ap.getCategory())

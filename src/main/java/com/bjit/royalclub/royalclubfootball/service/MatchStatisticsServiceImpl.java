@@ -7,6 +7,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Team;
 import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.model.MatchStatisticsResponse;
+import com.bjit.royalclub.royalclubfootball.model.PlayerMatchHistoryResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentStandingResponse;
 import com.bjit.royalclub.royalclubfootball.repository.MatchEventRepository;
 import com.bjit.royalclub.royalclubfootball.repository.MatchRepository;
@@ -54,6 +55,22 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
     public List<MatchStatisticsResponse> getPlayerTournamentStatistics(Long tournamentId, Long playerId) {
         List<MatchStatistics> stats = matchStatisticsRepository.findPlayerStatsByTournament(tournamentId, playerId);
         return stats.stream().map(this::convertToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PlayerMatchHistoryResponse> getPlayerMatchHistory(Long playerId) {
+        // Only the player's actual appearances: matches where he featured
+        // (minutes played) or recorded a goal / assist / card — not every match
+        // his team was merely listed in.
+        return matchStatisticsRepository.findPlayerMatchHistory(playerId, MatchStatus.COMPLETED)
+                .stream()
+                .filter(ms -> (ms.getMinutesPlayed() != null && ms.getMinutesPlayed() > 0)
+                        || ms.getGoalsScored() > 0
+                        || ms.getAssists() > 0
+                        || ms.getYellowCards() > 0
+                        || ms.getRedCards() > 0)
+                .map(this::toHistoryResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -311,6 +328,39 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
                 .substitutionIn(stats.getSubstitutionIn())
                 .substitutionOut(stats.getSubstitutionOut())
                 .minutesPlayed(stats.getMinutesPlayed())
+                .build();
+    }
+
+    private PlayerMatchHistoryResponse toHistoryResponse(MatchStatistics ms) {
+        Match match = ms.getMatch();
+        Team playerTeam = ms.getTeam();
+        Team home = match.getHomeTeam();
+        Team away = match.getAwayTeam();
+        int homeScore = match.getHomeTeamScore() != null ? match.getHomeTeamScore() : 0;
+        int awayScore = match.getAwayTeamScore() != null ? match.getAwayTeamScore() : 0;
+
+        boolean isHome = playerTeam != null && home != null && playerTeam.getId().equals(home.getId());
+        Team opponent = isHome ? away : home;
+        int teamScore = isHome ? homeScore : awayScore;
+        int opponentScore = isHome ? awayScore : homeScore;
+
+        String result = teamScore > opponentScore ? "WIN" : (teamScore < opponentScore ? "LOSS" : "DRAW");
+
+        return PlayerMatchHistoryResponse.builder()
+                .matchId(match.getId())
+                .matchDate(match.getMatchDate())
+                .tournamentName(match.getTournament() != null ? match.getTournament().getName() : null)
+                .teamId(playerTeam != null ? playerTeam.getId() : null)
+                .teamName(playerTeam != null ? playerTeam.getTeamName() : null)
+                .opponentTeamName(opponent != null ? opponent.getTeamName() : null)
+                .teamScore(teamScore)
+                .opponentScore(opponentScore)
+                .result(result)
+                .goalsScored(ms.getGoalsScored())
+                .assists(ms.getAssists())
+                .yellowCards(ms.getYellowCards())
+                .redCards(ms.getRedCards())
+                .minutesPlayed(ms.getMinutesPlayed())
                 .build();
     }
 

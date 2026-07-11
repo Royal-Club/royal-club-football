@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -33,4 +35,5 @@ public class AuctionSettingsRequest {
     @Min(5)
     private Integer extendIfBidWithinLastSeconds;
     private String minRoleRequirements;
+    private LocalDateTime scheduledStartTime;
 }

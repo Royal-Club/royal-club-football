@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.MatchStatistics;
+import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
 import com.bjit.royalclub.royalclubfootball.projection.PlayerStatisticsProjection;
 import com.bjit.royalclub.royalclubfootball.projection.TeamInfoProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MatchStatisticsRepository extends JpaRepository<MatchStatistics, Long> {
+
+    /**
+     * A player's full match history across all tournaments (newest first).
+     */
+    @Query("SELECT ms FROM MatchStatistics ms WHERE ms.player.id = :playerId " +
+            "AND ms.match.matchStatus = :status ORDER BY ms.match.matchDate DESC")
+    List<MatchStatistics> findPlayerMatchHistory(@Param("playerId") Long playerId,
+                                                 @Param("status") MatchStatus status);
 
     /**
      * Find statistics for all players in a specific match

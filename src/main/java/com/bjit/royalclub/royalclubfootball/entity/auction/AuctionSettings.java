@@ -19,6 +19,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Setter
 @Getter
@@ -65,4 +67,7 @@ public class AuctionSettings extends AuditBase {
     @Enumerated(EnumType.STRING)
     @Column(name = "auction_status", nullable = false)
     private AuctionStatus auctionStatus;
+
+    @Column(name = "scheduled_start_time")
+    private LocalDateTime scheduledStartTime;
 }

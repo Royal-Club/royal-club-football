@@ -144,6 +144,19 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
             auctionPlayerRepository.save(current);
         }
 
+        // Sweep any players that never went up for auction into UNSOLD so the
+        // results reflect the full pool (SOLD + UNSOLD) with none left AVAILABLE.
+        List<AuctionPlayer> stillAvailable = auctionPlayerRepository
+                .findByTournamentIdAndStatus(tournamentId, AuctionPlayerStatus.AVAILABLE);
+        if (!stillAvailable.isEmpty()) {
+            for (AuctionPlayer player : stillAvailable) {
+                player.setStatus(AuctionPlayerStatus.UNSOLD);
+                player.setCurrentBid(null);
+                player.setCurrentHighestTeam(null);
+            }
+            auctionPlayerRepository.saveAll(stillAvailable);
+        }
+
         session.setStatus(AuctionSessionStatus.COMPLETED);
         session.setCompletedAt(LocalDateTime.now());
         session.setCurrentAuctionPlayer(null);
@@ -565,8 +578,8 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
             AuctionSettings defaults = AuctionSettings.builder()
                     .tournament(tournament)
                     .teamBudget(100000)
-                    .minSquadSize(5)
-                    .maxSquadSize(15)
+                    .minSquadSize(7)
+                    .maxSquadSize(11)
                     .auctionTimerSeconds(60)
                     .bidIncrement(1000)
                     .unsoldReauctionEnabled(true)
@@ -757,6 +770,9 @@ public class AuctionSessionServiceImpl implements AuctionSessionService {
                 .playerId(ap.getPlayer().getId())
                 .playerName(ap.getPlayer().getName())
                 .playerEmail(ap.getPlayer().getEmail())
+                .photoUrl(ap.getPlayer().getPhotoKey() != null
+                        ? "/files/player-photos/" + ap.getPlayer().getPhotoKey()
+                        : null)
                 .playingPosition(ap.getPlayer().getPosition())
                 .playerType(ap.getPlayerType())
                 .category(ap.getCategory())

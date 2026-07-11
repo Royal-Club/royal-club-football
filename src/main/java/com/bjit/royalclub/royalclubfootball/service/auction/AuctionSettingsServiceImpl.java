@@ -47,6 +47,7 @@ public class AuctionSettingsServiceImpl implements AuctionSettingsService {
                 .timerExtensionSeconds(request.getTimerExtensionSeconds() != null ? request.getTimerExtensionSeconds() : 15)
                 .extendIfBidWithinLastSeconds(request.getExtendIfBidWithinLastSeconds() != null ? request.getExtendIfBidWithinLastSeconds() : 15)
                 .minRoleRequirements(request.getMinRoleRequirements())
+                .scheduledStartTime(request.getScheduledStartTime())
                 .auctionStatus(AuctionStatus.NOT_STARTED)
                 .build();
 
@@ -75,6 +76,7 @@ public class AuctionSettingsServiceImpl implements AuctionSettingsService {
             settings.setExtendIfBidWithinLastSeconds(request.getExtendIfBidWithinLastSeconds());
         }
         settings.setMinRoleRequirements(request.getMinRoleRequirements());
+        settings.setScheduledStartTime(request.getScheduledStartTime());
 
         settings = auctionSettingsRepository.save(settings);
         return mapToResponse(settings);
@@ -94,6 +96,7 @@ public class AuctionSettingsServiceImpl implements AuctionSettingsService {
                 .extendIfBidWithinLastSeconds(settings.getExtendIfBidWithinLastSeconds())
                 .minRoleRequirements(settings.getMinRoleRequirements())
                 .auctionStatus(settings.getAuctionStatus())
+                .scheduledStartTime(settings.getScheduledStartTime())
                 .build();
     }
 }

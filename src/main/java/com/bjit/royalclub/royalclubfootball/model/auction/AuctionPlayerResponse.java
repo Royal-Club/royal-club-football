@@ -21,6 +21,7 @@ public class AuctionPlayerResponse {
     private Long playerId;
     private String playerName;
     private String playerEmail;
+    private String photoUrl;
     private FootballPosition playingPosition;
     private AuctionPlayerType playerType;
     private AuctionPlayerCategory category;
