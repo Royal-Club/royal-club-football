@@ -16,4 +16,6 @@ public class PlayerParticipationResponse {
     private Boolean participationStatus;
     private String comments;
     private Long tournamentParticipantId;
+    private String photoKey;
+    private String photoUrl;
 }
