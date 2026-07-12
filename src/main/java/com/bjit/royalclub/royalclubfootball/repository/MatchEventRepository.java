@@ -13,6 +13,14 @@ import java.util.List;
 public interface MatchEventRepository extends JpaRepository<MatchEvent, Long> {
 
     /**
+     * All of a player's events across the given matches (used to build an
+     * accurate per-match goals/assists/cards breakdown from the recorded events).
+     */
+    @Query("SELECT me FROM MatchEvent me WHERE me.player.id = :playerId AND me.match.id IN :matchIds")
+    List<MatchEvent> findByPlayerIdAndMatchIds(@Param("playerId") Long playerId,
+                                               @Param("matchIds") List<Long> matchIds);
+
+    /**
      * Find all events for a specific match ordered by event time
      */
     @Query("SELECT me FROM MatchEvent me WHERE me.match.id = :matchId ORDER BY me.eventTime ASC")
