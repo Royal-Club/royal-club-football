@@ -14,14 +14,16 @@ import java.util.Optional;
 public interface MatchStatisticsRepository extends JpaRepository<MatchStatistics, Long> {
 
     /**
-     * A player's match history across all tournaments (newest first) — restricted
-     * to matches where the player is actually a roster member (TeamPlayer) of the
-     * team the stat row is recorded against, so bulk-generated stats for teams the
-     * player never belonged to are excluded.
+     * A player's match history across all tournaments (newest first). When the
+     * player has roster entries (TeamPlayer), scope to matches of the teams he
+     * actually belongs to so bulk-generated stats for other teams are excluded.
+     * If the player has no roster entries at all, fall back to all of his stat
+     * rows so the history still shows (rather than being empty).
      */
     @Query("SELECT ms FROM MatchStatistics ms WHERE ms.player.id = :playerId " +
             "AND ms.match.matchStatus = :status " +
-            "AND ms.team.id IN (SELECT tp.team.id FROM TeamPlayer tp WHERE tp.player.id = :playerId) " +
+            "AND (ms.team.id IN (SELECT tp.team.id FROM TeamPlayer tp WHERE tp.player.id = :playerId) " +
+            "     OR NOT EXISTS (SELECT tp2.id FROM TeamPlayer tp2 WHERE tp2.player.id = :playerId)) " +
             "ORDER BY ms.match.matchDate DESC")
     List<MatchStatistics> findPlayerMatchHistory(@Param("playerId") Long playerId,
                                                  @Param("status") MatchStatus status);
