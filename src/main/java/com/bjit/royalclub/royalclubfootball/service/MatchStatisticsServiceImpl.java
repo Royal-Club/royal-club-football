@@ -17,7 +17,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -59,12 +61,39 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
 
     @Override
     public List<PlayerMatchHistoryResponse> getPlayerMatchHistory(Long playerId) {
-        // Every completed match the player was part of, newest first — including
-        // matches where he recorded no goal/assist/card (a full appearance log).
-        return matchStatisticsRepository.findPlayerMatchHistory(playerId, MatchStatus.COMPLETED)
-                .stream()
-                .map(this::toHistoryResponse)
-                .collect(Collectors.toList());
+        List<MatchStatistics> rows =
+                matchStatisticsRepository.findPlayerMatchHistory(playerId, MatchStatus.COMPLETED);
+
+        // One entry per match (the data can carry more than one stat row per match).
+        Map<Long, MatchStatistics> byMatch = new LinkedHashMap<>();
+        for (MatchStatistics ms : rows) {
+            byMatch.putIfAbsent(ms.getMatch().getId(), ms);
+        }
+        if (byMatch.isEmpty()) {
+            return List.of();
+        }
+
+        // Count the player's goals/assists/cards per match from the recorded match
+        // events — the live source of truth. Aggregated MatchStatistics can be
+        // unreliable, so a goal shows even when the aggregate row missed it.
+        Map<Long, int[]> counts = new HashMap<>(); // [goals, assists, yellow, red]
+        for (MatchEvent ev : matchEventRepository.findByPlayerIdAndMatchIds(playerId, new ArrayList<>(byMatch.keySet()))) {
+            int[] c = counts.computeIfAbsent(ev.getMatch().getId(), k -> new int[4]);
+            switch (ev.getEventType()) {
+                case GOAL -> c[0]++;
+                case ASSIST -> c[1]++;
+                case YELLOW_CARD -> c[2]++;
+                case RED_CARD -> c[3]++;
+                default -> { }
+            }
+        }
+
+        List<PlayerMatchHistoryResponse> history = new ArrayList<>();
+        for (MatchStatistics ms : byMatch.values()) {
+            int[] c = counts.getOrDefault(ms.getMatch().getId(), new int[4]);
+            history.add(toHistoryResponse(ms, c[0], c[1], c[2], c[3]));
+        }
+        return history;
     }
 
     @Override
@@ -325,7 +354,7 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
                 .build();
     }
 
-    private PlayerMatchHistoryResponse toHistoryResponse(MatchStatistics ms) {
+    private PlayerMatchHistoryResponse toHistoryResponse(MatchStatistics ms, int goals, int assists, int yellowCards, int redCards) {
         Match match = ms.getMatch();
         Team playerTeam = ms.getTeam();
         Team home = match.getHomeTeam();
@@ -350,10 +379,10 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
                 .teamScore(teamScore)
                 .opponentScore(opponentScore)
                 .result(result)
-                .goalsScored(ms.getGoalsScored())
-                .assists(ms.getAssists())
-                .yellowCards(ms.getYellowCards())
-                .redCards(ms.getRedCards())
+                .goalsScored(goals)
+                .assists(assists)
+                .yellowCards(yellowCards)
+                .redCards(redCards)
                 .minutesPlayed(ms.getMinutesPlayed())
                 .build();
     }
