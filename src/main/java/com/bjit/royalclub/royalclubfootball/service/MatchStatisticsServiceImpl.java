@@ -59,16 +59,10 @@ public class MatchStatisticsServiceImpl implements MatchStatisticsService {
 
     @Override
     public List<PlayerMatchHistoryResponse> getPlayerMatchHistory(Long playerId) {
-        // Only the player's actual appearances: matches where he featured
-        // (minutes played) or recorded a goal / assist / card — not every match
-        // his team was merely listed in.
+        // Every completed match the player was part of, newest first — including
+        // matches where he recorded no goal/assist/card (a full appearance log).
         return matchStatisticsRepository.findPlayerMatchHistory(playerId, MatchStatus.COMPLETED)
                 .stream()
-                .filter(ms -> (ms.getMinutesPlayed() != null && ms.getMinutesPlayed() > 0)
-                        || ms.getGoalsScored() > 0
-                        || ms.getAssists() > 0
-                        || ms.getYellowCards() > 0
-                        || ms.getRedCards() > 0)
                 .map(this::toHistoryResponse)
                 .collect(Collectors.toList());
     }
