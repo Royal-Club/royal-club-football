@@ -44,6 +44,16 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long>, J
 
     Tournament findTopByOrderByTournamentDateDesc();
 
+    /**
+     * Active, still-upcoming tournaments whose date falls within the reminder window [from, to].
+     * Used by the RSVP reminder scheduler to find matches ~1-2 days away.
+     */
+    @Query("SELECT t FROM Tournament t WHERE t.isActive = true AND t.tournamentStatus = "
+            + "com.bjit.royalclub.royalclubfootball.enums.TournamentStatus.UPCOMING "
+            + "AND t.tournamentDate BETWEEN :from AND :to")
+    List<Tournament> findUpcomingWithinWindow(@Param("from") java.time.LocalDateTime from,
+                                              @Param("to") java.time.LocalDateTime to);
+
     @Query("SELECT t FROM Tournament t WHERE t.tournamentStatus IN ('UPCOMING', 'ONGOING') " +
             "ORDER BY CASE t.tournamentStatus WHEN 'ONGOING' THEN 0 ELSE 1 END ASC, t.tournamentDate ASC LIMIT 1")
     Tournament findNextActiveTournament();

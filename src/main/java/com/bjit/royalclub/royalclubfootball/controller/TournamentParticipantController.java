@@ -1,11 +1,13 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
 import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
+import com.bjit.royalclub.royalclubfootball.model.PendingParticipantResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentWithPlayersResponse;
 import com.bjit.royalclub.royalclubfootball.service.TournamentParticipantPlayerService;
 import com.bjit.royalclub.royalclubfootball.service.TournamentParticipantService;
+import com.bjit.royalclub.royalclubfootball.service.notification.TournamentReminderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.CREATE_OK;
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.FETCH_OK;
@@ -29,6 +32,7 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 public class TournamentParticipantController {
     private final TournamentParticipantService tournamentParticipantService;
     private final TournamentParticipantPlayerService tournamentParticipantPlayerService;
+    private final TournamentReminderService tournamentReminderService;
 
 
     @PostMapping
@@ -50,6 +54,18 @@ public class TournamentParticipantController {
         List<PlayerParticipationResponse> participationResponses =
                 tournamentParticipantService.playersToBeSelectedForTeam(tournamentId);
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, participationResponses);
+    }
+
+    @GetMapping("/{tournamentId}/pending")
+    public ResponseEntity<Object> playersPendingResponse(@PathVariable Long tournamentId) {
+        List<PendingParticipantResponse> pending = tournamentParticipantService.playersPendingResponse(tournamentId);
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, pending);
+    }
+
+    @PostMapping("/{tournamentId}/remind")
+    public ResponseEntity<Object> remindPendingPlayers(@PathVariable Long tournamentId) {
+        int remindedCount = tournamentReminderService.remindForTournament(tournamentId);
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, Map.of("remindedCount", remindedCount));
     }
 
     @GetMapping("/{tournamentId}/goal-keepers")

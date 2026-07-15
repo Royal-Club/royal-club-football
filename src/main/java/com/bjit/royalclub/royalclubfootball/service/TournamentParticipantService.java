@@ -3,6 +3,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
 import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithParticipantsResponse;
 import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithUserParticipantsResponse;
+import com.bjit.royalclub.royalclubfootball.model.PendingParticipantResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 
@@ -12,6 +13,11 @@ public interface TournamentParticipantService {
     void saveOrUpdateTournamentParticipant(TournamentParticipantRequest tournamentParticipantRequest);
 
     List<PlayerParticipationResponse> playersToBeSelectedForTeam(Long tournamentId);
+
+    /**
+     * Active players who have not yet responded (Yes/No) for the tournament — i.e. still PENDING.
+     */
+    List<PendingParticipantResponse> playersPendingResponse(Long tournamentId);
 
     List<GoalkeeperStatsResponse> goalkeeperStatsResponse(Long tournamentId);
 
