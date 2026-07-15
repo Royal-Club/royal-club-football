@@ -90,6 +90,39 @@ This is the credential the Spring Boot app uses to send push.
 
 ---
 
+## Part 2.5 — Production / server deployment (important)
+
+The `application.yml` default (`./secret/…json`) exists only on your dev machine. **On the production
+server that file is absent, so push is DISABLED by default** — the app runs fine, but reminders are
+logged no-ops and never delivered. To turn push on in production you must give the server the
+credential via an environment variable (do **not** copy the JSON file onto the box or into the image):
+
+**Option A — raw JSON in an env var (recommended):**
+```bash
+# value = the entire service-account JSON on one line
+export FIREBASE_CREDENTIALS_JSON='{"type":"service_account","project_id":"royalclub-1ff75", ... }'
+```
+- **Docker:** `docker run -e FIREBASE_CREDENTIALS_JSON="$(cat secret/royalclub-*.json)" ...`
+  (or put it in a Docker/compose secret, not the image).
+- **Jenkins:** store the JSON as a *Secret text* credential and inject it as `FIREBASE_CREDENTIALS_JSON`
+  in the deploy stage.
+- **systemd / plain server:** add `Environment=FIREBASE_CREDENTIALS_JSON=...` (or an `EnvironmentFile`).
+
+**Option B — a file on the server:** place the JSON somewhere readable and set
+`FIREBASE_CREDENTIALS_PATH=/etc/royalclub/firebase.json`.
+
+**Confirm it worked** — check the startup log for exactly one of these lines:
+```
+Firebase initialized; push notifications are ENABLED.     ← good, push will send
+... push notifications are DISABLED (no-op).              ← credential not picked up
+```
+Also set the reminder cadence/window per environment if needed via `REMINDERS_CRON`,
+`REMINDERS_WINDOW_HOURS`, `REMINDERS_MAX_PER_PLAYER` (see `application.yml`).
+
+> 🔒 Never commit the JSON or bake it into the Docker image. Env var / secret store only.
+
+---
+
 ## Part 3 — Mobile app config (Phase 2 — Expo)
 
 You'll need these when we build the Expo app. Register one app per platform in the **same** Firebase
