@@ -10,6 +10,7 @@ import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException
 import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
 import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithParticipantsResponse;
 import com.bjit.royalclub.royalclubfootball.model.LatestTournamentWithUserParticipantsResponse;
+import com.bjit.royalclub.royalclubfootball.model.PendingParticipantResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerParticipationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentParticipantRequest;
 import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
@@ -112,6 +113,21 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
         return tournamentParticipantRepository.findAllByTournamentIdAndParticipationStatusTrue(tournamentId).stream()
                 .filter(participant -> !isPlayerAssignedToAnyTeam(participant))
                 .map(this::convertToPlayerParticipationResponse)
+                .toList();
+    }
+
+    @Override
+    public List<PendingParticipantResponse> playersPendingResponse(Long tournamentId) {
+        // Ensure the tournament exists so callers get a clear 404 rather than an empty list.
+        getTournament(tournamentId);
+        return playerRepository.findActivePlayersWithoutParticipation(tournamentId).stream()
+                .map(player -> PendingParticipantResponse.builder()
+                        .playerId(player.getId())
+                        .playerName(player.getName())
+                        .employeeId(player.getEmployeeId())
+                        .email(player.getEmail())
+                        .mobileNo(player.getMobileNo())
+                        .build())
                 .toList();
     }
 

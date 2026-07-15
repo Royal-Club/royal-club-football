@@ -6,7 +6,7 @@ spring:
     allow-circular-references: true
 
   datasource:
-    url: jdbc:mysql://localhost:3306/royal_club_football?useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3307/royal_club_football
     username: root
     password: brFc129
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -44,6 +44,19 @@ jwt:
 player:
   default-password: JaniNa@123 # Configurable default password assigned at registration
   superadmin-email: rakibccj@gmail.com # Email of the player to assign SUPERADMIN role on application startup. Service will automatically assign this role when app starts. Leave empty to skip.
+
+# Firebase Cloud Messaging (push notifications). Defaults to the git-ignored service-account JSON in ./secret.
+# Set both blank (or point elsewhere via the env vars) to disable/relocate; app still boots if the file is missing.
+firebase:
+  # Path is relative to the working directory (repo root). The env var overrides it for other environments.
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:./secret/royalclub-1ff75-firebase-adminsdk-fbsvc-7711cd6aa8.json}
+  credentials-json: ${FIREBASE_CREDENTIALS_JSON:} # Alternatively, the raw service-account JSON (handy for env-var based deploys).
+
+# Tournament RSVP reminder settings.
+reminders:
+  window-hours: ${REMINDERS_WINDOW_HOURS:48}   # Start reminding players this many hours before kickoff.
+  max-per-player: ${REMINDERS_MAX_PER_PLAYER:3} # Stop after this many reminders per player per tournament.
+  cron: ${REMINDERS_CRON:0 0 9,18 * * ?}        # When the reminder job runs (Asia/Dhaka).
 
 app:
   storage:

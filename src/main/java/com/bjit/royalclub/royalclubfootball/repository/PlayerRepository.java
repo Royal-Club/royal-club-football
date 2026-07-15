@@ -2,7 +2,10 @@ package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PlayerRepository extends JpaRepository<Player, Long> {
@@ -13,5 +16,11 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
 
     int countByIsActiveTrue();
 
-
+    /**
+     * Active players who have NOT responded (no tournament_participant row) for the given tournament.
+     * These are the players that should be reminded to confirm attendance.
+     */
+    @Query("SELECT p FROM Player p WHERE p.isActive = true AND p.id NOT IN "
+            + "(SELECT tp.player.id FROM TournamentParticipant tp WHERE tp.tournament.id = :tournamentId)")
+    List<Player> findActivePlayersWithoutParticipation(@Param("tournamentId") Long tournamentId);
 }
