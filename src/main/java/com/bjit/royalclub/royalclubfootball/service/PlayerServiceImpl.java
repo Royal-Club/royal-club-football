@@ -405,11 +405,14 @@ public class PlayerServiceImpl implements PlayerService {
                     && metadata.consecutiveMissedTournaments == (dto.getActiveTournamentCount() - 1);
 
             if (isBrandNew) {
+                dto.setCategory("NEW");
                 brandNewPlayers.add(metadata);
             } else if (metadata.wasGKInMostRecent) {
+                dto.setCategory("LAST_GK");
                 lastTournamentGK.add(metadata);
             } else {
                 // Regular players (includes irregular/returning players who participated before)
+                dto.setCategory("REGULAR");
                 regularPlayers.add(metadata);
             }
         }

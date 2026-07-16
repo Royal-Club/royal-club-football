@@ -10,6 +10,7 @@ import java.util.List;
 @Builder
 public class GoalKeeperPriorityDto {
     private Integer priority;
+    private String category;              // REGULAR | LAST_GK | NEW - reason for placement in queue
     private Long playerId;
     private String playerName;
     private String employeeId;
