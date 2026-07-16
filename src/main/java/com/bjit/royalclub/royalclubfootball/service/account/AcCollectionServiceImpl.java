@@ -12,6 +12,7 @@ import com.bjit.royalclub.royalclubfootball.model.account.AcCollectionResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherDetailRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.AcVoucherRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.PaymentCollectionRequest;
+import com.bjit.royalclub.royalclubfootball.model.account.PlayerPaymentResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.report.PlayerCollectionMetricsResponse;
 import com.bjit.royalclub.royalclubfootball.model.account.report.PlayerCollectionReport;
 import com.bjit.royalclub.royalclubfootball.repository.CostTypeRepository;
@@ -287,5 +288,19 @@ public class AcCollectionServiceImpl implements AcCollectionService {
                 .years(
                         repository.findAllCollectionYears()
                 ).build();
+    }
+
+    @Override
+    public List<PlayerPaymentResponse> getPlayerPayments(Long playerId) {
+        return repository.findByPlayerId(playerId).stream()
+                .map(collection -> PlayerPaymentResponse.builder()
+                        .collectionId(collection.getId())
+                        .transactionId(collection.getTransactionId())
+                        .monthOfPayment(collection.getMonthOfPayment())
+                        .date(collection.getDate())
+                        .amount(collection.getAmount())
+                        .description(collection.getDescription())
+                        .build())
+                .toList();
     }
 }

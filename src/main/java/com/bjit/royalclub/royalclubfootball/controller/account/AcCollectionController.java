@@ -3,12 +3,17 @@ package com.bjit.royalclub.royalclubfootball.controller.account;
 import com.bjit.royalclub.royalclubfootball.model.MonthlyCostRequest;
 import com.bjit.royalclub.royalclubfootball.model.account.PaymentCollectionRequest;
 import com.bjit.royalclub.royalclubfootball.service.account.AcCollectionService;
+import com.bjit.royalclub.royalclubfootball.service.notification.MonthlyDuesReminderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.Map;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestResponseMessage.*;
 import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuccessResponse;
@@ -19,6 +24,7 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
 public class AcCollectionController {
     private final AcCollectionService service;
+    private final MonthlyDuesReminderService monthlyDuesReminderService;
 
     /**
      * Save a new payment collection.
@@ -65,6 +71,41 @@ public class AcCollectionController {
     public ResponseEntity<Object> recordCost(@Valid @RequestBody MonthlyCostRequest costRequest) {
         service.recordCost(costRequest);
         return buildSuccessResponse(HttpStatus.CREATED, CREATE_OK);
+    }
+
+    /**
+     * Get a single player's payment history, newest month first.
+     *
+     * <p>Players may only read their own history; admins may read anyone's.
+     *
+     * @param playerId The ID of the player whose payments to retrieve.
+     * @return A ResponseEntity containing the player's payment history.
+     */
+    @GetMapping("/player/{playerId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN') or #playerId == authentication.principal.id")
+    public ResponseEntity<Object> getPlayerPayments(@PathVariable Long playerId) {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, service.getPlayerPayments(playerId));
+    }
+
+    /**
+     * Push a dues reminder to every active player who has not paid for the given month.
+     *
+     * <p>The scheduler runs this automatically on the 7th-10th; this endpoint exists so the flow can
+     * be tested on any day. Honours the same per-player monthly cap as the scheduled run.
+     *
+     * @param month Any date within the target month. Defaults to the current month.
+     * @return A ResponseEntity containing how many players were reminded.
+     */
+    @PostMapping("/remind-unpaid")
+    public ResponseEntity<Object> remindUnpaidPlayers(
+            @RequestParam(value = "month", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate month) {
+        // Delegate the no-month case rather than resolving "now" here: the JVM runs in UTC and only
+        // the service knows the club's zone.
+        int remindedCount = month != null
+                ? monthlyDuesReminderService.remindUnpaidForMonth(month)
+                : monthlyDuesReminderService.sendDueReminders();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, Map.of("remindedCount", remindedCount));
     }
 
     /**

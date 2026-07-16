@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,4 +24,15 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     @Query("SELECT p FROM Player p WHERE p.isActive = true AND p.id NOT IN "
             + "(SELECT tp.player.id FROM TournamentParticipant tp WHERE tp.tournament.id = :tournamentId)")
     List<Player> findActivePlayersWithoutParticipation(@Param("tournamentId") Long tournamentId);
+
+    /**
+     * Active players with no collection recorded against the month spanning [start, end].
+     * Any collection at all clears a player for that month — the club has no per-player expected
+     * amount, so a partial payment counts as paid.
+     */
+    @Query("SELECT p FROM Player p WHERE p.isActive = true AND p.id NOT IN "
+            + "(SELECT pl.id FROM AcCollection c JOIN c.players pl "
+            + "WHERE c.monthOfPayment BETWEEN :start AND :end)")
+    List<Player> findActivePlayersWithoutCollectionForMonth(@Param("start") LocalDate start,
+                                                            @Param("end") LocalDate end);
 }

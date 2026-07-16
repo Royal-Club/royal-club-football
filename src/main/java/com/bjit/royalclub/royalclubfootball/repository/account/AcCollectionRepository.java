@@ -19,4 +19,9 @@ public interface AcCollectionRepository extends JpaRepository<AcCollection, Long
 
     @Query("SELECT DISTINCT YEAR(c.date) FROM AcCollection c ORDER BY YEAR(c.date) DESC")
     List<Integer> findAllCollectionYears();
+
+    /** Every collection this player was included in, newest month first — their payment history. */
+    @Query("SELECT c FROM AcCollection c JOIN c.players p WHERE p.id = :playerId "
+            + "ORDER BY c.monthOfPayment DESC, c.date DESC")
+    List<AcCollection> findByPlayerId(@Param("playerId") Long playerId);
 }
