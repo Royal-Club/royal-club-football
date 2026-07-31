@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -83,9 +84,21 @@ public class TournamentReminderServiceImpl implements TournamentReminderService 
     private int remindPendingPlayers(Tournament tournament) {
         List<Player> pendingPlayers = playerRepository.findActivePlayersWithoutParticipation(tournament.getId());
 
+        if (pendingPlayers.isEmpty()) {
+            log.info("Tournament '{}' ({}): no pending players eligible for a reminder.",
+                    tournament.getName(), tournament.getId());
+            return 0;
+        }
+
+        // Batch fetch reminder counts for all pending players
+        List<Long> playerIds = pendingPlayers.stream().map(Player::getId).toList();
+        Map<Long, Long> reminderCounts = new HashMap<>();
+        reminderLogRepository.countByTournamentIdAndPlayerIds(tournament.getId(), playerIds)
+                .forEach(row -> reminderCounts.put((Long) row[0], (Long) row[1]));
+
         List<Player> eligible = new ArrayList<>();
         for (Player player : pendingPlayers) {
-            int alreadySent = reminderLogRepository.countByTournamentIdAndPlayerId(tournament.getId(), player.getId());
+            long alreadySent = reminderCounts.getOrDefault(player.getId(), 0L);
             if (alreadySent < maxPerPlayer) {
                 eligible.add(player);
             }

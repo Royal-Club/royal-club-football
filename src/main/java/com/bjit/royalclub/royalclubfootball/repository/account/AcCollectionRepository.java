@@ -17,6 +17,12 @@ public interface AcCollectionRepository extends JpaRepository<AcCollection, Long
     @Query("SELECT c FROM AcCollection c WHERE FUNCTION('YEAR', c.date) = :year")
     List<AcCollection> findCollectionsByYear(@Param("year") Integer year);
 
+    @Query("SELECT DISTINCT c FROM AcCollection c LEFT JOIN FETCH c.players")
+    List<AcCollection> findAllWithPlayers();
+
+    @Query("SELECT DISTINCT c FROM AcCollection c LEFT JOIN FETCH c.players WHERE FUNCTION('YEAR', c.date) = :year")
+    List<AcCollection> findCollectionsByYearWithPlayers(@Param("year") Integer year);
+
     @Query("SELECT DISTINCT YEAR(c.date) FROM AcCollection c ORDER BY YEAR(c.date) DESC")
     List<Integer> findAllCollectionYears();
 

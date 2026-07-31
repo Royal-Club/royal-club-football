@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,5 +74,30 @@ public interface PlayerGoalkeepingHistoryRepository extends JpaRepository<Player
     @Query("SELECT MAX(pgh.playedDate) FROM PlayerGoalkeepingHistory pgh " +
             "WHERE pgh.player.id = :playerId")
     Optional<LocalDateTime> findMostRecentGoalKeeperDate(@Param("playerId") Long playerId);
+
+    // === Batch queries for GK priority queue ===
+
+    @Query("SELECT pgh FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id IN :playerIds AND pgh.tournament.id != :currentTournamentId " +
+            "ORDER BY pgh.player.id, pgh.playedDate DESC")
+    List<PlayerGoalkeepingHistory> findGoalKeeperHistoryByPlayerIdsExcludingTournament(
+            @Param("playerIds") Collection<Long> playerIds,
+            @Param("currentTournamentId") Long currentTournamentId);
+
+    @Query("SELECT tp.player.id, COUNT(DISTINCT tp.tournament.id) FROM TournamentParticipant tp " +
+            "WHERE tp.player.id IN :playerIds AND tp.participationStatus = true " +
+            "GROUP BY tp.player.id")
+    List<Object[]> countPlayerTournamentParticipationsBatch(@Param("playerIds") Collection<Long> playerIds);
+
+    @Query("SELECT pgh.player.id, MAX(pgh.playedDate) FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id IN :playerIds " +
+            "GROUP BY pgh.player.id")
+    List<Object[]> findMostRecentGoalKeeperDateBatch(@Param("playerIds") Collection<Long> playerIds);
+
+    @Query("SELECT pgh.player.id FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id IN :playerIds AND pgh.tournament.id = :tournamentId")
+    List<Long> findPlayerIdsWhoWereGoalKeeperInTournament(
+            @Param("playerIds") Collection<Long> playerIds,
+            @Param("tournamentId") Long tournamentId);
 
 }

@@ -10,4 +10,7 @@ import java.util.List;
 public interface TeamRepository extends JpaRepository<Team, Long> {
     @Query("select t from Team t left join fetch t.teamPlayers tp where t.tournament.id = :tournamentId")
     List<Team> findTeamsWithPlayersByTournamentId(@Param("tournamentId") Long tournamentId);
+
+    @Query("select t from Team t left join fetch t.teamPlayers tp where t.tournament.id in :tournamentIds")
+    List<Team> findTeamsWithPlayersByTournamentIds(@Param("tournamentIds") List<Long> tournamentIds);
 }

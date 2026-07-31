@@ -16,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -56,9 +59,14 @@ public class PlayerStatisticsServiceImpl implements PlayerStatisticsService {
 
         // Filter by position in Java code if position filter is provided
         if (filterRequest.getPosition() != null) {
+            Set<Long> playerIds = results.stream()
+                    .map(PlayerStatisticsProjection::getPlayerId)
+                    .collect(Collectors.toSet());
+            Map<Long, Player> playerMap = playerRepository.findAllById(playerIds).stream()
+                    .collect(Collectors.toMap(Player::getId, Function.identity()));
             results = results.stream()
                     .filter(projection -> {
-                        Player player = playerRepository.findById(projection.getPlayerId()).orElse(null);
+                        Player player = playerMap.get(projection.getPlayerId());
                         return player != null && player.getPosition() == filterRequest.getPosition();
                     })
                     .toList();
@@ -71,10 +79,17 @@ public class PlayerStatisticsServiceImpl implements PlayerStatisticsService {
     private List<PlayerStatisticsResponse> convertToPlayerStatistics(
             List<PlayerStatisticsProjection> aggregatedStats) {
 
+        // Pre-fetch all players in a single query
+        Set<Long> playerIds = aggregatedStats.stream()
+                .map(PlayerStatisticsProjection::getPlayerId)
+                .collect(Collectors.toSet());
+        Map<Long, Player> playerMap = playerRepository.findAllById(playerIds).stream()
+                .collect(Collectors.toMap(Player::getId, Function.identity()));
+
         List<PlayerStatisticsResponse> playerStatsList = new ArrayList<>();
 
         for (PlayerStatisticsProjection projection : aggregatedStats) {
-            PlayerStatisticsResponse playerStats = createPlayerStatistics(projection);
+            PlayerStatisticsResponse playerStats = createPlayerStatistics(projection, playerMap);
             if (playerStats != null) {
                 playerStatsList.add(playerStats);
             }
@@ -83,9 +98,10 @@ public class PlayerStatisticsServiceImpl implements PlayerStatisticsService {
         return playerStatsList;
     }
 
-    private PlayerStatisticsResponse createPlayerStatistics(PlayerStatisticsProjection projection) {
+    private PlayerStatisticsResponse createPlayerStatistics(PlayerStatisticsProjection projection,
+                                                            Map<Long, Player> playerMap) {
         Long playerId = projection.getPlayerId();
-        Player player = playerRepository.findById(playerId).orElse(null);
+        Player player = playerMap.get(playerId);
 
         if (player == null) {
             return null;

@@ -71,11 +71,17 @@ public class MonthlyDuesReminderServiceImpl implements MonthlyDuesReminderServic
             return 0;
         }
 
+        // Batch fetch reminder counts for all unpaid players
+        List<Long> playerIds = unpaidPlayers.stream().map(Player::getId).toList();
+        java.util.Map<Long, Long> reminderCounts = new java.util.HashMap<>();
+        reminderLogRepository.countByPlayerIdsAndMonthOfPayment(playerIds, firstOfMonth)
+                .forEach(row -> reminderCounts.put((Long) row[0], (Long) row[1]));
+
         // The 7th-10th cron bounds this to four runs, but the cap also protects against a retuned
         // cron or a job that fires twice in a day.
         List<Player> eligible = new ArrayList<>();
         for (Player player : unpaidPlayers) {
-            int alreadySent = reminderLogRepository.countByPlayerIdAndMonthOfPayment(player.getId(), firstOfMonth);
+            long alreadySent = reminderCounts.getOrDefault(player.getId(), 0L);
             if (alreadySent < maxPerMonth) {
                 eligible.add(player);
             }

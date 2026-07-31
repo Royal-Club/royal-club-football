@@ -37,6 +37,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -94,8 +95,19 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public List<PlayerResponse> getAllPlayers() {
-        List<Player> players = playerRepository.findAll(PaginationUtil.cappedListByIdDesc()).getContent();
-        return players.stream().map(this::convertToDto).toList();
+        // Page the IDs, then fetch that page with roles joined: convertToDto reads getRoles(),
+        // which would otherwise be one lazy select per player.
+        List<Long> ids = playerRepository.findAllPlayerIds(PaginationUtil.cappedListByIdDesc()).getContent();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Player> playersById = playerRepository.findAllByIdWithRoles(ids).stream()
+                .collect(Collectors.toMap(Player::getId, player -> player));
+        return ids.stream()
+                .map(playersById::get)
+                .filter(Objects::nonNull)
+                .map(this::convertToDto)
+                .toList();
     }
 
     @Override
@@ -120,6 +132,15 @@ public class PlayerServiceImpl implements PlayerService {
     public Player getPlayerEntity(Long id) {
         return playerRepository.findById(id)
                 .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+    }
+
+    @Override
+    public Set<Player> getPlayerEntities(java.util.Collection<Long> ids) {
+        List<Player> players = playerRepository.findAllById(ids);
+        if (players.size() != ids.size()) {
+            throw new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
+        return new HashSet<>(players);
     }
 
     @Override
@@ -175,7 +196,7 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     public Player findByEmail(String email) {
         return playerRepository
-                .findByEmailAndIsActiveTrue(email)
+                .findByEmailAndIsActiveTrueWithRoles(email)
                 .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
@@ -308,61 +329,82 @@ public class PlayerServiceImpl implements PlayerService {
         // Build list of players with scores
         List<PlayerWithMetadata> playersWithMetadata = new ArrayList<>();
 
+        // ===== BATCH PRE-FETCH ALL DATA =====
+        List<Long> playerIds = participants.stream()
+                .map(p -> p.getPlayer().getId())
+                .toList();
+
+        // 1. All GK histories excluding current tournament (batch)
+        List<PlayerGoalkeepingHistory> allGkHistories = goalkeepingHistoryRepository
+                .findGoalKeeperHistoryByPlayerIdsExcludingTournament(playerIds, tournamentId);
+        Map<Long, List<PlayerGoalkeepingHistory>> gkHistoryByPlayer = allGkHistories.stream()
+                .collect(Collectors.groupingBy(h -> h.getPlayer().getId()));
+
+        // 2. Participation counts (batch)
+        Map<Long, Integer> participationCountMap = new java.util.HashMap<>();
+        goalkeepingHistoryRepository.countPlayerTournamentParticipationsBatch(playerIds)
+                .forEach(row -> participationCountMap.put((Long) row[0], ((Long) row[1]).intValue()));
+
+        // 3. Most recent GK dates (batch)
+        Map<Long, LocalDateTime> mostRecentGkDateMap = new java.util.HashMap<>();
+        goalkeepingHistoryRepository.findMostRecentGoalKeeperDateBatch(playerIds)
+                .forEach(row -> mostRecentGkDateMap.put((Long) row[0], (LocalDateTime) row[1]));
+
+        // 4. Consecutive missed tournaments (batch) - players with no missed run produce no row
+        Map<Long, Integer> consecutiveMissedMap = new java.util.HashMap<>();
+        tournamentParticipantRepository.countConsecutiveMissedTournamentsBatch(playerIds, tournamentId)
+                .forEach(row -> consecutiveMissedMap.put(
+                        ((Number) row[0]).longValue(), ((Number) row[1]).intValue()));
+
+        // 5. GK in most recent tournament (batch)
+        java.util.Set<Long> gkInMostRecentTournament = new java.util.HashSet<>();
+        if (mostRecentTournament != null) {
+            gkInMostRecentTournament.addAll(goalkeepingHistoryRepository
+                    .findPlayerIdsWhoWereGoalKeeperInTournament(playerIds, mostRecentTournament.getId()));
+        }
+
+        // 6. Last participation dates (batch)
+        Map<Long, LocalDateTime> lastParticipationMap = new java.util.HashMap<>();
+        tournamentParticipantRepository.findMostRecentParticipationDateBatch(playerIds, tournamentId)
+                .forEach(row -> lastParticipationMap.put((Long) row[0], (LocalDateTime) row[1]));
+
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yy");
+
         for (TournamentParticipant participant : participants) {
             Player player = participant.getPlayer();
+            Long playerId = player.getId();
 
-            // ===== GATHER DATA =====
-            // 1. Goalkeeper history (removed unused list variable)
-            Integer totalGKTournaments = goalkeepingHistoryRepository
-                    .countGoalKeeperHistoryExcludingTournament(player.getId(), tournamentId);
+            // Derive stats from pre-fetched data
+            List<PlayerGoalkeepingHistory> playerGkHistory = gkHistoryByPlayer.getOrDefault(playerId, List.of());
+            Integer totalGKTournaments = (int) playerGkHistory.stream()
+                    .map(h -> h.getTournament().getId())
+                    .distinct()
+                    .count();
 
-            // 2. Participation frequency data
-            Integer totalTournamentParticipations = goalkeepingHistoryRepository
-                    .countPlayerTournamentParticipations(player.getId());
+            Integer totalTournamentParticipations = participationCountMap.getOrDefault(playerId, 0);
 
-            // 3. Most recent GK date
-            Optional<LocalDateTime> mostRecentGKDate = goalkeepingHistoryRepository
-                    .findMostRecentGoalKeeperDate(player.getId());
-            LocalDateTime lastGoalKeeperDate = mostRecentGKDate.orElse(null);
+            LocalDateTime lastGoalKeeperDate = mostRecentGkDateMap.get(playerId);
             Integer daysSinceLastGoalkeeping = lastGoalKeeperDate != null
                     ? (int) java.time.temporal.ChronoUnit.DAYS.between(lastGoalKeeperDate.toLocalDate(), tournament.getTournamentDate().toLocalDate())
                     : Integer.MAX_VALUE;
             if (daysSinceLastGoalkeeping < 0) {
-                daysSinceLastGoalkeeping = 0; // guard against future dated GK entries
+                daysSinceLastGoalkeeping = 0;
             }
 
-            // 4. Calculate consecutive tournaments missed BEFORE current tournament
-            Integer consecutiveMissedTournaments = tournamentParticipantRepository
-                    .countConsecutiveMissedTournamentsBeforeCurrent(player.getId(), tournamentId);
-            if (consecutiveMissedTournaments == null) {
-                consecutiveMissedTournaments = 0;
-            }
+            Integer consecutiveMissedTournaments = consecutiveMissedMap.getOrDefault(playerId, 0);
 
-            // 5. All GK dates for display (EXCLUDING current & FUTURE tournaments - only PAST tournaments)
-            List<LocalDateTime> allGoalKeeperDateTimes = goalkeepingHistoryRepository
-                    .findGoalKeeperHistoryExcludingTournament(player.getId(), tournamentId).stream()
-                    .map(PlayerGoalkeepingHistory::getPlayedDate) // Only PAST dates
+            List<String> formattedGoalKeeperDates = playerGkHistory.stream()
+                    .map(PlayerGoalkeepingHistory::getPlayedDate)
                     .filter(playedDate -> playedDate.isBefore(tournament.getTournamentDate()))
-                    .toList();
-            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yy");
-            List<String> formattedGoalKeeperDates = allGoalKeeperDateTimes.stream()
                     .map(dateTime -> dateTime.format(dateFormatter))
                     .toList();
 
-            // 6. Check if GK in most recent tournament
-            boolean wasGKInMostRecent = false;
-            if (mostRecentTournament != null) {
-                wasGKInMostRecent = goalkeepingHistoryRepository
-                        .wasGoalKeeperInTournament(player.getId(), mostRecentTournament.getId());
-            }
+            boolean wasGKInMostRecent = gkInMostRecentTournament.contains(playerId);
 
-            // 7. Get last played tournament date (excluding current tournament)
-            Optional<LocalDateTime> lastParticipationDateOpt = tournamentParticipantRepository
-                    .findMostRecentParticipationDateExcludingCurrent(player.getId(), tournamentId);
             String lastPlayedTournamentDate = null;
-            if (lastParticipationDateOpt.isPresent()) {
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yy");
-                lastPlayedTournamentDate = lastParticipationDateOpt.get().format(formatter);
+            LocalDateTime lastParticipationDate = lastParticipationMap.get(playerId);
+            if (lastParticipationDate != null) {
+                lastPlayedTournamentDate = lastParticipationDate.format(dateFormatter);
             }
 
             // Basic frequency metrics

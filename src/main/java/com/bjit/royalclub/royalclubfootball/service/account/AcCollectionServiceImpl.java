@@ -57,9 +57,7 @@ public class AcCollectionServiceImpl implements AcCollectionService {
     @Transactional
     @Override
     public Long savePaymentCollection(PaymentCollectionRequest paymentRequest) {
-        Set<Player> players = paymentRequest.getPlayerIds().stream()
-                .map(playerService::getPlayerEntity)
-                .collect(Collectors.toSet());
+        Set<Player> players = playerService.getPlayerEntities(paymentRequest.getPlayerIds());
 
         AcCollection collection = AcCollection.builder()
                 .transactionId(generateUniqueTransactionId())
@@ -86,9 +84,7 @@ public class AcCollectionServiceImpl implements AcCollectionService {
     public Long updatePaymentCollection(Long id, PaymentCollectionRequest paymentRequest) {
         AcCollection existingCollection = getAcCollectionById(id);
 
-        Set<Player> players = paymentRequest.getPlayerIds().stream()
-                .map(playerService::getPlayerEntity)
-                .collect(Collectors.toSet());
+        Set<Player> players = playerService.getPlayerEntities(paymentRequest.getPlayerIds());
 
         existingCollection.setPlayers(players);
         existingCollection.setAmount(paymentRequest.getAmount());
@@ -259,9 +255,9 @@ public class AcCollectionServiceImpl implements AcCollectionService {
     public PlayerCollectionMetricsResponse getPlayerCollectionMetrics(Integer year) {
         List<AcCollection> collections;
         if (year == null) {
-            collections = repository.findAll();
+            collections = repository.findAllWithPlayers();
         } else {
-            collections = repository.findCollectionsByYear(year);
+            collections = repository.findCollectionsByYearWithPlayers(year);
         }
         Map<Long, PlayerCollectionReport> reportMap = new HashMap<>();
 

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -89,11 +90,24 @@ public class RoleServiceImpl implements RoleService {
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
 
-        Map<Long, Role> roleCache = new java.util.HashMap<>();
-        for (Long roleId : allRoleIds) {
-            Role role = roleRepository.findById(roleId)
-                    .orElseThrow(() -> new PlayerServiceException("Role with ID " + roleId + " not found", HttpStatus.NOT_FOUND));
-            roleCache.put(roleId, role);
+        Map<Long, Role> roleCache = roleRepository.findAllById(allRoleIds).stream()
+                .collect(Collectors.toMap(Role::getId, r -> r));
+
+        if (roleCache.size() != allRoleIds.size()) {
+            Set<Long> missingIds = new java.util.HashSet<>(allRoleIds);
+            missingIds.removeAll(roleCache.keySet());
+            throw new PlayerServiceException("Role(s) not found with ID(s): " + missingIds, HttpStatus.NOT_FOUND);
+        }
+
+        // Pre-fetch all players to avoid repeated queries
+        Set<Long> allPlayerIds = playerRoleMappings.keySet();
+        Map<Long, Player> playerCache = playerRepository.findAllByIdWithRoles(allPlayerIds).stream()
+                .collect(Collectors.toMap(Player::getId, p -> p));
+
+        if (playerCache.size() != allPlayerIds.size()) {
+            Set<Long> missingIds = new java.util.HashSet<>(allPlayerIds);
+            missingIds.removeAll(playerCache.keySet());
+            throw new PlayerServiceException("Player(s) not found with ID(s): " + missingIds, HttpStatus.NOT_FOUND);
         }
 
         // Assign different roles to each player
@@ -102,8 +116,7 @@ public class RoleServiceImpl implements RoleService {
             Long playerId = entry.getKey();
             Set<Long> roleIds = entry.getValue();
 
-            Player player = playerRepository.findById(playerId)
-                    .orElseThrow(() -> new PlayerServiceException("Player with ID " + playerId + " not found", HttpStatus.NOT_FOUND));
+            Player player = playerCache.get(playerId);
 
             Set<Role> rolesToAssign = roleIds.stream()
                     .map(roleCache::get)
@@ -126,8 +139,17 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public List<PlayerWithRolesResponse> getAllPlayersWithRoles() {
-        return playerRepository.findAll(PaginationUtil.cappedListByIdDesc())
-                .stream()
+        // Page the IDs, then fetch that page with roles joined: convertPlayerToDto reads
+        // getRoles(), which would otherwise be one lazy select per player.
+        List<Long> ids = playerRepository.findAllPlayerIds(PaginationUtil.cappedListByIdDesc()).getContent();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Player> playersById = playerRepository.findAllByIdWithRoles(ids).stream()
+                .collect(Collectors.toMap(Player::getId, player -> player));
+        return ids.stream()
+                .map(playersById::get)
+                .filter(Objects::nonNull)
                 .map(this::convertPlayerToDto)
                 .toList();
     }

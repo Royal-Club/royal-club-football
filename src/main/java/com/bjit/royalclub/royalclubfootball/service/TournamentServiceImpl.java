@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
@@ -191,12 +192,17 @@ public class TournamentServiceImpl implements TournamentService {
     public void updateTournamentStatuses() {
         // Process tournaments without fixtures (use old date-based logic)
         List<Tournament> tournamentsWithoutMatches = tournamentRepository.findActiveTournamentsWithoutMatches();
+        List<Tournament> tournamentsToSave = new ArrayList<>();
         for (Tournament tournament : tournamentsWithoutMatches) {
             if (tournament.getTournamentDate().isBefore(LocalDateTime.now())) {
                 tournament.setTournamentStatus(CONCLUDED);
                 tournament.setActive(false);
-                tournamentRepository.save(tournament);
+                tournamentsToSave.add(tournament);
             }
+        }
+        if (!tournamentsToSave.isEmpty()) {
+            tournamentRepository.saveAll(tournamentsToSave);
+            tournamentsToSave.clear();
         }
 
         // Process tournaments with fixtures (use match-based logic)
@@ -215,7 +221,7 @@ public class TournamentServiceImpl implements TournamentService {
                 }
                 tournament.setTournamentStatus(CONCLUDED);
                 tournament.setActive(false);
-                tournamentRepository.save(tournament);
+                tournamentsToSave.add(tournament);
                 continue;
             }
 
@@ -226,7 +232,7 @@ public class TournamentServiceImpl implements TournamentService {
                 // If any match is ongoing, set tournament to ONGOING
                 if (tournament.getTournamentStatus() != ONGOING) {
                     tournament.setTournamentStatus(ONGOING);
-                    tournamentRepository.save(tournament);
+                    tournamentsToSave.add(tournament);
                 }
             } else {
                 // Check if all matches are completed or canceled
@@ -236,15 +242,18 @@ public class TournamentServiceImpl implements TournamentService {
                     // All matches are done, conclude the tournament
                     tournament.setTournamentStatus(CONCLUDED);
                     tournament.setActive(false);
-                    tournamentRepository.save(tournament);
+                    tournamentsToSave.add(tournament);
                 } else {
                     // There are scheduled matches, keep as UPCOMING
                     if (tournament.getTournamentStatus() != UPCOMING) {
                         tournament.setTournamentStatus(UPCOMING);
-                        tournamentRepository.save(tournament);
+                        tournamentsToSave.add(tournament);
                     }
                 }
             }
+        }
+        if (!tournamentsToSave.isEmpty()) {
+            tournamentRepository.saveAll(tournamentsToSave);
         }
     }
 

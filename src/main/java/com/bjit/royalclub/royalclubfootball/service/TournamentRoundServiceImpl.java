@@ -16,6 +16,7 @@ import jakarta.transaction.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.*;
@@ -602,13 +603,19 @@ public class TournamentRoundServiceImpl implements TournamentRoundService {
         long completedMatches;
         
         if (round.getRoundType() == RoundType.GROUP_BASED) {
-            // For GROUP_BASED rounds, count all matches in all groups
-            totalMatches = 0;
-            completedMatches = 0;
+            // For GROUP_BASED rounds, batch count all matches in all groups
             List<RoundGroup> roundGroups = roundGroupRepository.findByRoundId(round.getId());
-            for (RoundGroup group : roundGroups) {
-                totalMatches += matchRepository.countByGroupId(group.getId());
-                completedMatches += matchRepository.countCompletedByGroupId(group.getId());
+            List<Long> groupIds = roundGroups.stream().map(RoundGroup::getId).toList();
+            if (groupIds.isEmpty()) {
+                totalMatches = 0;
+                completedMatches = 0;
+            } else {
+                Map<Long, Long> totalByGroup = matchRepository.countByGroupIds(groupIds).stream()
+                        .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+                Map<Long, Long> completedByGroup = matchRepository.countCompletedByGroupIds(groupIds).stream()
+                        .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+                totalMatches = totalByGroup.values().stream().mapToLong(Long::longValue).sum();
+                completedMatches = completedByGroup.values().stream().mapToLong(Long::longValue).sum();
             }
         } else {
             // For DIRECT_KNOCKOUT rounds, count matches directly in the round

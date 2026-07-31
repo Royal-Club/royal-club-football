@@ -1,11 +1,14 @@
 package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +17,20 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     Optional<Player> findByEmail(String email);
 
     Optional<Player> findByEmailAndIsActiveTrue(String email);
+
+    @Query("SELECT p FROM Player p LEFT JOIN FETCH p.roles WHERE p.email = :email AND p.isActive = true")
+    Optional<Player> findByEmailAndIsActiveTrueWithRoles(@Param("email") String email);
+
+    @Query("SELECT DISTINCT p FROM Player p LEFT JOIN FETCH p.roles WHERE p.id IN :ids")
+    List<Player> findAllByIdWithRoles(@Param("ids") Collection<Long> ids);
+
+    /**
+     * Paginated IDs only. Pair with {@link #findAllByIdWithRoles} to page players whose roles are
+     * needed: a {@code JOIN FETCH} on the collection cannot be paged in SQL, so Hibernate would
+     * otherwise fall back to loading every row and paginating in memory.
+     */
+    @Query("SELECT p.id FROM Player p")
+    Page<Long> findAllPlayerIds(Pageable pageable);
 
     int countByIsActiveTrue();
 

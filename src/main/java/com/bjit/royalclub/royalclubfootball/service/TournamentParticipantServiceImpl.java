@@ -24,7 +24,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.ALREADY_PARTICIPANT;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.PARTICIPANT_NOT_FOUND;
@@ -110,8 +112,14 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
 
     @Override
     public List<PlayerParticipationResponse> playersToBeSelectedForTeam(Long tournamentId) {
-        return tournamentParticipantRepository.findAllByTournamentIdAndParticipationStatusTrue(tournamentId).stream()
-                .filter(participant -> !isPlayerAssignedToAnyTeam(participant))
+        Tournament tournament = getTournament(tournamentId);
+        List<Long> teamIds = tournament.getTeams().stream().map(Team::getId).toList();
+        // One query for every already-assigned player instead of an exists check per participant.
+        Set<Long> assignedPlayerIds = teamIds.isEmpty()
+                ? Set.of()
+                : new HashSet<>(teamPlayerRepository.findPlayerIdsByTeamIds(teamIds));
+        return tournamentParticipantRepository.findAllByTournamentIdAndParticipationStatusTrueWithPlayer(tournamentId).stream()
+                .filter(participant -> !assignedPlayerIds.contains(participant.getPlayer().getId()))
                 .map(this::convertToPlayerParticipationResponse)
                 .toList();
     }
@@ -136,17 +144,10 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
         Tournament tournament = getTournament(tournamentId);
         List<Long> teamIds = tournament.getTeams().stream().map(Team::getId).toList();
         List<Long> playerIds = tournamentParticipantRepository
-                .findAllByTournamentIdAndParticipationStatusTrue(tournamentId).stream()
+                .findAllByTournamentIdAndParticipationStatusTrueWithPlayer(tournamentId).stream()
                 .map(participant -> participant.getPlayer().getId())
                 .toList();
         return teamPlayerRepository.findGoalkeeperStatsByPlayerIdsExcludingTeams(playerIds, teamIds);
-    }
-
-    private boolean isPlayerAssignedToAnyTeam(TournamentParticipant participant) {
-        List<Long> teamIds = participant.getTournament().getTeams().stream()
-                .map(Team::getId)
-                .toList();
-        return teamPlayerRepository.existsByTeamIdsAndPlayerId(teamIds, participant.getPlayer().getId());
     }
 
     private PlayerParticipationResponse convertToPlayerParticipationResponse(TournamentParticipant participant) {

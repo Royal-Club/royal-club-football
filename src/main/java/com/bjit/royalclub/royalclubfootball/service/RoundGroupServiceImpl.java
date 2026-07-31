@@ -303,9 +303,14 @@ public class RoundGroupServiceImpl implements RoundGroupService {
         // Recalculate from completed matches
         List<Match> matches = matchRepository.findCompletedByGroupId(groupId);
 
+        // Pre-fetch all events for all completed matches in this group in one query
+        List<MatchEvent> allEvents = matchRepository.findEventsByCompletedMatchesInGroup(groupId);
+        Map<Long, List<MatchEvent>> eventsByMatchId = allEvents.stream()
+                .collect(Collectors.groupingBy(event -> event.getMatch().getId()));
+
         for (Match match : matches) {
             updateStandingsForMatch(standings, match);
-            aggregateCardsForMatch(standings, match);
+            aggregateCardsForMatch(standings, match, eventsByMatchId.getOrDefault(match.getId(), List.of()));
         }
 
         // Rank using the full criteria sequence and assign positions
@@ -353,8 +358,7 @@ public class RoundGroupServiceImpl implements RoundGroupService {
      * Aggregate yellow/red cards and UEFA fair-play deductions for one match
      * into the affected team standings.
      */
-    private void aggregateCardsForMatch(List<GroupStanding> standings, Match match) {
-        List<MatchEvent> events = matchEventRepository.findByMatchId(match.getId());
+    private void aggregateCardsForMatch(List<GroupStanding> standings, Match match, List<MatchEvent> events) {
         if (events.isEmpty()) {
             return;
         }

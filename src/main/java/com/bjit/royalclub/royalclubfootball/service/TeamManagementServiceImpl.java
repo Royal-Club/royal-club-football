@@ -30,6 +30,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.bjit.royalclub.royalclubfootball.enums.TeamPlayerRole;
 
@@ -186,11 +188,17 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     }
 
     private List<TournamentResponse> getAllTournamentsWithTeamsAndPlayers() {
-        List<Tournament> tournaments = tournamentRepository.findAll();
+        List<Tournament> tournaments = tournamentRepository.findAllWithVenue();
+
+        // Batch fetch all teams for all tournaments in one query
+        List<Long> tournamentIds = tournaments.stream().map(Tournament::getId).toList();
+        List<Team> allTeams = teamRepository.findTeamsWithPlayersByTournamentIds(tournamentIds);
+        Map<Long, List<Team>> teamsByTournament = allTeams.stream()
+                .collect(Collectors.groupingBy(team -> team.getTournament().getId()));
 
         return tournaments.stream()
                 .map(tournament -> {
-                    List<Team> teams = teamRepository.findTeamsWithPlayersByTournamentId(tournament.getId());
+                    List<Team> teams = teamsByTournament.getOrDefault(tournament.getId(), List.of());
                     List<TournamentTeamResponse> teamResponses = teams.stream()
                             .map(this::convertToTournamentTeamResponse)
                             .toList();

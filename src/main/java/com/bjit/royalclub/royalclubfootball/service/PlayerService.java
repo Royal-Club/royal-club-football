@@ -22,6 +22,8 @@ public interface PlayerService {
 
     Player getPlayerEntity(Long id);
 
+    Set<Player> getPlayerEntities(java.util.Collection<Long> ids);
+
     PlayerResponse getPlayerResponse(Player player);
 
     Set<PlayerResponse> getPlayerResponses(Set<Player> players);

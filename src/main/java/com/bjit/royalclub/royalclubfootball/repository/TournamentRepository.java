@@ -12,6 +12,9 @@ import java.util.List;
 
 public interface TournamentRepository extends JpaRepository<Tournament, Long>, JpaSpecificationExecutor<Tournament> {
 
+    @Query("SELECT DISTINCT t FROM Tournament t LEFT JOIN FETCH t.venue")
+    List<Tournament> findAllWithVenue();
+
     /**
      * Find all active tournaments that have no matches (fixtures not generated yet)
      * These should be concluded based on tournament date

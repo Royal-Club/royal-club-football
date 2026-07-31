@@ -1,6 +1,7 @@
 package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.Match;
+import com.bjit.royalclub.royalclubfootball.entity.MatchEvent;
 import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,8 +15,14 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     /**
      * Find all matches for a specific tournament ordered by match date
+     * Uses JOIN FETCH to avoid N+1 on homeTeam, awayTeam, venue, and tournament
      */
-    @Query("SELECT m FROM Match m WHERE m.tournament.id = :tournamentId ORDER BY m.matchDate ASC")
+    @Query("SELECT m FROM Match m " +
+           "JOIN FETCH m.tournament " +
+           "JOIN FETCH m.homeTeam " +
+           "JOIN FETCH m.awayTeam " +
+           "LEFT JOIN FETCH m.venue " +
+           "WHERE m.tournament.id = :tournamentId ORDER BY m.matchDate ASC")
     List<Match> findByTournamentId(@Param("tournamentId") Long tournamentId);
 
     /**
@@ -253,6 +260,26 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
      */
     @Query("SELECT COUNT(m) FROM Match m WHERE m.group.id = :groupId AND (m.homeTeam.id = :teamId OR m.awayTeam.id = :teamId)")
     long countByGroupIdAndTeamId(@Param("groupId") Long groupId, @Param("teamId") Long teamId);
+
+    /**
+     * Count total matches per group ID for a list of group IDs.
+     * Returns Object[] of {groupId, count}.
+     */
+    @Query("SELECT m.group.id, COUNT(m) FROM Match m WHERE m.group.id IN :groupIds GROUP BY m.group.id")
+    List<Object[]> countByGroupIds(@Param("groupIds") List<Long> groupIds);
+
+    /**
+     * Count completed matches per group ID for a list of group IDs.
+     * Returns Object[] of {groupId, count}.
+     */
+    @Query("SELECT m.group.id, COUNT(m) FROM Match m WHERE m.group.id IN :groupIds AND m.matchStatus = 'COMPLETED' GROUP BY m.group.id")
+    List<Object[]> countCompletedByGroupIds(@Param("groupIds") List<Long> groupIds);
+
+    /**
+     * Find all match events for matches in a group (batch fetch).
+     */
+    @Query("SELECT me FROM MatchEvent me WHERE me.match.group.id = :groupId AND me.match.matchStatus = 'COMPLETED'")
+    List<MatchEvent> findEventsByCompletedMatchesInGroup(@Param("groupId") Long groupId);
 
     /**
      * Count matches for a team in a round (for DIRECT_KNOCKOUT rounds)

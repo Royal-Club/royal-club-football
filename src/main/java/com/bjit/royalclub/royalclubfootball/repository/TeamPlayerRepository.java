@@ -13,6 +13,13 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, Long> {
     @Query("SELECT COUNT(tp) > 0 FROM TeamPlayer tp WHERE tp.team.id IN :teamIds AND tp.player.id = :playerId")
     boolean existsByTeamIdsAndPlayerId(@Param("teamIds") List<Long> teamIds, @Param("playerId") Long playerId);
 
+    /**
+     * All player IDs assigned to any of the given teams. Batch form of
+     * {@link #existsByTeamIdsAndPlayerId} for callers checking many players at once.
+     */
+    @Query("SELECT DISTINCT tp.player.id FROM TeamPlayer tp WHERE tp.team.id IN :teamIds")
+    List<Long> findPlayerIdsByTeamIds(@Param("teamIds") List<Long> teamIds);
+
     @Query("SELECT tp FROM TeamPlayer tp WHERE tp.team.id = :teamId AND tp.player.id = :playerId")
     Optional<TeamPlayer> findByTeamIdAndPlayerId(@Param("teamId") Long teamId, @Param("playerId") Long playerId);
 

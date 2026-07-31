@@ -34,7 +34,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
         Player player = playerRepository
-                .findByEmailAndIsActiveTrue(loginRequest.getEmail())
+                .findByEmailAndIsActiveTrueWithRoles(loginRequest.getEmail())
                 .orElseThrow(() -> new PlayerServiceException(INCORRECT_EMAIL, HttpStatus.UNAUTHORIZED));
         if (!passwordEncoder.matches(loginRequest.getPassword(), player.getPassword())) {
             throw new PlayerServiceException(PASSWORD_MISMATCH_EXCEPTION, HttpStatus.UNAUTHORIZED);
