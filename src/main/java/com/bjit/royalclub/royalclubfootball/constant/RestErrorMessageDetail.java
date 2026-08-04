@@ -92,4 +92,12 @@ public class RestErrorMessageDetail {
     public static final String STANDING_NOT_FOUND = "Standing is not found";
     public static final String ADVANCEMENT_RULE_NOT_FOUND = "Advancement rule is not found";
 
+    // Resource Library Error Messages
+    public static final String CLUB_RESOURCE_IS_NOT_FOUND = "Resource is not found";
+    public static final String RESOURCE_CATEGORY_IS_NOT_FOUND = "Resource category is not found";
+    public static final String RESOURCE_CATEGORY_NAME_ALREADY_EXISTS = "A resource category with this name already exists";
+    public static final String RESOURCE_CATEGORY_HAS_RESOURCES = "Cannot delete a category that still holds resources";
+    public static final String RESOURCE_CONTENT_IS_REQUIRED = "Provide the content body, an external link, or at least one attachment";
+    public static final String RESOURCE_EXTERNAL_URL_IS_REQUIRED = "An external URL is required for video and link resources";
+
 }

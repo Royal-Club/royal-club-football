@@ -29,8 +29,9 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      # Resource-library uploads (formation diagrams, PDFs) are larger than avatars.
+      max-file-size: 25MB
+      max-request-size: 25MB
 
 
 
@@ -80,6 +81,16 @@ app:
       access-key: ${TEAM_LOGO_R2_ACCESS_KEY:}
       secret-key: ${TEAM_LOGO_R2_SECRET_KEY:}
       presign-duration-minutes: ${TEAM_LOGO_R2_PRESIGN_MINUTES:60}
+  resource-file:
+    storage-provider: ${RESOURCE_FILE_STORAGE_PROVIDER:${TEAM_LOGO_STORAGE_PROVIDER:local}}
+    upload-dir: ${RESOURCE_FILE_UPLOAD_DIR:uploads/resources}
+    base-url: ${RESOURCE_FILE_BASE_URL:${TEAM_LOGO_BASE_URL:http://localhost:9191}}
+    r2:
+      endpoint: ${RESOURCE_FILE_R2_ENDPOINT:${TEAM_LOGO_R2_ENDPOINT:}}
+      bucket: ${RESOURCE_FILE_R2_BUCKET:${TEAM_LOGO_R2_BUCKET:}}
+      access-key: ${RESOURCE_FILE_R2_ACCESS_KEY:${TEAM_LOGO_R2_ACCESS_KEY:}}
+      secret-key: ${RESOURCE_FILE_R2_SECRET_KEY:${TEAM_LOGO_R2_SECRET_KEY:}}
+      presign-duration-minutes: ${RESOURCE_FILE_R2_PRESIGN_MINUTES:${TEAM_LOGO_R2_PRESIGN_MINUTES:60}}
   player-photo:
     storage-provider: ${PLAYER_PHOTO_STORAGE_PROVIDER:${TEAM_LOGO_STORAGE_PROVIDER:local}}
     upload-dir: ${PLAYER_PHOTO_UPLOAD_DIR:uploads/player-photos}

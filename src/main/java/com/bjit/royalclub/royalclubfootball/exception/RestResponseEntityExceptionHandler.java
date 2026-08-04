@@ -297,4 +297,14 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         log.warn(WARN_LOG, ex.getMessage());
         return buildFailureResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
+
+    /**
+     * Without this, every {@link BadRequestException} escaped as a 500 and the
+     * status the thrower asked for — typically 404 or 409 — was discarded.
+     */
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<Object> handleBadRequestException(BadRequestException ex) {
+        log.warn(WARN_LOG, ex.getMessage());
+        return buildFailureResponse(ex.getHttpStatus(), ex.getMessage());
+    }
 }
