@@ -79,6 +79,10 @@ public class Tournament extends AuditBase {
     @Column(name = "group_count")
     private Integer groupCount;
 
+    /** Players per side, including the goalkeeper. Drives the formation presets. */
+    @Column(name = "team_size", nullable = false)
+    private Integer teamSize;
+
     @Column(name = "auction_mode", nullable = false)
     private boolean auctionMode;
 

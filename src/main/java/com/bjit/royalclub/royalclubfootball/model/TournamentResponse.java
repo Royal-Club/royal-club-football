@@ -31,6 +31,7 @@ public class TournamentResponse {
     private String sportType;
     private String tournamentType;
     private Integer groupCount;
+    private Integer teamSize;
 
     // Auction - always include in JSON (NON_EMPTY would suppress false for primitives)
     @JsonInclude(JsonInclude.Include.ALWAYS)

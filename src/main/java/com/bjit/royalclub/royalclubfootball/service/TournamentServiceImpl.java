@@ -41,6 +41,9 @@ import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeStr
 @RequiredArgsConstructor
 public class TournamentServiceImpl implements TournamentService {
 
+    /** Falls back to the club's usual futsal format when a caller omits the size. */
+    private static final int DEFAULT_TEAM_SIZE = 6;
+
     private final TournamentRepository tournamentRepository;
     private final VenueRepository venueRepository;
     private final TournamentSpecification tournamentSpecification;
@@ -63,6 +66,7 @@ public class TournamentServiceImpl implements TournamentService {
                 .sportType(tournament.getSportType() != null ? tournament.getSportType().toString() : null)
                 .tournamentType(tournament.getTournamentType() != null ? tournament.getTournamentType().toString() : null)
                 .groupCount(tournament.getGroupCount())
+                .teamSize(tournament.getTeamSize())
                 .auctionMode(tournament.isAuctionMode())
                 .build();
     }
@@ -95,6 +99,7 @@ public class TournamentServiceImpl implements TournamentService {
                         com.bjit.royalclub.royalclubfootball.enums.TournamentType.valueOf(tournamentRequest.getTournamentType()) :
                         com.bjit.royalclub.royalclubfootball.enums.TournamentType.ROUND_ROBIN)
                 .groupCount(tournamentRequest.getGroupCount())
+                .teamSize(tournamentRequest.getTeamSize() != null ? tournamentRequest.getTeamSize() : DEFAULT_TEAM_SIZE)
                 .auctionMode(tournamentRequest.isAuctionMode())
                 .defaultTournament(defaultTournament)
                 .build();
@@ -172,6 +177,9 @@ public class TournamentServiceImpl implements TournamentService {
         }
         if (tournamentUpdateRequest.getGroupCount() != null) {
             tournament.setGroupCount(tournamentUpdateRequest.getGroupCount());
+        }
+        if (tournamentUpdateRequest.getTeamSize() != null) {
+            tournament.setTeamSize(tournamentUpdateRequest.getTeamSize());
         }
         tournament.setAuctionMode(tournamentUpdateRequest.isAuctionMode());
 
