@@ -72,6 +72,15 @@ public interface TournamentParticipantRepository extends JpaRepository<Tournamen
             @Param("playerIds") Collection<Long> playerIds,
             @Param("currentTournamentId") Long currentTournamentId);
 
+    /**
+     * Every RSVP recorded for the given tournaments as {playerId, tournamentId,
+     * participationStatus}. Feeds the club-wide attendance report, which needs
+     * the raw responses to work out streaks in order.
+     */
+    @Query("SELECT tp.player.id, tp.tournament.id, tp.participationStatus FROM TournamentParticipant tp "
+            + "WHERE tp.tournament.id IN :tournamentIds")
+    List<Object[]> findResponsesByTournamentIds(@Param("tournamentIds") Collection<Long> tournamentIds);
+
     @Query("SELECT tp.player.id, MAX(t.tournamentDate) FROM TournamentParticipant tp " +
             "JOIN tp.tournament t " +
             "WHERE tp.player.id IN :playerIds AND tp.participationStatus = true " +

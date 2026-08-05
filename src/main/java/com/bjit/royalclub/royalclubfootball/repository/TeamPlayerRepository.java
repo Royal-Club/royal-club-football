@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,5 +59,14 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, Long> {
      */
     @Query("SELECT tp FROM TeamPlayer tp WHERE tp.team.id = :teamId")
     List<TeamPlayer> findAllByTeamId(@Param("teamId") Long teamId);
+
+    /**
+     * {playerId, tournamentId} for every team assignment in the given tournaments.
+     * Being on a team sheet is what counts as having turned up, so this is the
+     * "played" side of the attendance report.
+     */
+    @Query("SELECT DISTINCT tp.player.id, tp.team.tournament.id FROM TeamPlayer tp "
+            + "WHERE tp.team.tournament.id IN :tournamentIds")
+    List<Object[]> findPlayerTournamentPairs(@Param("tournamentIds") Collection<Long> tournamentIds);
 
 }

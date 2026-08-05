@@ -79,6 +79,21 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long>, J
     List<Tournament> findByYearOrderByTournamentDateDesc(@Param("year") int year);
 
     /**
+     * Tournaments that have already taken place, oldest first. Used as the
+     * timeline the attendance report is measured against.
+     */
+    @Query("SELECT t FROM Tournament t WHERE t.tournamentDate < :asOf ORDER BY t.tournamentDate ASC")
+    List<Tournament> findHeldTournaments(@Param("asOf") java.time.LocalDateTime asOf);
+
+    /**
+     * {@link #findHeldTournaments} narrowed to a single calendar year.
+     */
+    @Query("SELECT t FROM Tournament t WHERE t.tournamentDate < :asOf AND YEAR(t.tournamentDate) = :year "
+            + "ORDER BY t.tournamentDate ASC")
+    List<Tournament> findHeldTournamentsByYear(@Param("asOf") java.time.LocalDateTime asOf,
+                                               @Param("year") int year);
+
+    /**
      * Find distinct years where tournaments exist
      * Returns years in descending order (newest first)
      */
