@@ -346,14 +346,7 @@ public class TeamFormationServiceImpl implements TeamFormationService {
         String presetName = FormationPresets.defaultPresetName(teamSize);
 
         List<TeamFormationSlotResponse> slots = FormationPresets.slotsFor(teamSize, presetName).stream()
-                .map(preset -> TeamFormationSlotResponse.builder()
-                        .slotIndex(preset.getSlotIndex())
-                        .positionGroup(preset.getPositionGroup())
-                        .slotLabel(preset.getSlotLabel())
-                        .x(preset.getX())
-                        .y(preset.getY())
-                        .isStarter(true)
-                        .build())
+                .map(TeamFormationServiceImpl::emptySlot)
                 .toList();
 
         return baseResponse(team, match, teamSize, presetName, null)
@@ -362,12 +355,66 @@ public class TeamFormationServiceImpl implements TeamFormationService {
                 .build();
     }
 
+    private static TeamFormationSlotResponse emptySlot(FormationPresets.PresetSlot preset) {
+        return TeamFormationSlotResponse.builder()
+                .slotIndex(preset.getSlotIndex())
+                .positionGroup(preset.getPositionGroup())
+                .slotLabel(preset.getSlotLabel())
+                .x(preset.getX())
+                .y(preset.getY())
+                .isStarter(true)
+                .build();
+    }
+
+    /**
+     * Puts back any pitch place the stored sheet is missing.
+     *
+     * <p>Line-ups saved before V63 lost a whole slot row whenever the player in
+     * it left the squad, so a 2-2-1 could come back as four places. Slot indices
+     * are not renumbered by a delete, so the preset can say exactly which ones
+     * went and where they belong. Surviving places keep wherever the captain
+     * dragged them; only the gaps are taken from the preset.
+     */
+    private List<TeamFormationSlotResponse> withPresetGaps(List<TeamFormationSlotResponse> stored,
+                                                           int teamSize,
+                                                           String presetName) {
+        List<FormationPresets.PresetSlot> preset = FormationPresets.slotsFor(teamSize, presetName);
+        if (preset.isEmpty()) {
+            return stored;
+        }
+
+        Map<Integer, TeamFormationSlotResponse> starters = new LinkedHashMap<>();
+        for (TeamFormationSlotResponse slot : stored) {
+            if (!Boolean.FALSE.equals(slot.getIsStarter())) {
+                starters.put(slot.getSlotIndex(), slot);
+            }
+        }
+
+        List<TeamFormationSlotResponse> rebuilt = new ArrayList<>(stored.size());
+        for (FormationPresets.PresetSlot presetSlot : preset) {
+            TeamFormationSlotResponse kept = starters.remove(presetSlot.getSlotIndex());
+            rebuilt.add(kept != null ? kept : emptySlot(presetSlot));
+        }
+
+        // Then anything the captain has beyond the shape, and last the bench.
+        // Bench places left empty by a departure are dropped: the bench is worked
+        // out from the squad, so an empty one has nothing left to say.
+        rebuilt.addAll(starters.values());
+        for (TeamFormationSlotResponse slot : stored) {
+            if (Boolean.FALSE.equals(slot.getIsStarter()) && slot.getTeamPlayerId() != null) {
+                rebuilt.add(slot);
+            }
+        }
+        return rebuilt;
+    }
+
     private TeamFormationResponse toResponse(TeamFormation formation, Team team, Match match, boolean saved) {
         int teamSize = formation.getTeamSize() != null ? formation.getTeamSize() : teamSizeOf(team);
 
-        List<TeamFormationSlotResponse> slots = formation.getSlots().stream()
-                .map(this::toSlotResponse)
-                .toList();
+        List<TeamFormationSlotResponse> slots = withPresetGaps(
+                formation.getSlots().stream().map(this::toSlotResponse).toList(),
+                teamSize,
+                formation.getPresetName());
 
         return baseResponse(team, match, teamSize, formation.getPresetName(), formation.getNotes())
                 .id(formation.getId())
