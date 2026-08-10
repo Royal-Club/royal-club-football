@@ -4,6 +4,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Match;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.entity.Venue;
 import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
+import com.bjit.royalclub.royalclubfootball.event.TournamentCreatedEvent;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.VenueServiceException;
 import com.bjit.royalclub.royalclubfootball.model.PaginatedTournamentResponse;
@@ -16,6 +17,7 @@ import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentSpecification;
 import com.bjit.royalclub.royalclubfootball.repository.VenueRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -48,6 +50,7 @@ public class TournamentServiceImpl implements TournamentService {
     private final VenueRepository venueRepository;
     private final TournamentSpecification tournamentSpecification;
     private final MatchRepository matchRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private TournamentResponse convertToDto(Tournament tournament) {
         return TournamentResponse.builder()
@@ -68,6 +71,7 @@ public class TournamentServiceImpl implements TournamentService {
                 .groupCount(tournament.getGroupCount())
                 .teamSize(tournament.getTeamSize())
                 .auctionMode(tournament.isAuctionMode())
+                .emailNotificationEnabled(tournament.isEmailNotificationEnabled())
                 .build();
     }
 
@@ -102,6 +106,8 @@ public class TournamentServiceImpl implements TournamentService {
                 .teamSize(tournamentRequest.getTeamSize() != null ? tournamentRequest.getTeamSize() : DEFAULT_TEAM_SIZE)
                 .auctionMode(tournamentRequest.isAuctionMode())
                 .defaultTournament(defaultTournament)
+                // Omitted by the caller means "on" - the create form ships the switch enabled.
+                .emailNotificationEnabled(!Boolean.FALSE.equals(tournamentRequest.getEmailNotificationEnabled()))
                 .build();
 
             if (defaultTournament) {
@@ -110,6 +116,8 @@ public class TournamentServiceImpl implements TournamentService {
             }
 
         Tournament savedTournament = tournamentRepository.save(tournament);
+        // Consumed after commit, so inviting the squad can never roll back the tournament itself.
+        eventPublisher.publishEvent(new TournamentCreatedEvent(savedTournament.getId()));
         return convertToDto(savedTournament);
     }
 
@@ -182,6 +190,11 @@ public class TournamentServiceImpl implements TournamentService {
             tournament.setTeamSize(tournamentUpdateRequest.getTeamSize());
         }
         tournament.setAuctionMode(tournamentUpdateRequest.isAuctionMode());
+
+        // Left alone when omitted, so partial updates can't silently switch email off.
+        if (tournamentUpdateRequest.getEmailNotificationEnabled() != null) {
+            tournament.setEmailNotificationEnabled(tournamentUpdateRequest.getEmailNotificationEnabled());
+        }
 
         if (tournamentUpdateRequest.getDefaultTournament() != null) {
             boolean defaultTournament = Boolean.TRUE.equals(tournamentUpdateRequest.getDefaultTournament());

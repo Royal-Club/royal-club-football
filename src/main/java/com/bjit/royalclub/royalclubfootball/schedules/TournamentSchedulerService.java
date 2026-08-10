@@ -25,8 +25,9 @@ public class TournamentSchedulerService {
         log.info("Updated tournament statuses based on match status and tournament date.");
     }
 
-    // Send RSVP reminders to players who have not responded, at 9:00 AM and 6:00 PM daily (Asia/Dhaka).
-    @Scheduled(cron = "${reminders.cron:0 0 9,18 * * ?}", zone = "Asia/Dhaka")
+    // Nudge players who have not answered Yes/No, once a day at 9:00 AM (Asia/Dhaka).
+    // The service decides who is due: D-2, D-1 and match day, provided kickoff is still ahead.
+    @Scheduled(cron = "${reminders.cron:0 0 9 * * ?}", zone = "${reminders.zone:Asia/Dhaka}")
     public void sendTournamentRsvpReminders() {
         int reminded = tournamentReminderService.sendDueReminders();
         log.info("RSVP reminder job finished; dispatched {} reminder(s).", reminded);

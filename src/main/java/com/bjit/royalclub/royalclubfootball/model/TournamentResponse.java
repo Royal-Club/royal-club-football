@@ -36,4 +36,8 @@ public class TournamentResponse {
     // Auction - always include in JSON (NON_EMPTY would suppress false for primitives)
     @JsonInclude(JsonInclude.Include.ALWAYS)
     private boolean auctionMode;
+
+    // Same reason: the edit form must see an explicit false, not a missing field.
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    private boolean emailNotificationEnabled;
 }

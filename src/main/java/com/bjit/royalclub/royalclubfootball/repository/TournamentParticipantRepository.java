@@ -27,6 +27,9 @@ public interface TournamentParticipantRepository extends JpaRepository<Tournamen
 
     int countByTournamentIdAndParticipationStatusTrue(Long tournamentId);
 
+    /** Backs the one-click RSVP upsert, where the caller has no participant id to work from. */
+    Optional<TournamentParticipant> findByTournamentIdAndPlayerId(Long tournamentId, Long playerId);
+
     @Query("SELECT MAX(t.tournamentDate) FROM TournamentParticipant tp " +
             "JOIN tp.tournament t " +
             "WHERE tp.player.id = :playerId AND tp.participationStatus = true " +

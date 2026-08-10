@@ -27,6 +27,22 @@ spring:
   flyway:
     baseline-on-migrate: true  # Ensure Flyway migrates from a clean baseline
 
+  # Resend SMTP. Username is the literal "resend"; the password is the API key (never commit it).
+  mail:
+    host: ${MAIL_HOST:smtp.resend.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:resend}
+    password: ${RESEND_API_KEY:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
   servlet:
     multipart:
       # Resource-library uploads (formation diagrams, PDFs) are larger than avatars.
@@ -55,11 +71,29 @@ firebase:
 
 # Tournament RSVP reminder settings.
 reminders:
-  window-hours: ${REMINDERS_WINDOW_HOURS:48}   # Start reminding players this many hours before kickoff.
-  max-per-player: ${REMINDERS_MAX_PER_PLAYER:3} # Stop after this many reminders per player per tournament.
-  cron: ${REMINDERS_CRON:0 0 9,18 * * ?}        # When the reminder job runs (Asia/Dhaka).
+  # Reminders go out on calendar-day offsets: D-2, D-1 and match day (kickoff must still be ahead).
+  lead-days: ${REMINDERS_LEAD_DAYS:2}           # Start reminding this many calendar days before the tournament.
+  max-per-player: ${REMINDERS_MAX_PER_PLAYER:3} # Safety net; the D-2/D-1/D-0 schedule already caps at 3.
+  cron: ${REMINDERS_CRON:0 0 9 * * ?}           # When the reminder job runs (Asia/Dhaka).
+  zone: ${REMINDERS_ZONE:Asia/Dhaka}            # Day boundaries are resolved in this zone, not the server's.
+
+# Invitation / reminder email delivery.
+mail:
+  enabled: ${MAIL_ENABLED:true}                 # Global kill switch; the per-tournament toggle is separate.
+  from-address: ${MAIL_FROM_ADDRESS:noreply@royalfootball.club}
+  from-name: ${MAIL_FROM_NAME:Royal Football Club}
+
+# One-click RSVP links embedded in emails.
+rsvp:
+  token:
+    # MUST differ from jwt.secret so an RSVP link can never be replayed as a login token.
+    secret: ${RSVP_TOKEN_SECRET:cnN2cC10b2tlbi1zZWNyZXQtY2hhbmdlLW1lLWluLXByb2R1Y3Rpb24tMDEyMzQ1}
+  landing-url: ${RSVP_LANDING_URL:${app.frontend.base-url}/rsvp}
 
 app:
+  # Public site the RSVP links point at.
+  frontend:
+    base-url: ${APP_FRONTEND_BASE_URL:http://localhost:3000}
   storage:
     player:
       provider: ${RC_PLAYER_STORAGE_PROVIDER:local}

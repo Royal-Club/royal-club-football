@@ -35,4 +35,7 @@ public class TournamentUpdateRequest {
 
     // Viewer default selection field
     private Boolean defaultTournament;
+
+    /** Boxed so an omitted field leaves the existing setting alone instead of switching email off. */
+    private Boolean emailNotificationEnabled;
 }

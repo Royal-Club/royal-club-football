@@ -86,6 +86,10 @@ public class Tournament extends AuditBase {
     @Column(name = "auction_mode", nullable = false)
     private boolean auctionMode;
 
+    /** When false, no invitation or reminder emails go out for this tournament. Push is unaffected. */
+    @Column(name = "email_notification_enabled", nullable = false)
+    private boolean emailNotificationEnabled;
+
     @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Team> teams;
 }

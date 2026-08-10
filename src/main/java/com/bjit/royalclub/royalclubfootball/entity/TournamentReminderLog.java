@@ -44,6 +44,13 @@ public class TournamentReminderLog extends AuditBase {
     @Column(name = "channel", nullable = false, length = 20)
     private String channel;
 
+    /**
+     * INVITE (sent once at tournament creation) or REMINDER (the D-2/D-1/match-day nudges).
+     * Both occupy their calendar day for de-duplication; only REMINDER counts against the cap.
+     */
+    @Column(name = "reminder_type", nullable = false, length = 20)
+    private String reminderType;
+
     @Column(name = "sent_at", nullable = false)
     private LocalDateTime sentAt;
 }

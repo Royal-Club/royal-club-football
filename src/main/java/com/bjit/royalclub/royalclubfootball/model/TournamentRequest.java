@@ -37,4 +37,10 @@ public class TournamentRequest {
 
     // Viewer default selection field
     private Boolean defaultTournament;
+
+    /**
+     * Boxed on purpose: a primitive would silently default to false for callers that omit the
+     * field, disabling email on every tournament they create. null means "not specified" -> enabled.
+     */
+    private Boolean emailNotificationEnabled;
 }

@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.auditing.DateTimeProvider;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.time.LocalDateTime;
@@ -14,6 +15,8 @@ import java.util.TimeZone;
 
 @SpringBootApplication
 @EnableScheduling
+// Lets the post-commit tournament invitation mail-out run off the request thread.
+@EnableAsync
 @EnableJpaAuditing(auditorAwareRef = "auditorAware")
 public class RoyalClubFootballApplication {
 
