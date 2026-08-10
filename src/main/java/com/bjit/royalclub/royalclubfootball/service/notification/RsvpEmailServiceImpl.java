@@ -3,40 +3,23 @@ package com.bjit.royalclub.royalclubfootball.service.notification;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.util.RsvpTokenUtil;
-import jakarta.mail.internet.MimeMessage;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@Slf4j
 public class RsvpEmailServiceImpl implements RsvpEmailService {
 
     private static final DateTimeFormatter DISPLAY_FORMAT =
             DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy 'at' hh:mm a");
 
-    private final JavaMailSender mailSender;
+    private final ClubMailSender clubMailSender;
     private final RsvpTokenUtil rsvpTokenUtil;
-
-    @Value("${mail.enabled:true}")
-    private boolean mailEnabled;
-
-    @Value("${mail.from-address}")
-    private String fromAddress;
-
-    @Value("${mail.from-name}")
-    private String fromName;
 
     @Value("${rsvp.landing-url}")
     private String landingUrl;
@@ -44,62 +27,28 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
     @Value("${reminders.zone:Asia/Dhaka}")
     private String displayZone;
 
-    public RsvpEmailServiceImpl(JavaMailSender mailSender, RsvpTokenUtil rsvpTokenUtil) {
-        this.mailSender = mailSender;
+    public RsvpEmailServiceImpl(ClubMailSender clubMailSender, RsvpTokenUtil rsvpTokenUtil) {
+        this.clubMailSender = clubMailSender;
         this.rsvpTokenUtil = rsvpTokenUtil;
     }
 
     @Override
     public List<Player> sendRsvpEmails(Tournament tournament, List<Player> players, boolean invitation) {
-        if (!mailEnabled) {
-            log.warn("Email delivery is disabled globally; skipping RSVP email for tournament {}.",
-                    tournament.getId());
-            return List.of();
-        }
-        if (players == null || players.isEmpty()) {
-            return List.of();
-        }
-
         String subject = invitation
                 ? String.format("⚽ %s - are you playing?", tournament.getName())
                 : String.format("⏰ Reminder: %s needs your Yes or No", tournament.getName());
 
-        List<Player> delivered = new ArrayList<>();
-        for (Player player : players) {
-            // Player.email is NOT NULL in the schema, so this only screens out blank/placeholder values.
-            if (player.getEmail() == null || player.getEmail().isBlank()) {
-                log.debug("Player {} has no usable email address; skipping.", player.getId());
-                continue;
-            }
-            try {
-                mailSender.send(buildMessage(tournament, player, subject, invitation));
-                delivered.add(player);
-            } catch (Exception e) {
-                // One rejected recipient must not stop the rest of the run, and must not be logged as sent.
-                log.error("Failed to email RSVP {} for tournament {} to player {}.",
-                        invitation ? "invitation" : "reminder", tournament.getId(), player.getId(), e);
-            }
-        }
+        String description = String.format("RSVP %s for tournament %d",
+                invitation ? "invitation" : "reminder", tournament.getId());
 
-        log.info("Tournament '{}' ({}): emailed {} of {} player(s).",
-                tournament.getName(), tournament.getId(), delivered.size(), players.size());
-        return delivered;
-    }
-
-    private MimeMessage buildMessage(Tournament tournament, Player player, String subject, boolean invitation)
-            throws jakarta.mail.MessagingException, UnsupportedEncodingException {
-
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
-        helper.setFrom(fromAddress, fromName);
-        helper.setTo(player.getEmail());
-        helper.setSubject(subject);
-
-        String yesUrl = buildVoteUrl(tournament, player, true);
-        String noUrl = buildVoteUrl(tournament, player, false);
-        helper.setText(buildTextBody(tournament, player, invitation, yesUrl, noUrl),
-                buildHtmlBody(tournament, player, invitation, yesUrl, noUrl));
-        return message;
+        return clubMailSender.sendEach(players, description, player -> {
+            // Signed per player, so each recipient's links only ever answer for themselves.
+            String yesUrl = buildVoteUrl(tournament, player, true);
+            String noUrl = buildVoteUrl(tournament, player, false);
+            return new ClubMailSender.MailContent(subject,
+                    buildTextBody(tournament, player, invitation, yesUrl, noUrl),
+                    buildHtmlBody(tournament, player, invitation, yesUrl, noUrl));
+        });
     }
 
     /**
@@ -153,7 +102,7 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
                 player.getName(), opening, tournament.getName(),
                 formatKickoff(tournament),
                 tournament.getVenue() != null ? tournament.getVenue().getName() : "To be announced",
-                yesUrl, noUrl, fromName);
+                yesUrl, noUrl, clubMailSender.getFromName());
     }
 
     private String buildHtmlBody(Tournament tournament, Player player, boolean invitation,
@@ -191,6 +140,6 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
                         """,
                 player.getName(), opening, tournament.getName(),
                 formatKickoff(tournament), venue,
-                yesUrl, noUrl, fromName);
+                yesUrl, noUrl, clubMailSender.getFromName());
     }
 }

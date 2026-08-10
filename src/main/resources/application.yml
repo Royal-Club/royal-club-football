@@ -77,6 +77,14 @@ reminders:
   cron: ${REMINDERS_CRON:0 0 9 * * ?}           # When the reminder job runs (Asia/Dhaka).
   zone: ${REMINDERS_ZONE:Asia/Dhaka}            # Day boundaries are resolved in this zone, not the server's.
 
+# Monthly club dues reminders. Current month only - an unpaid month is never chased again
+# once the next month begins.
+dues-reminders:
+  email-enabled: ${DUES_REMINDERS_EMAIL_ENABLED:true} # Applies club-wide; there is no per-member opt-out.
+  max-per-month: ${DUES_REMINDERS_MAX_PER_MONTH:3}    # Safety net; the 5th/10th/15th schedule already caps at 3.
+  cron: ${DUES_REMINDERS_CRON:0 0 10 5,10,15 * ?}     # 10:00 AM on the 5th, 10th and 15th.
+  zone: ${DUES_REMINDERS_ZONE:Asia/Dhaka}             # Month and day boundaries resolve in club time.
+
 # Invitation / reminder email delivery.
 mail:
   enabled: ${MAIL_ENABLED:true}                 # Global kill switch; the per-tournament toggle is separate.

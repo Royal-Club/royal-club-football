@@ -14,13 +14,13 @@ public class PaymentSchedulerService {
     private final MonthlyDuesReminderService monthlyDuesReminderService;
 
     /**
-     * Remind players who have not paid this month's dues, at 10:00 AM on the 7th through the 10th
-     * (Asia/Dhaka). The day-of-month range in the cron is what bounds the window — the service itself
-     * has no date logic, so retuning the schedule needs no code change.
+     * Remind players who have not paid this month's dues, at 10:00 AM on the 5th, 10th and 15th
+     * (Asia/Dhaka), on push and by email. The days-of-month in the cron are what bound the window —
+     * the service itself has no date logic, so retuning the schedule needs no code change.
      *
-     * "0 0 10 7-10 * ?" -> Seconds Minutes Hours DayOfMonth Month DayOfWeek
+     * "0 0 10 5,10,15 * ?" -> Seconds Minutes Hours DayOfMonth Month DayOfWeek
      */
-    @Scheduled(cron = "${dues-reminders.cron:0 0 10 7-10 * ?}", zone = "Asia/Dhaka")
+    @Scheduled(cron = "${dues-reminders.cron:0 0 10 5,10,15 * ?}", zone = "${dues-reminders.zone:Asia/Dhaka}")
     public void sendMonthlyDuesReminders() {
         int reminded = monthlyDuesReminderService.sendDueReminders();
         log.info("Monthly dues reminder job finished; dispatched {} reminder(s).", reminded);
