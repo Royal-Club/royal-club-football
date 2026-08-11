@@ -28,7 +28,8 @@ pipeline {
                     string(credentialsId: 'TEAM_LOGO_R2_ENDPOINT',      variable: 'TEAM_LOGO_R2_ENDPOINT'),
                     string(credentialsId: 'TEAM_LOGO_R2_ACCESS_KEY',    variable: 'TEAM_LOGO_R2_ACCESS_KEY'),
                     string(credentialsId: 'TEAM_LOGO_R2_SECRET_KEY',    variable: 'TEAM_LOGO_R2_SECRET_KEY'),
-                    string(credentialsId: 'TEAM_LOGO_R2_BUCKET',        variable: 'TEAM_LOGO_R2_BUCKET')
+                    string(credentialsId: 'TEAM_LOGO_R2_BUCKET',        variable: 'TEAM_LOGO_R2_BUCKET'),
+                    string(credentialsId: 'FIREBASE_CREDENTIALS_JSON',  variable: 'FIREBASE_CREDENTIALS_JSON')
                 ]) {
                     // Write env file using single-quoted sh to avoid Groovy interpolation of secrets
                     sh '''
@@ -39,6 +40,7 @@ TEAM_LOGO_R2_ACCESS_KEY=$TEAM_LOGO_R2_ACCESS_KEY
 TEAM_LOGO_R2_SECRET_KEY=$TEAM_LOGO_R2_SECRET_KEY
 TEAM_LOGO_R2_BUCKET=$TEAM_LOGO_R2_BUCKET
 TEAM_LOGO_BASE_URL=https://royalfootball.club
+FIREBASE_CREDENTIALS_JSON=$FIREBASE_CREDENTIALS_JSON
 EOF
                         chmod 600 /tmp/rcf-app.env
                     '''
