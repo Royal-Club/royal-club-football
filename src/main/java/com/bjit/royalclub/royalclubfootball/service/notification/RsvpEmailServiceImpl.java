@@ -148,9 +148,9 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
     }
 
     /**
-     * The link a player actually taps. The venue's own Google Maps share link wins when an admin has set
-     * one; otherwise the street address is turned into a Maps search, so venues created before the field
-     * existed still drop a usable pin. Null when there is nothing to point at.
+     * The link a player actually taps, in order of preference: the venue's own Google Maps share link,
+     * then the address when an admin has pasted a link into that field instead, and finally a Maps search
+     * built from a street address. Null when there is nothing to point at.
      */
     private String buildMapUrl(Venue venue) {
         if (venue == null) {
@@ -159,11 +159,31 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
         if (StringUtils.hasText(venue.getMapUrl())) {
             return venue.getMapUrl().trim();
         }
+        if (isLink(venue.getAddress())) {
+            return venue.getAddress().trim();
+        }
         if (StringUtils.hasText(venue.getAddress())) {
             return String.format(MAPS_SEARCH_URL,
                     URLEncoder.encode(venue.getAddress().trim(), StandardCharsets.UTF_8));
         }
         return null;
+    }
+
+    /**
+     * Address fields predate the dedicated map link, so some already hold a pasted Maps URL. Such an
+     * address is only ever used as the link: searching Maps for the literal URL finds nothing, and
+     * printing it where a street address belongs tells a player nothing about the ground.
+     */
+    private boolean isLink(String address) {
+        if (!StringUtils.hasText(address)) {
+            return false;
+        }
+        String trimmed = address.trim().toLowerCase();
+        return trimmed.startsWith("http://") || trimmed.startsWith("https://");
+    }
+
+    private boolean hasReadableAddress(Venue venue) {
+        return StringUtils.hasText(venue.getAddress()) && !isLink(venue.getAddress());
     }
 
     private String buildTextVenue(Venue venue) {
@@ -172,7 +192,7 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
         }
         // Continuation lines are padded to the width of "Where: " so the block stays aligned under it.
         StringBuilder block = new StringBuilder("Where: ").append(venue.getName());
-        if (StringUtils.hasText(venue.getAddress())) {
+        if (hasReadableAddress(venue)) {
             block.append("\n       ").append(venue.getAddress().trim());
         }
         String mapUrl = buildMapUrl(venue);
@@ -192,7 +212,7 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
         }
         StringBuilder block = new StringBuilder("<strong>Where:</strong> ")
                 .append(escapeHtml(venue.getName()));
-        if (StringUtils.hasText(venue.getAddress())) {
+        if (hasReadableAddress(venue)) {
             block.append("<br/><span style=\"font-size:14px;color:#7b8794;\">")
                     .append(escapeHtml(venue.getAddress().trim()))
                     .append("</span>");
