@@ -4,7 +4,6 @@ import com.bjit.royalclub.royalclubfootball.entity.MonthlyDuesReminderLog;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.repository.MonthlyDuesReminderLogRepository;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +30,9 @@ import java.util.Set;
  * <p>Current month only: an unpaid month stops being chased the moment the next month begins.
  *
  * <p>Modelled on {@link TournamentReminderServiceImpl}: find who is due, filter per channel by a cap
- * and a one-contact-per-day rule, dispatch, then log one row per message actually sent.
+ * and a one-contact-per-day rule, dispatch, then log one row per message actually sent. It also
+ * follows that class in staying out of a transaction, so the sequential SMTP loop never holds a
+ * pooled database connection - see there for the reasoning.
  */
 @Service
 @RequiredArgsConstructor
@@ -62,13 +63,11 @@ public class MonthlyDuesReminderServiceImpl implements MonthlyDuesReminderServic
     private String clubZone;
 
     @Override
-    @Transactional
     public int sendDueReminders() {
         return remindUnpaidForMonth(LocalDate.now(ZoneId.of(clubZone)));
     }
 
     @Override
-    @Transactional
     public int remindUnpaidForMonth(LocalDate month) {
         LocalDate firstOfMonth = month.withDayOfMonth(1);
         LocalDate lastOfMonth = month.withDayOfMonth(month.lengthOfMonth());

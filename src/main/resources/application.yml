@@ -11,6 +11,20 @@ spring:
     password: brFc129
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+    # Sized against what MySQL on this host can comfortably serve, not against the request threads.
+    # A bigger pool does not mean more throughput: past the point the database can keep up it just
+    # moves the queue from Tomcat into MySQL, where it is harder to see.
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      # Fail a connection-starved request in 10s with a clear error rather than hanging on it.
+      connection-timeout: 10000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      # Logs a stack trace when a connection is held longer than this. This is what catches the
+      # "slow network call inside a transaction" mistake before it exhausts the pool in production.
+      leak-detection-threshold: 60000
+
   jackson:
     time-zone: UTC  # Ensure Jackson operates with UTC for date serialization
 
@@ -53,6 +67,14 @@ spring:
 
 server:
   port: 9191
+  # Deliberately far below the old 200 default: 200 threads contending for 20 connections turns a
+  # clean rejection into a slow collapse, where every request waits and none finish quickly.
+  # Keeping threads near what the pool can serve makes overload behave predictably.
+  tomcat:
+    threads:
+      max: ${TOMCAT_MAX_THREADS:50}
+      min-spare: 10
+    accept-count: 100
 
 jwt:
   # Overridable so production can stop signing logins with this committed default.

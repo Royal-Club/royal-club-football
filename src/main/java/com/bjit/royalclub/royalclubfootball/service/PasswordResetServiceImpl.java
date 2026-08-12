@@ -66,8 +66,16 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     @Value("${password-reset.window-days:30}")
     private int windowDays;
 
+    /**
+     * Deliberately NOT {@code @Transactional}: this method makes an SMTP call, and a transaction
+     * here would hold a pooled database connection for the whole round trip - up to the 10s mail
+     * timeout - while the member waits. Each repository call below commits on its own instead.
+     * <p>
+     * Nothing is lost by that. The quota count and the row insert were never atomic against a
+     * concurrent duplicate request anyway (a plain count takes no lock), and deleting the row after
+     * a failed send is a compensating action that works just as well outside a transaction.
+     */
     @Override
-    @Transactional
     public PasswordResetResponse requestReset(String email) {
         Player player = playerRepository.findByEmailAndIsActiveTrue(normalise(email)).orElse(null);
         if (player == null) {

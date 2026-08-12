@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -24,6 +25,9 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
      * Retires every other live link for this member, so only the newest one works. Without this, a
      * reset mailed three weeks ago would still be usable from an old mailbox.
      */
+    // Carries its own transaction: the caller runs outside one so that an SMTP call never holds a
+    // connection, and a @Modifying query cannot execute without one.
+    @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE PasswordResetToken t SET t.usedAt = :now "
             + "WHERE t.player.id = :playerId AND t.usedAt IS NULL AND t.id <> :keepId")

@@ -7,7 +7,6 @@ import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentReminderLogRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +31,16 @@ import static com.bjit.royalclub.royalclubfootball.enums.TournamentStatus.UPCOMI
 /**
  * Drives the RSVP nudges: one contact per player per channel per calendar day, on D-2, D-1 and match
  * day, stopping as soon as the player answers Yes or No.
+ * <p>
+ * The entry points are deliberately not transactional. Each run is three phases - read who is
+ * eligible, send the messages, record what was delivered - and the middle phase is a sequential SMTP
+ * loop, one round trip per player. Wrapping the whole run in a transaction pinned a single pooled
+ * connection for the entire loop, which on a 30-player squad is minutes. The phases stand on their
+ * own: the reads are plain queries and {@code saveAll} in {@link #recordLogs} carries its own
+ * transaction, so a batch of log rows is still written atomically.
+ * <p>
+ * The narrower boundary is also safer. Previously a failure late in a run rolled back the log rows
+ * for players who had already been emailed, so they were mailed again on the next run.
  */
 @Service
 @RequiredArgsConstructor
@@ -61,7 +70,6 @@ public class TournamentReminderServiceImpl implements TournamentReminderService 
     private String reminderZone;
 
     @Override
-    @Transactional
     public int sendDueReminders() {
         ZoneId zone = ZoneId.of(reminderZone);
         LocalDate today = LocalDate.now(zone);
@@ -98,7 +106,6 @@ public class TournamentReminderServiceImpl implements TournamentReminderService 
     }
 
     @Override
-    @Transactional
     public int remindForTournament(Long tournamentId) {
         ZoneId zone = ZoneId.of(reminderZone);
         Tournament tournament = loadRemindableTournament(tournamentId, zone);
@@ -106,7 +113,6 @@ public class TournamentReminderServiceImpl implements TournamentReminderService 
     }
 
     @Override
-    @Transactional
     public int sendInvitations(Long tournamentId) {
         ZoneId zone = ZoneId.of(reminderZone);
         Tournament tournament = loadRemindableTournament(tournamentId, zone);
