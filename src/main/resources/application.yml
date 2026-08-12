@@ -98,6 +98,16 @@ rsvp:
     secret: ${RSVP_TOKEN_SECRET:cnN2cC10b2tlbi1zZWNyZXQtY2hhbmdlLW1lLWluLXByb2R1Y3Rpb24tMDEyMzQ1}
   landing-url: ${RSVP_LANDING_URL:${app.frontend.base-url}/rsvp}
 
+# Emailed password recovery for members who cannot sign in.
+password-reset:
+  max-per-window: ${PASSWORD_RESET_MAX_PER_WINDOW:3}   # Links per member per window, counted on delivery.
+  window-days: ${PASSWORD_RESET_WINDOW_DAYS:30}        # Rolling, not calendar: no free refill on the 1st.
+  link-ttl-minutes: ${PASSWORD_RESET_LINK_TTL_MINUTES:60} # A link is a standing takeover of an account; keep it short.
+  token:
+    # MUST differ from jwt.secret so a reset link can never be replayed as a login token.
+    secret: ${PASSWORD_RESET_TOKEN_SECRET:cGFzc3dvcmQtcmVzZXQtc2VjcmV0LWNoYW5nZS1tZS1pbi1wcm9kdWN0aW9uLTAx}
+  landing-url: ${PASSWORD_RESET_LANDING_URL:${app.frontend.base-url}/password-reset}
+
 app:
   # Public site the RSVP links point at.
   frontend:

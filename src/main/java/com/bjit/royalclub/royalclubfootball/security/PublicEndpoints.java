@@ -18,7 +18,9 @@ public class PublicEndpoints {
                 "/tournaments/sessions",
                 "/tournaments/list",
                 // RSVP email links: the signed token authenticates the request, not a session.
-                "/rsvp/preview"
+                "/rsvp/preview",
+                // Password reset links: reached by a member who cannot sign in at all.
+                "/auth/password-reset/validate"
         };
     }
 
@@ -28,7 +30,9 @@ public class PublicEndpoints {
                 "/players",
                 "/files/presign",
                 "/auction/tournaments/*/register",
-                "/rsvp/vote"
+                "/rsvp/vote",
+                "/auth/forgot-password",
+                "/auth/password-reset/confirm"
         };
     }
 
