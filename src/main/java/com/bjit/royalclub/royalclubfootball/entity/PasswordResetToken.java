@@ -2,7 +2,10 @@ package com.bjit.royalclub.royalclubfootball.entity;
 
 import com.bjit.royalclub.royalclubfootball.entity.audit.AuditBase;
 import jakarta.persistence.Column;
+import com.bjit.royalclub.royalclubfootball.enums.PasswordResetDeliveryStatus;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -48,7 +51,15 @@ public class PasswordResetToken extends AuditBase {
     @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;
 
-    /** Counted by the monthly quota, so it is set only once delivery is confirmed. */
+    /**
+     * Whether the email actually went out. Only non-FAILED rows count against the monthly quota,
+     * which is what stops a bounced send from costing the member a slot.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 10)
+    private PasswordResetDeliveryStatus status;
+
+    /** When the send was attempted. The quota counts these within a rolling window. */
     @Column(name = "sent_at", nullable = false)
     private LocalDateTime sentAt;
 

@@ -114,6 +114,10 @@ mail:
   enabled: ${MAIL_ENABLED:true}                 # Global kill switch; the per-tournament toggle is separate.
   from-address: ${MAIL_FROM_ADDRESS:noreply@royalfootball.club}
   from-name: ${MAIL_FROM_NAME:Royal Football Club}
+  # Most SMTP failures are transient. Without a retry the member waits for the next scheduled run -
+  # a day for RSVP, five days for dues. Authentication failures are never retried.
+  max-attempts: ${MAIL_MAX_ATTEMPTS:3}
+  retry-backoff-ms: ${MAIL_RETRY_BACKOFF_MS:1000}   # Multiplied by the attempt number.
 
 # One-click RSVP links embedded in emails.
 rsvp:
@@ -131,6 +135,11 @@ password-reset:
     # MUST differ from jwt.secret so a reset link can never be replayed as a login token.
     secret: ${PASSWORD_RESET_TOKEN_SECRET:cGFzc3dvcmQtcmVzZXQtc2VjcmV0LWNoYW5nZS1tZS1pbi1wcm9kdWN0aW9uLTAx}
   landing-url: ${PASSWORD_RESET_LANDING_URL:${app.frontend.base-url}/password-reset}
+  # A row left PENDING this long was abandoned by a process that died mid-send. Well clear of the
+  # 10s mail timeout, so a send still in flight is never reaped from under it.
+  stale-pending-minutes: ${PASSWORD_RESET_STALE_PENDING_MINUTES:15}
+  reaper-interval-ms: ${PASSWORD_RESET_REAPER_INTERVAL_MS:600000}
+  reaper-initial-delay-ms: ${PASSWORD_RESET_REAPER_INITIAL_DELAY_MS:60000}
 
 app:
   # Public site the RSVP links point at.
@@ -177,6 +186,23 @@ app:
       access-key: ${PLAYER_PHOTO_R2_ACCESS_KEY:${TEAM_LOGO_R2_ACCESS_KEY:}}
       secret-key: ${PLAYER_PHOTO_R2_SECRET_KEY:${TEAM_LOGO_R2_SECRET_KEY:}}
       presign-duration-minutes: ${PLAYER_PHOTO_R2_PRESIGN_MINUTES:${TEAM_LOGO_R2_PRESIGN_MINUTES:60}}
+
+# Health and metrics — including mail delivery (club.mail.messages) and Hikari pool usage.
+#
+# Deliberately on its own port bound to loopback: the security chain ends in .anyRequest().permitAll(),
+# so anything on 9191 is reachable from the internet, and metrics should not be. Reach it from the
+# server itself, e.g. curl localhost:9192/actuator/metrics/club.mail.messages
+management:
+  server:
+    port: ${MANAGEMENT_PORT:9192}
+    address: ${MANAGEMENT_ADDRESS:127.0.0.1}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
 
 logging:
   level:

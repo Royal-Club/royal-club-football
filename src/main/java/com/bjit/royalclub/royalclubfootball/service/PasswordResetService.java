@@ -22,4 +22,12 @@ public interface PasswordResetService {
     PasswordResetResponse validate(String token);
 
     PasswordResetResponse confirm(PasswordResetConfirmRequest request);
+
+    /**
+     * Settles links abandoned mid-send, handing back the quota slots they would otherwise hold.
+     * Safe to run repeatedly; it only touches rows already past the staleness cutoff.
+     *
+     * @return how many rows were reaped.
+     */
+    int reconcileStalePendingLinks();
 }

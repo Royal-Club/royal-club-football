@@ -3,6 +3,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 import com.bjit.royalclub.royalclubfootball.constant.AuthConstants;
 import com.bjit.royalclub.royalclubfootball.entity.PasswordResetToken;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
+import com.bjit.royalclub.royalclubfootball.enums.PasswordResetDeliveryStatus;
 import com.bjit.royalclub.royalclubfootball.enums.PasswordResetStatus;
 import com.bjit.royalclub.royalclubfootball.exception.PasswordResetTokenException;
 import com.bjit.royalclub.royalclubfootball.model.PasswordResetConfirmRequest;
@@ -66,6 +67,10 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     @Value("${password-reset.window-days:30}")
     private int windowDays;
 
+    /** Comfortably beyond the mail timeout, so a send still in flight is never reaped from under it. */
+    @Value("${password-reset.stale-pending-minutes:15}")
+    private int stalePendingMinutes;
+
     /**
      * Deliberately NOT {@code @Transactional}: this method makes an SMTP call, and a transaction
      * here would hold a pooled database connection for the whole round trip - up to the 10s mail
@@ -125,10 +130,18 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         return status(PasswordResetStatus.RESET, RESET_MESSAGE);
     }
 
+    /**
+     * Writes the row as PENDING before sending, then settles it - an outbox in miniature.
+     * <p>
+     * The earlier version deleted the row when the send failed, which was correct right up until
+     * the process died between the insert and the delete: the row survived, the member was charged
+     * a quota slot, and no email existed. Recording the outcome instead of erasing the attempt
+     * leaves that case visible and reapable, and keeps a failed send in the audit trail.
+     */
     private PasswordResetResponse issueLink(Player player) {
         LocalDateTime now = LocalDateTime.now();
-        int alreadySent = passwordResetTokenRepository
-                .countByPlayerIdAndSentAtAfter(player.getId(), now.minusDays(windowDays));
+        int alreadySent = passwordResetTokenRepository.countByPlayerIdAndSentAtAfterAndStatusNot(
+                player.getId(), now.minusDays(windowDays), PasswordResetDeliveryStatus.FAILED);
         if (alreadySent >= maxPerWindow) {
             log.info("Player {} has used all {} reset links in the last {} days.",
                     player.getId(), maxPerWindow, windowDays);
@@ -139,13 +152,18 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         PasswordResetToken row = passwordResetTokenRepository.saveAndFlush(PasswordResetToken.builder()
                 .player(player)
                 .tokenHash(PasswordResetTokenUtil.hash(generated.token()))
+                .status(PasswordResetDeliveryStatus.PENDING)
                 .sentAt(now)
                 .expiresAt(generated.expiresAt())
                 .build());
 
-        if (!passwordResetEmailService.sendResetLink(player, generated.token(), generated.expiresAt())) {
-            // A quota slot must never be spent on mail that never left the building.
-            passwordResetTokenRepository.delete(row);
+        boolean delivered =
+                passwordResetEmailService.sendResetLink(player, generated.token(), generated.expiresAt());
+
+        row.setStatus(delivered ? PasswordResetDeliveryStatus.SENT : PasswordResetDeliveryStatus.FAILED);
+        passwordResetTokenRepository.save(row);
+
+        if (!delivered) {
             log.error("Reset link for player {} was not accepted by the mail server; quota not charged.",
                     player.getId());
             return status(PasswordResetStatus.SEND_FAILED, SEND_FAILED_MESSAGE);
@@ -153,6 +171,19 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
         passwordResetTokenRepository.supersedeOtherLinks(player.getId(), row.getId(), now);
         return status(PasswordResetStatus.SENT, SENT_MESSAGE);
+    }
+
+    @Override
+    public int reconcileStalePendingLinks() {
+        // Anything still PENDING long after the mail timeout was abandoned by a process that died
+        // mid-send; nothing in flight legitimately takes this long.
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(stalePendingMinutes);
+        int reaped = passwordResetTokenRepository.failStalePendingLinks(cutoff);
+        if (reaped > 0) {
+            log.warn("Reaped {} password reset link(s) abandoned mid-send; their quota slots are refunded.",
+                    reaped);
+        }
+        return reaped;
     }
 
     /**

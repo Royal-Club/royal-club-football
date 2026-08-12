@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 
 import com.bjit.royalclub.royalclubfootball.entity.PasswordResetToken;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
+import com.bjit.royalclub.royalclubfootball.enums.PasswordResetDeliveryStatus;
 import com.bjit.royalclub.royalclubfootball.enums.PasswordResetStatus;
 import com.bjit.royalclub.royalclubfootball.exception.PasswordResetTokenException;
 import com.bjit.royalclub.royalclubfootball.model.PasswordResetConfirmRequest;
@@ -35,8 +36,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Covers the rules that would otherwise fail silently: the quota, single use, and the
- * lastPasswordChangeDate stamp that keeps a reset member out of the forced-change loop.
+ * Covers the rules that would otherwise fail silently: the quota, single use, the delivery outcome
+ * recorded against each link, and the lastPasswordChangeDate stamp that keeps a reset member out of
+ * the forced-change loop.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -61,10 +63,14 @@ class PasswordResetServiceImplTest {
 
     private Player player;
 
+    /** The row handed to saveAndFlush, so a test can assert the outcome written against it. */
+    private PasswordResetToken savedRow;
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(passwordResetService, "maxPerWindow", 3);
         ReflectionTestUtils.setField(passwordResetService, "windowDays", 30);
+        ReflectionTestUtils.setField(passwordResetService, "stalePendingMinutes", 15);
 
         player = Player.builder().id(7L).name("Rakib").email(EMAIL).isActive(true).build();
 
@@ -72,9 +78,9 @@ class PasswordResetServiceImplTest {
                 new PasswordResetTokenUtil.GeneratedToken(TOKEN, LocalDateTime.now().plusHours(1)));
         when(passwordResetTokenRepository.saveAndFlush(any(PasswordResetToken.class)))
                 .thenAnswer(invocation -> {
-                    PasswordResetToken saved = invocation.getArgument(0);
-                    saved.setId(99L);
-                    return saved;
+                    savedRow = invocation.getArgument(0);
+                    savedRow.setId(99L);
+                    return savedRow;
                 });
         when(passwordResetEmailService.sendResetLink(any(), anyString(), any())).thenReturn(true);
         when(passwordEncoder.encode(anyString())).thenReturn("ENCODED");
@@ -92,21 +98,34 @@ class PasswordResetServiceImplTest {
     }
 
     @Test
-    void aDeliveredLinkIsLoggedAndRetiresTheOlderOnes() {
-        when(playerRepository.findByEmailAndIsActiveTrue(EMAIL)).thenReturn(Optional.of(player));
-        when(passwordResetTokenRepository.countByPlayerIdAndSentAtAfter(eq(7L), any())).thenReturn(1);
+    void aDeliveredLinkIsRecordedAsSentAndRetiresTheOlderOnes() {
+        givenPlayerWithLinksUsed(1);
 
         PasswordResetResponse response = passwordResetService.requestReset(EMAIL);
 
         assertThat(response.getStatus()).isEqualTo(PasswordResetStatus.SENT);
-        verify(passwordResetTokenRepository).saveAndFlush(any(PasswordResetToken.class));
+        assertThat(savedRow.getStatus()).isEqualTo(PasswordResetDeliveryStatus.SENT);
         verify(passwordResetTokenRepository).supersedeOtherLinks(eq(7L), eq(99L), any());
     }
 
     @Test
+    void theRowIsWrittenAsPendingBeforeTheSendIsAttempted() {
+        givenPlayerWithLinksUsed(0);
+        // Captures the status at the moment of the send - the window a crash would leave behind.
+        when(passwordResetEmailService.sendResetLink(any(), anyString(), any()))
+                .thenAnswer(invocation -> {
+                    assertThat(savedRow.getStatus()).isEqualTo(PasswordResetDeliveryStatus.PENDING);
+                    return true;
+                });
+
+        passwordResetService.requestReset(EMAIL);
+
+        assertThat(savedRow.getStatus()).isEqualTo(PasswordResetDeliveryStatus.SENT);
+    }
+
+    @Test
     void theFourthLinkInTheWindowIsRefused() {
-        when(playerRepository.findByEmailAndIsActiveTrue(EMAIL)).thenReturn(Optional.of(player));
-        when(passwordResetTokenRepository.countByPlayerIdAndSentAtAfter(eq(7L), any())).thenReturn(3);
+        givenPlayerWithLinksUsed(3);
 
         PasswordResetResponse response = passwordResetService.requestReset(EMAIL);
 
@@ -116,23 +135,28 @@ class PasswordResetServiceImplTest {
     }
 
     @Test
-    void mailThatNeverLeftTheBuildingDoesNotCostAQuotaSlot() {
-        when(playerRepository.findByEmailAndIsActiveTrue(EMAIL)).thenReturn(Optional.of(player));
-        when(passwordResetTokenRepository.countByPlayerIdAndSentAtAfter(eq(7L), any())).thenReturn(0);
+    void mailThatNeverLeftTheBuildingIsRecordedAsFailedRatherThanErased() {
+        givenPlayerWithLinksUsed(0);
         when(passwordResetEmailService.sendResetLink(any(), anyString(), any())).thenReturn(false);
 
         PasswordResetResponse response = passwordResetService.requestReset(EMAIL);
 
         assertThat(response.getStatus()).isEqualTo(PasswordResetStatus.SEND_FAILED);
-        verify(passwordResetTokenRepository).delete(any(PasswordResetToken.class));
+        // FAILED rows are excluded from the quota, so the attempt is kept for audit without costing a slot.
+        assertThat(savedRow.getStatus()).isEqualTo(PasswordResetDeliveryStatus.FAILED);
+        verify(passwordResetTokenRepository, never()).delete(any());
+    }
+
+    @Test
+    void abandonedLinksAreReapedSoTheirQuotaSlotsComeBack() {
+        when(passwordResetTokenRepository.failStalePendingLinks(any())).thenReturn(2);
+
+        assertThat(passwordResetService.reconcileStalePendingLinks()).isEqualTo(2);
     }
 
     @Test
     void confirmingStampsThePasswordDateSoLoginDoesNotDemandTheOldPassword() {
-        PasswordResetToken row = liveLink();
-        when(passwordResetTokenUtil.parse(TOKEN)).thenReturn(7L);
-        when(passwordResetTokenRepository.findByTokenHash(PasswordResetTokenUtil.hash(TOKEN)))
-                .thenReturn(Optional.of(row));
+        PasswordResetToken row = givenLiveLink();
 
         PasswordResetResponse response = passwordResetService.confirm(request("Str0ngPass"));
 
@@ -145,11 +169,7 @@ class PasswordResetServiceImplTest {
 
     @Test
     void aSpentLinkCannotBeUsedTwice() {
-        PasswordResetToken row = liveLink();
-        row.setUsedAt(LocalDateTime.now().minusMinutes(5));
-        when(passwordResetTokenUtil.parse(TOKEN)).thenReturn(7L);
-        when(passwordResetTokenRepository.findByTokenHash(PasswordResetTokenUtil.hash(TOKEN)))
-                .thenReturn(Optional.of(row));
+        givenLiveLink().setUsedAt(LocalDateTime.now().minusMinutes(5));
 
         assertThatThrownBy(() -> passwordResetService.confirm(request("Str0ngPass")))
                 .isInstanceOf(PasswordResetTokenException.class)
@@ -159,11 +179,7 @@ class PasswordResetServiceImplTest {
 
     @Test
     void anExpiredRowIsRefusedEvenIfTheSignatureStillParses() {
-        PasswordResetToken row = liveLink();
-        row.setExpiresAt(LocalDateTime.now().minusMinutes(1));
-        when(passwordResetTokenUtil.parse(TOKEN)).thenReturn(7L);
-        when(passwordResetTokenRepository.findByTokenHash(PasswordResetTokenUtil.hash(TOKEN)))
-                .thenReturn(Optional.of(row));
+        givenLiveLink().setExpiresAt(LocalDateTime.now().minusMinutes(1));
 
         assertThatThrownBy(() -> passwordResetService.confirm(request("Str0ngPass")))
                 .isInstanceOf(PasswordResetTokenException.class)
@@ -171,12 +187,22 @@ class PasswordResetServiceImplTest {
                 .isEqualTo(PasswordResetStatus.EXPIRED);
     }
 
+    /**
+     * A link reaped as FAILED may still have reached a mailbox, so validity is governed by usedAt
+     * and expiresAt rather than by the delivery status.
+     */
+    @Test
+    void aLinkReapedAsFailedStillWorksIfItDidReachTheMember() {
+        givenLiveLink().setStatus(PasswordResetDeliveryStatus.FAILED);
+
+        PasswordResetResponse response = passwordResetService.confirm(request("Str0ngPass"));
+
+        assertThat(response.getStatus()).isEqualTo(PasswordResetStatus.RESET);
+    }
+
     @Test
     void aWeakPasswordLeavesTheLinkUsable() {
-        PasswordResetToken row = liveLink();
-        when(passwordResetTokenUtil.parse(TOKEN)).thenReturn(7L);
-        when(passwordResetTokenRepository.findByTokenHash(PasswordResetTokenUtil.hash(TOKEN)))
-                .thenReturn(Optional.of(row));
+        PasswordResetToken row = givenLiveLink();
 
         PasswordResetResponse response = passwordResetService.confirm(request("weak"));
 
@@ -185,14 +211,25 @@ class PasswordResetServiceImplTest {
         verify(playerRepository, never()).save(any());
     }
 
-    private PasswordResetToken liveLink() {
-        return PasswordResetToken.builder()
+    private void givenPlayerWithLinksUsed(int used) {
+        when(playerRepository.findByEmailAndIsActiveTrue(EMAIL)).thenReturn(Optional.of(player));
+        when(passwordResetTokenRepository.countByPlayerIdAndSentAtAfterAndStatusNot(
+                eq(7L), any(), eq(PasswordResetDeliveryStatus.FAILED))).thenReturn(used);
+    }
+
+    private PasswordResetToken givenLiveLink() {
+        PasswordResetToken row = PasswordResetToken.builder()
                 .id(99L)
                 .player(player)
                 .tokenHash(PasswordResetTokenUtil.hash(TOKEN))
+                .status(PasswordResetDeliveryStatus.SENT)
                 .sentAt(LocalDateTime.now().minusMinutes(2))
                 .expiresAt(LocalDateTime.now().plusMinutes(58))
                 .build();
+        when(passwordResetTokenUtil.parse(TOKEN)).thenReturn(7L);
+        when(passwordResetTokenRepository.findByTokenHash(PasswordResetTokenUtil.hash(TOKEN)))
+                .thenReturn(Optional.of(row));
+        return row;
     }
 
     private PasswordResetConfirmRequest request(String newPassword) {
