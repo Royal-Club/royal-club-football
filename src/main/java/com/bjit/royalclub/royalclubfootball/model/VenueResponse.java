@@ -9,5 +9,6 @@ public class VenueResponse {
     private Long id;
     private String name;
     private String address;
+    private String mapUrl;
     private boolean active;
 }

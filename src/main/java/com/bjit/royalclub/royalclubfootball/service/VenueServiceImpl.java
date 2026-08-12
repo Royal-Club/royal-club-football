@@ -8,6 +8,7 @@ import com.bjit.royalclub.royalclubfootball.repository.VenueRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,6 +39,7 @@ public class VenueServiceImpl implements VenueService {
         Venue venue = Venue.builder()
                 .name(venueName)
                 .address(venueRegistrationRequest.getAddress())
+                .mapUrl(normalizeMapUrl(venueRegistrationRequest.getMapUrl()))
                 .isActive(true)
                 .build();
         venueRepository.save(venue);
@@ -64,8 +66,17 @@ public class VenueServiceImpl implements VenueService {
         String trimmedName = venueRequest.getName().trim();
         venue.setName(trimmedName);
         venue.setAddress(venueRequest.getAddress());
+        venue.setMapUrl(normalizeMapUrl(venueRequest.getMapUrl()));
         Venue updatedVenue = venueRepository.save(venue);
         return convertToDto(updatedVenue);
+    }
+
+    /**
+     * Stored as null rather than an empty string, so callers can test "is a map link set?" with a plain
+     * null check instead of also having to guard against blanks pasted in from the form.
+     */
+    private String normalizeMapUrl(String mapUrl) {
+        return StringUtils.hasText(mapUrl) ? mapUrl.trim() : null;
     }
 
     private Venue getVenueById(Long venueId) {
@@ -78,6 +89,7 @@ public class VenueServiceImpl implements VenueService {
                 .id(venue.getId())
                 .name(venue.getName())
                 .address(venue.getAddress())
+                .mapUrl(venue.getMapUrl())
                 .active(venue.isActive())
                 .build();
     }

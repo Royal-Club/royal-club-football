@@ -2,11 +2,15 @@ package com.bjit.royalclub.royalclubfootball.service.notification;
 
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
+import com.bjit.royalclub.royalclubfootball.entity.Venue;
 import com.bjit.royalclub.royalclubfootball.util.RsvpTokenUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -17,6 +21,8 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
 
     private static final DateTimeFormatter DISPLAY_FORMAT =
             DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy 'at' hh:mm a");
+    private static final String MAPS_SEARCH_URL = "https://www.google.com/maps/search/?api=1&query=%s";
+    private static final String VENUE_UNKNOWN = "To be announced";
 
     private final ClubMailSender clubMailSender;
     private final RsvpTokenUtil rsvpTokenUtil;
@@ -87,7 +93,7 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
 
                         %s
                         When:  %s
-                        Where: %s
+                        %s
 
                         Are you playing?
 
@@ -100,8 +106,7 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
                         - %s
                         """,
                 player.getName(), opening, tournament.getName(),
-                formatKickoff(tournament),
-                tournament.getVenue() != null ? tournament.getVenue().getName() : "To be announced",
+                formatKickoff(tournament), buildTextVenue(tournament.getVenue()),
                 yesUrl, noUrl, clubMailSender.getFromName());
     }
 
@@ -110,7 +115,6 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
         String opening = invitation
                 ? "A new tournament has been scheduled."
                 : "You have not confirmed yet, and kickoff is close.";
-        String venue = tournament.getVenue() != null ? tournament.getVenue().getName() : "To be announced";
 
         // Inline styles and a table shell: email clients strip <style> blocks and ignore flex/grid.
         return String.format("""
@@ -121,9 +125,9 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
                               <tr><td style="padding-top:12px;font-size:15px;color:#52606d;">%s</td></tr>
                               <tr><td style="padding-top:20px;font-size:20px;font-weight:bold;">%s</td></tr>
                               <tr><td style="padding-top:12px;font-size:15px;color:#52606d;">
-                                <strong>When:</strong> %s<br/>
-                                <strong>Where:</strong> %s
+                                <strong>When:</strong> %s
                               </td></tr>
+                              <tr><td style="padding-top:6px;font-size:15px;color:#52606d;">%s</td></tr>
                               <tr><td style="padding-top:28px;font-size:16px;font-weight:bold;">Are you playing?</td></tr>
                               <tr><td style="padding-top:16px;">
                                 <a href="%s" style="display:inline-block;background:#0b8043;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:6px;font-size:15px;font-weight:bold;margin-right:12px;">YES</a>
@@ -139,7 +143,79 @@ public class RsvpEmailServiceImpl implements RsvpEmailService {
                         </table>
                         """,
                 player.getName(), opening, tournament.getName(),
-                formatKickoff(tournament), venue,
+                formatKickoff(tournament), buildHtmlVenue(tournament.getVenue()),
                 yesUrl, noUrl, clubMailSender.getFromName());
+    }
+
+    /**
+     * The link a player actually taps. The venue's own Google Maps share link wins when an admin has set
+     * one; otherwise the street address is turned into a Maps search, so venues created before the field
+     * existed still drop a usable pin. Null when there is nothing to point at.
+     */
+    private String buildMapUrl(Venue venue) {
+        if (venue == null) {
+            return null;
+        }
+        if (StringUtils.hasText(venue.getMapUrl())) {
+            return venue.getMapUrl().trim();
+        }
+        if (StringUtils.hasText(venue.getAddress())) {
+            return String.format(MAPS_SEARCH_URL,
+                    URLEncoder.encode(venue.getAddress().trim(), StandardCharsets.UTF_8));
+        }
+        return null;
+    }
+
+    private String buildTextVenue(Venue venue) {
+        if (venue == null) {
+            return "Where: " + VENUE_UNKNOWN;
+        }
+        // Continuation lines are padded to the width of "Where: " so the block stays aligned under it.
+        StringBuilder block = new StringBuilder("Where: ").append(venue.getName());
+        if (StringUtils.hasText(venue.getAddress())) {
+            block.append("\n       ").append(venue.getAddress().trim());
+        }
+        String mapUrl = buildMapUrl(venue);
+        if (mapUrl != null) {
+            block.append("\nMap:   ").append(mapUrl);
+        }
+        return block.toString();
+    }
+
+    /**
+     * Venue name, then the address in a quieter tone, then an outlined "Open in Google Maps" chip -
+     * outlined rather than filled so it stays clearly secondary to the YES/NO buttons below it.
+     */
+    private String buildHtmlVenue(Venue venue) {
+        if (venue == null) {
+            return "<strong>Where:</strong> " + VENUE_UNKNOWN;
+        }
+        StringBuilder block = new StringBuilder("<strong>Where:</strong> ")
+                .append(escapeHtml(venue.getName()));
+        if (StringUtils.hasText(venue.getAddress())) {
+            block.append("<br/><span style=\"font-size:14px;color:#7b8794;\">")
+                    .append(escapeHtml(venue.getAddress().trim()))
+                    .append("</span>");
+        }
+        String mapUrl = buildMapUrl(venue);
+        if (mapUrl != null) {
+            block.append("<br/><a href=\"").append(escapeHtml(mapUrl))
+                    .append("\" style=\"display:inline-block;margin-top:12px;padding:8px 16px;")
+                    .append("border:1px solid #0b8043;border-radius:6px;color:#0b8043;")
+                    .append("text-decoration:none;font-size:14px;font-weight:bold;\">")
+                    .append("&#128205; Open in Google Maps</a>");
+        }
+        return block.toString();
+    }
+
+    /**
+     * Venue text is admin-entered and map links carry {@code &} between query parameters, so both are
+     * escaped before they land in the markup.
+     */
+    private String escapeHtml(String value) {
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 }

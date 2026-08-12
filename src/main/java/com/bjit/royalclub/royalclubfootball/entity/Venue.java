@@ -33,6 +33,14 @@ public class Venue extends AuditBase {
     @Size(max = 255)
     private String address;
 
+    /**
+     * Google Maps share link for the ground. Optional - when it is not set, notifications fall back to a
+     * Maps search built from {@link #address}.
+     */
+    @Column(name = "map_url")
+    @Size(max = 500)
+    private String mapUrl;
+
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 }
