@@ -29,7 +29,15 @@ pipeline {
                     string(credentialsId: 'TEAM_LOGO_R2_ACCESS_KEY',    variable: 'TEAM_LOGO_R2_ACCESS_KEY'),
                     string(credentialsId: 'TEAM_LOGO_R2_SECRET_KEY',    variable: 'TEAM_LOGO_R2_SECRET_KEY'),
                     string(credentialsId: 'TEAM_LOGO_R2_BUCKET',        variable: 'TEAM_LOGO_R2_BUCKET'),
-                    string(credentialsId: 'FIREBASE_CREDENTIALS_JSON',  variable: 'FIREBASE_CREDENTIALS_JSON')
+                    string(credentialsId: 'FIREBASE_CREDENTIALS_JSON',  variable: 'FIREBASE_CREDENTIALS_JSON'),
+                    // Resend SMTP password. Without it the mail password is blank and every
+                    // invitation, dues reminder and password-reset link fails to send.
+                    string(credentialsId: 'RESEND_API_KEY',             variable: 'RESEND_API_KEY'),
+                    // Link-signing keys. These MUST come from here rather than the defaults in
+                    // application.yml: those defaults are committed, so anyone who can read the
+                    // repo could forge a password-reset link and take over an account.
+                    string(credentialsId: 'PASSWORD_RESET_TOKEN_SECRET', variable: 'PASSWORD_RESET_TOKEN_SECRET'),
+                    string(credentialsId: 'RSVP_TOKEN_SECRET',          variable: 'RSVP_TOKEN_SECRET')
                 ]) {
                     // Write env file using single-quoted sh to avoid Groovy interpolation of secrets
                     sh '''
@@ -41,6 +49,12 @@ TEAM_LOGO_R2_SECRET_KEY=$TEAM_LOGO_R2_SECRET_KEY
 TEAM_LOGO_R2_BUCKET=$TEAM_LOGO_R2_BUCKET
 TEAM_LOGO_BASE_URL=https://royalfootball.club
 FIREBASE_CREDENTIALS_JSON=$FIREBASE_CREDENTIALS_JSON
+RESEND_API_KEY=$RESEND_API_KEY
+PASSWORD_RESET_TOKEN_SECRET=$PASSWORD_RESET_TOKEN_SECRET
+RSVP_TOKEN_SECRET=$RSVP_TOKEN_SECRET
+# Every emailed link is built from this. Left unset it defaults to localhost:3000,
+# which sends members a link that only works on the developer's own machine.
+APP_FRONTEND_BASE_URL=https://royalfootball.club
 EOF
                         chmod 600 /tmp/rcf-app.env
                     '''

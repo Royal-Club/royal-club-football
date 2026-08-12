@@ -55,7 +55,9 @@ server:
   port: 9191
 
 jwt:
-  secret: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkwYWJjZGVmZ2hpamts
+  # Overridable so production can stop signing logins with this committed default.
+  # Changing it invalidates every issued token, so everyone is logged out once on the deploy that sets it.
+  secret: ${JWT_SECRET:YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkwYWJjZGVmZ2hpamts}
   expiration: 604800000  # Token expiration in milliseconds (7 days)
 
 player:
