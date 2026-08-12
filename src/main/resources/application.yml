@@ -63,6 +63,19 @@ spring:
       max-file-size: 25MB
       max-request-size: 25MB
 
+  # Every @Scheduled method shares this pool, and Spring's default size is 1 - so a reminder run
+  # working through 30 sequential SMTP sends (with retries) would block the auction timer, which
+  # fires every second, and the SSE heartbeat that prunes dead match connections. A frozen auction
+  # countdown is the visible symptom; connections leaking until the heartbeat resumes is the quiet one.
+  #
+  # Four threads keeps the two long mail jobs off the two latency-sensitive ones. Raising this is
+  # preferable to making the mail jobs @Async: overlapping runs are only safe because of their
+  # log-based de-duplication, and that is a subtle property to start depending on.
+  task:
+    scheduling:
+      pool:
+        size: ${SCHEDULER_POOL_SIZE:4}
+
 
 
 server:
