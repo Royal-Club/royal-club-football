@@ -64,6 +64,7 @@ public class PlayerServiceImpl implements PlayerService {
     private final TournamentParticipantRepository tournamentParticipantRepository;
     private final StorageProvider storageProvider;
     private final PlayerPhotoStorageProvider playerPhotoStorageProvider;
+    private final PlayerPhotoQuotaService playerPhotoQuotaService;
 
     @Override
     public void registerPlayer(PlayerRegistrationRequest registrationRequest) {
@@ -183,8 +184,14 @@ public class PlayerServiceImpl implements PlayerService {
         player.setProfilePhoto(updateRequest.getProfilePhoto());
         // Handle photo replacement: delete old photo if a new one is provided
         if (updateRequest.getPhotoKey() != null && !updateRequest.getPhotoKey().isBlank()) {
-            if (player.getPhotoKey() != null && !player.getPhotoKey().equals(updateRequest.getPhotoKey())) {
-                playerPhotoStorageProvider.delete(player.getPhotoKey());
+            String previousKey = player.getPhotoKey();
+            boolean isReplacement = previousKey != null && !previousKey.isBlank()
+                    && !previousKey.equals(updateRequest.getPhotoKey());
+            if (isReplacement) {
+                playerPhotoStorageProvider.delete(previousKey);
+                // Starts the rolling window. Stamped only on a genuine replacement, so the first
+                // photo a member ever sets stays free and does not cost them their next change.
+                player.setPhotoUpdatedAt(LocalDateTime.now());
             }
             player.setPhotoKey(updateRequest.getPhotoKey());
         }
@@ -271,6 +278,10 @@ public class PlayerServiceImpl implements PlayerService {
                 .photoUrl(player.getPhotoKey() != null
                         ? "/files/player-photos/" + player.getPhotoKey()
                         : null)
+                .photoUpdatedAt(player.getPhotoUpdatedAt())
+                // Null means "can change now". Lets a client disable the button and name the date
+                // instead of letting the member pick a photo and only then be refused.
+                .photoChangeAvailableAt(playerPhotoQuotaService.changeAvailableAt(player))
                 .build();
     }
 

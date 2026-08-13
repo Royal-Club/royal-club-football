@@ -4,6 +4,7 @@ import com.bjit.royalclub.royalclubfootball.enums.FootballPosition;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
@@ -22,4 +23,8 @@ public class PlayerResponse {
     private Set<RoleResponse> roles;
     private String photoKey;
     private String photoUrl;
+    /** When this player last replaced their photo; null if they never have. */
+    private LocalDateTime photoUpdatedAt;
+    /** When they may next change it. Null means now - see PlayerPhotoQuotaService. */
+    private LocalDateTime photoChangeAvailableAt;
 }

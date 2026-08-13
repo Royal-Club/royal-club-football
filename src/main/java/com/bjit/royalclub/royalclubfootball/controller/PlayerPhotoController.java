@@ -1,11 +1,13 @@
 package com.bjit.royalclub.royalclubfootball.controller;
 
 import com.bjit.royalclub.royalclubfootball.model.TeamLogoUploadResponse;
+import com.bjit.royalclub.royalclubfootball.service.PlayerPhotoQuotaService;
 import com.bjit.royalclub.royalclubfootball.storage.playerphoto.PlayerPhotoLocalStorageProvider;
 import com.bjit.royalclub.royalclubfootball.storage.playerphoto.PlayerPhotoStorageProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,15 +33,25 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 public class PlayerPhotoController {
 
     private final PlayerPhotoStorageProvider playerPhotoStorageProvider;
+    private final PlayerPhotoQuotaService playerPhotoQuotaService;
 
+    /**
+     * Hands out a presigned upload URL, and is therefore the only place the storage bill can be run
+     * up. Requires a signed-in member and is rate-limited to one change per rolling 30 days - left
+     * open, as it was, anyone on the internet could mint upload URLs against the R2 bucket.
+     */
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/presign")
     public ResponseEntity<Object> presignUpload(@RequestParam String fileName,
                                                 @RequestParam String contentType) {
         validateMeta(fileName, contentType);
+        playerPhotoQuotaService.assertCanChangePhoto();
         TeamLogoUploadResponse response = playerPhotoStorageProvider.generateUploadUrl(fileName, contentType);
         return buildSuccessResponse(HttpStatus.OK, "Presigned URL generated", response);
     }
 
+    /** Local-storage equivalent of the presigned PUT, and gated the same way for the same reason. */
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/local/{key}")
     public ResponseEntity<Object> localUpload(@PathVariable String key, HttpServletRequest request) throws IOException {
         if (!(playerPhotoStorageProvider instanceof PlayerPhotoLocalStorageProvider)) {
@@ -67,9 +79,16 @@ public class PlayerPhotoController {
         }
     }
 
+    /**
+     * Deletes a stored photo. Restricted to a member deleting their own, or an admin removing
+     * something inappropriate - previously this was reachable by anyone with the key, which made
+     * wiping another member's photo a single unauthenticated request.
+     */
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping
     public ResponseEntity<Object> deletePlayerPhoto(@RequestParam String key) {
         validateKey(key);
+        playerPhotoQuotaService.assertMayDelete(key);
         playerPhotoStorageProvider.delete(key);
         return buildSuccessResponse(HttpStatus.OK, "Deleted", Map.of("key", key));
     }

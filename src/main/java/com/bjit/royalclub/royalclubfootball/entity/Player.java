@@ -66,6 +66,16 @@ public class Player extends AuditBase {
     @Column(name = "photo_key")
     private String photoKey;
 
+    /**
+     * When this player last <em>replaced</em> a photo. Null means they never have - either no photo
+     * at all, or still on their first - and a first upload is deliberately free, so null always
+     * passes the rolling-window check.
+     *
+     * @see com.bjit.royalclub.royalclubfootball.service.PlayerPhotoQuotaService
+     */
+    @Column(name = "photo_updated_at")
+    private LocalDateTime photoUpdatedAt;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "players_roles", joinColumns = @JoinColumn(name = "player_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
