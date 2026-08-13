@@ -182,22 +182,48 @@ public class PlayerServiceImpl implements PlayerService {
             }
         }
         player.setProfilePhoto(updateRequest.getProfilePhoto());
-        // Handle photo replacement: delete old photo if a new one is provided
-        if (updateRequest.getPhotoKey() != null && !updateRequest.getPhotoKey().isBlank()) {
-            String previousKey = player.getPhotoKey();
-            boolean isReplacement = previousKey != null && !previousKey.isBlank()
-                    && !previousKey.equals(updateRequest.getPhotoKey());
-            if (isReplacement) {
-                playerPhotoStorageProvider.delete(previousKey);
-                // Starts the rolling window. Stamped only on a genuine replacement, so the first
-                // photo a member ever sets stays free and does not cost them their next change.
-                player.setPhotoUpdatedAt(LocalDateTime.now());
-            }
-            player.setPhotoKey(updateRequest.getPhotoKey());
-        }
+        applyPhotoKey(player, updateRequest.getPhotoKey());
         player = playerRepository.save(player);
         /*role need to be handle while update players. and only Admin can change the role*/
         return convertToDto(player);
+    }
+
+    @Override
+    public PlayerResponse updatePhoto(Long id, String photoKey) {
+        // Same rule as a full update: your own profile, or an admin fixing someone else's.
+        if (!isUserAuthorizedForSelf(id) &&
+                getLoggedInPlayer().getRoles().stream()
+                        .noneMatch(role -> "ADMIN".equals(role.getName()))) {
+            throw new java.lang.SecurityException(UNAUTHORIZED);
+        }
+        Player player = playerRepository.findById(id)
+                .orElseThrow(() -> new PlayerServiceException(PLAYER_IS_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        applyPhotoKey(player, photoKey);
+        return convertToDto(playerRepository.save(player));
+    }
+
+    /**
+     * Points a player at a newly uploaded photo, retiring the one it replaces.
+     * <p>
+     * Shared by the full player update and the photo-only endpoint so both retire the old object and
+     * start the rate-limit window identically - a client that could change a photo without stamping
+     * {@code photoUpdatedAt} would be a way around the quota.
+     */
+    private void applyPhotoKey(Player player, String photoKey) {
+        if (photoKey == null || photoKey.isBlank()) {
+            return;
+        }
+        String previousKey = player.getPhotoKey();
+        boolean isReplacement = previousKey != null && !previousKey.isBlank()
+                && !previousKey.equals(photoKey);
+        if (isReplacement) {
+            playerPhotoStorageProvider.delete(previousKey);
+            // Stamped only on a genuine replacement, so the first photo a member ever sets stays
+            // free and does not cost them their next change.
+            player.setPhotoUpdatedAt(LocalDateTime.now());
+        }
+        player.setPhotoKey(photoKey);
     }
 
     @Override

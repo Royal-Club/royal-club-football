@@ -34,6 +34,15 @@ public interface PlayerService {
     @Transactional
     PlayerResponse updatePlayer(Long id, PlayerUpdateRequest updateRequest);
 
+    /**
+     * Points a player at an already-uploaded photo, without touching the rest of their profile.
+     * <p>
+     * Exists because {@link PlayerUpdateRequest} makes name, email, employee ID, Skype ID and
+     * position mandatory: a client that only wants to change a photo would otherwise have to resend
+     * the whole profile, and would silently drop any field it did not know about.
+     */
+    PlayerResponse updatePhoto(Long id, String photoKey);
+
     Player findByEmail(String userName);
 
     Map<Integer, List<GoalKeeperHistoryDto>> goalKeepingHistory();

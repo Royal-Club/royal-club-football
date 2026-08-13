@@ -2,6 +2,7 @@ package com.bjit.royalclub.royalclubfootball.controller;
 
 import com.bjit.royalclub.royalclubfootball.model.GoalKeeperHistoryDto;
 import com.bjit.royalclub.royalclubfootball.model.GoalKeeperQueueResponseDto;
+import com.bjit.royalclub.royalclubfootball.model.PlayerPhotoUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -65,6 +67,18 @@ public class PlayerController {
     public ResponseEntity<Object> updatePlayer(@PathVariable Long id,
                                                @Valid @RequestBody PlayerUpdateRequest updateRequest) {
         PlayerResponse playerResponse = playerService.updatePlayer(id, updateRequest);
+        return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, playerResponse);
+    }
+
+    /**
+     * Attaches an already-uploaded photo to a player. Separate from the full update so a client with
+     * only a camera - the mobile app - does not have to resend a whole profile it never collected.
+     * The upload itself is what the rate limit guards, at presign time.
+     */
+    @PatchMapping("/{id}/photo")
+    public ResponseEntity<Object> updatePlayerPhoto(@PathVariable Long id,
+                                                    @Valid @RequestBody PlayerPhotoUpdateRequest request) {
+        PlayerResponse playerResponse = playerService.updatePhoto(id, request.getPhotoKey());
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, playerResponse);
     }
 
