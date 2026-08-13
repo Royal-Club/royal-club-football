@@ -4,6 +4,7 @@ import com.bjit.royalclub.royalclubfootball.model.TeamFormationRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamFormationResponse;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Line-ups a team captain lays out on the pitch view. A team has one default
@@ -17,6 +18,15 @@ public interface TeamFormationService {
 
     /** The team's default line-up, or the starting preset when none is saved. */
     TeamFormationResponse getDefaultFormation(Long teamId);
+
+    /**
+     * The signed-in member's own team line-up for a tournament.
+     *
+     * <p>Empty when nobody is signed in or the caller was not put on a team — the
+     * clients that ask this are showing a member their own side, and having no
+     * side is an ordinary answer rather than an error.
+     */
+    Optional<TeamFormationResponse> getMyFormation(Long tournamentId);
 
     /**
      * The line-up for one match — falling back to the team default, then to the

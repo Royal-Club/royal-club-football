@@ -67,6 +67,17 @@ public class TeamFormationServiceImpl implements TeamFormationService {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<TeamFormationResponse> getMyFormation(Long tournamentId) {
+        return CurrentUserUtil.currentPlayerId()
+                .flatMap(playerId -> teamPlayerRepository
+                        .findTeamIdsByTournamentIdAndPlayerId(tournamentId, playerId)
+                        .stream()
+                        .findFirst())
+                .map(this::getDefaultFormation);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public TeamFormationResponse getMatchFormation(Long teamId, Long matchId) {
         Team team = findTeam(teamId);
         Match match = findMatch(matchId);

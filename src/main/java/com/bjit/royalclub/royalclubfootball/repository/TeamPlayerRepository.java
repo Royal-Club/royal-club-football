@@ -61,6 +61,17 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, Long> {
     List<TeamPlayer> findAllByTeamId(@Param("teamId") Long teamId);
 
     /**
+     * The teams a player was put on for one tournament. A player belongs to at most
+     * one team per tournament, but this returns a list rather than an Optional so a
+     * double assignment surfaces as a stale row to clean up, not a failed request.
+     */
+    @Query("SELECT tp.team.id FROM TeamPlayer tp "
+            + "WHERE tp.team.tournament.id = :tournamentId AND tp.player.id = :playerId "
+            + "ORDER BY tp.id")
+    List<Long> findTeamIdsByTournamentIdAndPlayerId(@Param("tournamentId") Long tournamentId,
+                                                    @Param("playerId") Long playerId);
+
+    /**
      * {playerId, tournamentId} for every team assignment in the given tournaments.
      * Being on a team sheet is what counts as having turned up, so this is the
      * "played" side of the attendance report.

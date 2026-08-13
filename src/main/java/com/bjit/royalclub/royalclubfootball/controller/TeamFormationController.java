@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -38,6 +39,19 @@ public class TeamFormationController {
     @GetMapping("/teams/{teamId}")
     public ResponseEntity<Object> defaultFormation(@PathVariable Long teamId) {
         return buildSuccessResponse(HttpStatus.OK, FETCH_OK, teamFormationService.getDefaultFormation(teamId));
+    }
+
+    /**
+     * The caller's own team line-up for a tournament, for the member-facing apps.
+     *
+     * <p>Content is null when the caller is not on a team for that tournament, which
+     * the mobile app reads as "show nothing" — being left off a team sheet is not an
+     * error, and a 404 here would be indistinguishable from a broken route.
+     */
+    @GetMapping("/my")
+    public ResponseEntity<Object> myFormation(@RequestParam Long tournamentId) {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK,
+                teamFormationService.getMyFormation(tournamentId).orElse(null));
     }
 
     @PutMapping("/teams/{teamId}")
