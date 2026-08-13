@@ -46,15 +46,29 @@ public class JWTUtil {
                 .compact();
     }
 
-    public boolean validateToken(String token, String email) {
+    /** Access-token lifetime in seconds, for clients that renew ahead of expiry. */
+    public long getExpirationSeconds() {
+        return jwtExpirationInMs / 1000;
+    }
+
+    /**
+     * Subject of a token that is well-formed, correctly signed and unexpired; {@code null} for
+     * anything else.
+     * <p>
+     * Never throws. An expired token is an ordinary event - it is what every client hits once a week
+     * - and the caller has to answer it with a 401 rather than let an exception escape the filter
+     * chain, where no {@code @ControllerAdvice} can reach it.
+     */
+    public String emailIfValid(String token) {
         try {
-            final String tokenEmail = extractEmail(token);
-            if (!tokenEmail.equals(email) || isTokenExpired(token)) {
-                throw new SecurityException(INVALID_TOKEN, HttpStatus.EXPECTATION_FAILED);
+            Claims claims = extractAllClaims(token);
+            Date expiration = claims.getExpiration();
+            if (expiration == null || expiration.before(new Date())) {
+                return null;
             }
-            return true;
+            return claims.getSubject();
         } catch (Exception e) {
-            return false;
+            return null;
         }
     }
 
@@ -87,11 +101,4 @@ public class JWTUtil {
         }
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
-    }
 }

@@ -93,7 +93,17 @@ jwt:
   # Overridable so production can stop signing logins with this committed default.
   # Changing it invalidates every issued token, so everyone is logged out once on the deploy that sets it.
   secret: ${JWT_SECRET:YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkwYWJjZGVmZ2hpamts}
-  expiration: 604800000  # Token expiration in milliseconds (7 days)
+  # Access-token lifetime. Still a week because the web app has no refresh support yet and would
+  # log everyone out on this interval; once it adopts /auth/refresh this should drop to an hour or
+  # less, which is the point of having refresh tokens at all.
+  expiration: ${JWT_EXPIRATION_MS:604800000}  # Token expiration in milliseconds (7 days)
+  # Refresh-token lifetime, and so the longest a member can stay away and still be signed in.
+  # Rotation means an active device renews this window on every refresh; only genuine absence
+  # of this length ends the session.
+  refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:60}
+  # Spent and expired refresh rows are unreadable by anything; this only stops the table growing
+  # by one row per renewal forever.
+  refresh-cleanup-cron: ${JWT_REFRESH_CLEANUP_CRON:0 30 3 * * ?}
 
 player:
   default-password: JaniNa@123 # Configurable default password assigned at registration

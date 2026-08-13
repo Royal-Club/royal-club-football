@@ -56,6 +56,7 @@ public class SecurityConfig {
 
     @Bean
     public JWTAuthenticationFilter jwtAuthenticationFilter() {
-        return new JWTAuthenticationFilter(jwtUtil, customUserDetailsService);
+        return new JWTAuthenticationFilter(jwtUtil, customUserDetailsService,
+                jwtUnAuthorizedResponseAuthenticationEntryPoint);
     }
 }

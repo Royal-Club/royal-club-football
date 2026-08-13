@@ -27,6 +27,10 @@ public class PublicEndpoints {
     public String[] getPublicPostEndpoints() {
         return new String[]{
                 "/auth/login",
+                // Renewal and sign-out authenticate with the refresh token in the body, and are
+                // reached precisely when the access token is no longer good.
+                "/auth/refresh",
+                "/auth/logout",
                 "/players",
                 "/files/presign",
                 "/auction/tournaments/*/register",

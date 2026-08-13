@@ -8,6 +8,8 @@ import com.bjit.royalclub.royalclubfootball.model.LoginResponse;
 import com.bjit.royalclub.royalclubfootball.model.PasswordResetConfirmRequest;
 import com.bjit.royalclub.royalclubfootball.model.PasswordResetResponse;
 import com.bjit.royalclub.royalclubfootball.model.ResetPasswordRequest;
+import com.bjit.royalclub.royalclubfootball.model.TokenRefreshRequest;
+import com.bjit.royalclub.royalclubfootball.model.TokenRefreshResponse;
 import com.bjit.royalclub.royalclubfootball.service.AuthService;
 import com.bjit.royalclub.royalclubfootball.service.PasswordResetService;
 import jakarta.validation.Valid;
@@ -43,6 +45,26 @@ public class AuthController {
     public ResponseEntity<Object> login(@Valid @RequestBody LoginRequest loginRequest) {
         LoginResponse loginResponse = authService.login(loginRequest);
         return buildSuccessResponse(HttpStatus.OK, LOGIN_OK, loginResponse);
+    }
+
+    /**
+     * Public: reached precisely when the access token is no longer good, so it cannot itself require
+     * one. The refresh token in the body is the credential.
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<Object> refresh(@Valid @RequestBody TokenRefreshRequest request) {
+        TokenRefreshResponse response = authService.refresh(request.getRefreshToken());
+        return buildSuccessResponse(HttpStatus.OK, LOGIN_OK, response);
+    }
+
+    /**
+     * Public and idempotent: a device signing out may well be holding an expired access token, and
+     * a sign-out that fails for that reason would strand a live refresh token on the server.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Object> logout(@Valid @RequestBody TokenRefreshRequest request) {
+        authService.logout(request.getRefreshToken());
+        return buildResponse(HttpStatus.OK, UPDATE_OK);
     }
 
     @PutMapping("/change-password")

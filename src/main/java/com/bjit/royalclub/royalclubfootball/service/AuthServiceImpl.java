@@ -9,12 +9,14 @@ import com.bjit.royalclub.royalclubfootball.model.ChangePasswordRequest;
 import com.bjit.royalclub.royalclubfootball.model.LoginRequest;
 import com.bjit.royalclub.royalclubfootball.model.LoginResponse;
 import com.bjit.royalclub.royalclubfootball.model.ResetPasswordRequest;
+import com.bjit.royalclub.royalclubfootball.model.TokenRefreshResponse;
 import com.bjit.royalclub.royalclubfootball.repository.PlayerRepository;
 import com.bjit.royalclub.royalclubfootball.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -28,6 +30,7 @@ import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.ge
 public class AuthServiceImpl implements AuthService {
     private final PlayerRepository playerRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
 
     private final JWTUtil jwtUtil;
 
@@ -50,8 +53,31 @@ public class AuthServiceImpl implements AuthService {
                 .email(player.getEmail())
                 .roles(player.getRoles().stream().map(Role::getName).toList())
                 .token(token)
+                .refreshToken(refreshTokenService.issue(player))
+                .expiresIn(jwtUtil.getExpirationSeconds())
                 .resetPassword(resetPasswordNeeded)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public TokenRefreshResponse refresh(String refreshToken) {
+        // One transaction on purpose: spending the old token and issuing its replacement must not be
+        // separable, or a failure between them leaves the device holding nothing it can use.
+        Player player = refreshTokenService.consume(refreshToken);
+        String token = jwtUtil.generateToken(player.getEmail(),
+                player.getRoles().stream().map(Role::getName).toList());
+
+        return TokenRefreshResponse.builder()
+                .token(token)
+                .refreshToken(refreshTokenService.issue(player))
+                .expiresIn(jwtUtil.getExpirationSeconds())
+                .build();
+    }
+
+    @Override
+    public void logout(String refreshToken) {
+        refreshTokenService.revoke(refreshToken);
     }
 
     private Boolean isResetPasswordNeeded(Player player) {

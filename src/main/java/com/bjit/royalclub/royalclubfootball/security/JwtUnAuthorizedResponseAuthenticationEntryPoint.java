@@ -30,7 +30,12 @@ public class JwtUnAuthorizedResponseAuthenticationEntryPoint implements Authenti
         data.put("timeStamp", System.currentTimeMillis());
         data.put("status", HttpStatus.UNAUTHORIZED.getReasonPhrase());
         data.put("statusCode", HttpStatus.UNAUTHORIZED.value());
-        data.put("message", FORBIDDEN_ERROR_MESSAGE);
+        // Prefer the reason the caller was actually rejected for - "your session has expired" is
+        // something a member can act on, where the generic forbidden text is not.
+        String message = authException != null && authException.getMessage() != null
+                ? authException.getMessage()
+                : FORBIDDEN_ERROR_MESSAGE;
+        data.put("message", message);
 
         response.getOutputStream().println(objectMapper.writeValueAsString(data));
     }

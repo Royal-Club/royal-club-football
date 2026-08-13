@@ -5,24 +5,18 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
+/**
+ * Answer to a refresh. Carries a new refresh token as well as a new access token, because tokens
+ * rotate on every exchange - the one the caller sent is dead by the time this is returned, so a
+ * client that fails to store the replacement has ended its own session.
+ */
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class LoginResponse {
+public class TokenRefreshResponse {
     private String token;
-    /**
-     * Long-lived credential the client exchanges for a new access token when this one expires.
-     * Clients that do not implement refresh (the web app, today) can ignore it.
-     */
     private String refreshToken;
     /** Access-token lifetime in seconds, so a client can renew ahead of expiry instead of on failure. */
     private long expiresIn;
-    private Long userId;
-    private String username;
-    private String email;
-    private List<String> roles;
-    private Boolean resetPassword;
 }

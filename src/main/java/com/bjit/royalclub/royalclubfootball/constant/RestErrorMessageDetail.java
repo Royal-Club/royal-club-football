@@ -52,6 +52,8 @@ public class RestErrorMessageDetail {
     public static final String PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM = "This player is already added another team";
     public static final String PLAYER_IS_NOT_PART_OF_THIS_TEAM = "Player is not part of the specified team";
     public static final String INVALID_TOKEN = "Invalid token";
+    /** Deliberately vague: the client only needs to know it must sign in again, not why. */
+    public static final String SESSION_EXPIRED = "Your session has expired. Please sign in again.";
     public static final String UNAUTHORIZED = "You are not authorized to do this action";
     public static final String EMAIL_ALREADY_IN_USE = "Email address is already in use by another player.";
 
