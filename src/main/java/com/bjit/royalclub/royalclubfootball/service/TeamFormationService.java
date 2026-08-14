@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
+import com.bjit.royalclub.royalclubfootball.model.LineupPublishResponse;
 import com.bjit.royalclub.royalclubfootball.model.TeamFormationRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamFormationResponse;
 
@@ -33,4 +34,16 @@ public interface TeamFormationService {
 
     /** Drops the match-specific line-up so the team falls back to its default. */
     void resetMatchFormation(Long teamId, Long matchId);
+
+    /**
+     * Announces the team's saved line-up to the players in it.
+     * <p>
+     * Separate from saving on purpose: saving is a draft, publishing is telling thirty people.
+     * Idempotent and incremental — only placed players who have never been told are notified, so a
+     * second press reaches nobody and a swapped-in replacement reaches only them.
+     */
+    LineupPublishResponse publishDefaultFormation(Long teamId);
+
+    /** Publish state for the formation board, without sending anything. */
+    LineupPublishResponse defaultFormationPublishStatus(Long teamId);
 }

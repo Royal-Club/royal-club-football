@@ -23,4 +23,7 @@ public interface TournamentPrizeService {
     List<TournamentPrizeResponse> getPrizesByTeam(Long tournamentId, Long teamId);
 
     List<TournamentPrizeResponse> getPrizesByPlayer(Long tournamentId, Long playerId);
+
+    /** Everything this player has ever won, newest first — their honours board. */
+    List<TournamentPrizeResponse> getCareerPrizesByPlayer(Long playerId);
 }

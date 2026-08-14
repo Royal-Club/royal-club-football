@@ -9,11 +9,13 @@ import com.bjit.royalclub.royalclubfootball.enums.MatchStatus;
 import com.bjit.royalclub.royalclubfootball.enums.PositionGroup;
 import com.bjit.royalclub.royalclubfootball.enums.TeamPlayerRole;
 import com.bjit.royalclub.royalclubfootball.exception.TeamServiceException;
+import com.bjit.royalclub.royalclubfootball.model.LineupPublishResponse;
 import com.bjit.royalclub.royalclubfootball.model.TeamFormationRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamFormationResponse;
 import com.bjit.royalclub.royalclubfootball.model.TeamFormationSlotRequest;
 import com.bjit.royalclub.royalclubfootball.model.TeamFormationSlotResponse;
 import com.bjit.royalclub.royalclubfootball.model.TeamPlayerResponse;
+import com.bjit.royalclub.royalclubfootball.service.notification.LineupPublishedNotifier;
 import com.bjit.royalclub.royalclubfootball.repository.MatchRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamFormationRepository;
 import com.bjit.royalclub.royalclubfootball.repository.TeamPlayerRepository;
@@ -51,6 +53,7 @@ public class TeamFormationServiceImpl implements TeamFormationService {
     private final TeamRepository teamRepository;
     private final TeamPlayerRepository teamPlayerRepository;
     private final MatchRepository matchRepository;
+    private final LineupPublishedNotifier lineupPublishedNotifier;
 
     /* ---------------------------------------------------------------- */
     /* Reads                                                             */
@@ -146,6 +149,30 @@ public class TeamFormationServiceImpl implements TeamFormationService {
 
         teamFormationRepository.findByTeamIdAndMatchId(teamId, matchId)
                 .ifPresent(teamFormationRepository::delete);
+    }
+
+    @Override
+    @Transactional
+    public LineupPublishResponse publishDefaultFormation(Long teamId) {
+        Team team = findTeam(teamId);
+        // Same gate as editing: only the captain or a tournament admin decides when the squad hears.
+        requireEditable(team, null);
+
+        TeamFormation formation = teamFormationRepository.findDefaultByTeamId(teamId)
+                .orElseThrow(() -> new TeamServiceException(
+                        "There is no saved line-up to publish yet", HttpStatus.NOT_FOUND));
+
+        return lineupPublishedNotifier.publish(formation, team);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public LineupPublishResponse defaultFormationPublishStatus(Long teamId) {
+        findTeam(teamId);
+        return teamFormationRepository.findDefaultByTeamId(teamId)
+                .map(lineupPublishedNotifier::status)
+                // Nothing saved: nothing placed, nothing pending, nothing published.
+                .orElseGet(() -> LineupPublishResponse.builder().build());
     }
 
     private TeamFormation newFormation(Team team, Match match) {

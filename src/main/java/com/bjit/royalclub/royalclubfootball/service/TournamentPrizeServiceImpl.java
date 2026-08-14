@@ -192,6 +192,14 @@ public class TournamentPrizeServiceImpl implements TournamentPrizeService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<TournamentPrizeResponse> getCareerPrizesByPlayer(Long playerId) {
+        return prizeRepository.findAllByPlayerId(playerId).stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
     // Helper methods
 
     private void validatePrizeRequest(TournamentPrizeRequest request) {

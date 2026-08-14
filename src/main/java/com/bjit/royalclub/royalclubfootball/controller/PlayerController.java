@@ -6,6 +6,8 @@ import com.bjit.royalclub.royalclubfootball.model.PlayerPhotoUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerRegistrationRequest;
 import com.bjit.royalclub.royalclubfootball.model.PlayerResponse;
 import com.bjit.royalclub.royalclubfootball.model.PlayerUpdateRequest;
+import com.bjit.royalclub.royalclubfootball.model.TournamentPrizeResponse;
+import com.bjit.royalclub.royalclubfootball.service.TournamentPrizeService;
 import com.bjit.royalclub.royalclubfootball.service.PlayerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ import static com.bjit.royalclub.royalclubfootball.util.ResponseBuilder.buildSuc
 public class PlayerController {
 
     private final PlayerService playerService;
+    private final TournamentPrizeService tournamentPrizeService;
 
     @PostMapping
     public ResponseEntity<Object> registerPlayer(@Valid @RequestBody PlayerRegistrationRequest registrationRequest) {
@@ -80,6 +83,19 @@ public class PlayerController {
                                                     @Valid @RequestBody PlayerPhotoUpdateRequest request) {
         PlayerResponse playerResponse = playerService.updatePhoto(id, request.getPhotoKey());
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, playerResponse);
+    }
+
+    /**
+     * Everything this player has ever won, newest first — their honours board.
+     * <p>
+     * Lives on the player rather than under a tournament because it spans all of them. The prize
+     * endpoints under {@code /tournaments/{id}/prizes} answer "who won this competition"; building a
+     * career record from those would take one call per tournament the club has ever run.
+     */
+    @GetMapping("/{id}/prizes")
+    public ResponseEntity<Object> playerPrizes(@PathVariable Long id) {
+        List<TournamentPrizeResponse> prizes = tournamentPrizeService.getCareerPrizesByPlayer(id);
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, prizes, prizes.size());
     }
 
     @GetMapping("/goal-keeper-history")
