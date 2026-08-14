@@ -107,12 +107,16 @@ public class MonthlyDuesReminderServiceImpl implements MonthlyDuesReminderServic
             // sent and the player stays eligible on the next run day.
             delivered = duesEmailService.sendDuesEmails(eligible, firstOfMonth);
         } else {
-            notificationService.sendToPlayers(eligible, "💰 Monthly payment due",
+            // Only players FCM accepted a message for, mirroring how email treats a bounce. Anyone
+            // without a registered device stays eligible for the next run day instead of silently
+            // spending one of their three monthly reminders on a push that was never sent.
+            Set<Long> reachedIds = notificationService.sendToPlayers(eligible, "💰 Monthly payment due",
                     String.format("Your %s club payment is still pending. Tap to see your payments.",
                             firstOfMonth.format(MONTH_DISPLAY)),
                     Map.of("type", "PAYMENT_REMINDER", "month", firstOfMonth.format(MONTH_KEY)));
-            // FCM multicast reports per-token results, not per-player, so treat the batch as sent.
-            delivered = eligible;
+            delivered = eligible.stream()
+                    .filter(player -> reachedIds.contains(player.getId()))
+                    .toList();
         }
 
         recordLogs(delivered, firstOfMonth, channel);

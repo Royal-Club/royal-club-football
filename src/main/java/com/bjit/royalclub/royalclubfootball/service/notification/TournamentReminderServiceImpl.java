@@ -178,12 +178,18 @@ public class TournamentReminderServiceImpl implements TournamentReminderService 
             // and the player stays eligible tomorrow.
             delivered = rsvpEmailService.sendRsvpEmails(tournament, eligible, TYPE_INVITE.equals(reminderType));
         } else {
-            notificationService.sendToPlayers(eligible, buildPushTitle(reminderType),
+            // Only the players FCM actually accepted a message for, mirroring how email treats a
+            // bounce. Recording the whole batch was wrong twice over: a player with no registered
+            // device silently lost one of their three reminders for this tournament, and the logs
+            // claimed a delivery that never happened - which is exactly how "email arrived but the
+            // push never did" went unnoticed.
+            Set<Long> reachedIds = notificationService.sendToPlayers(eligible, buildPushTitle(reminderType),
                     buildPushBody(tournament), Map.of(
                             "type", TYPE_INVITE.equals(reminderType) ? "RSVP_INVITATION" : "RSVP_REMINDER",
                             "tournamentId", String.valueOf(tournament.getId())));
-            // FCM multicast reports per-token results, not per-player, so treat the batch as sent.
-            delivered = eligible;
+            delivered = eligible.stream()
+                    .filter(player -> reachedIds.contains(player.getId()))
+                    .toList();
         }
 
         recordLogs(tournament, delivered, channel, reminderType);
