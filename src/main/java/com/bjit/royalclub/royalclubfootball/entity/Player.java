@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -54,6 +55,15 @@ public class Player extends AuditBase {
     @Enumerated(EnumType.STRING)
     @Column(name = "playing_position", nullable = false)
     private FootballPosition position;
+
+    /**
+     * Whether this player takes part in the goalkeeper rotation. Kept apart from {@link #position}
+     * on purpose - position is the outfield role someone is listed under, not a statement about
+     * whether they are willing or able to go in goal.
+     */
+    @Column(name = "gk_eligible", nullable = false)
+    @Builder.Default
+    private boolean gkEligible = true;
 
     private String password;
 

@@ -82,6 +82,13 @@ public class TeamManagementServiceImpl implements TeamManagementService {
             matchRepository.deleteAll(teamMatches);
         }
 
+        // Goalkeeping history is not owned by the team, so nothing cascades it away with the team
+        // rows. Left behind, it credits the keeper with a turn in a tournament they may end up not
+        // keeping goal in at all, and hands them a second record once the team is rebuilt.
+        teamPlayerRepository.findAllByTeamId(teamId).stream()
+                .filter(teamPlayer -> isGoalKeeper(teamPlayer.getPlayingPosition().name()))
+                .forEach(teamPlayer -> removeGoalKeeperRound(teamPlayer.getPlayer(), team.getTournament()));
+
         // Now delete the team
         teamRepository.delete(team);
 
@@ -406,16 +413,31 @@ public class TeamManagementServiceImpl implements TeamManagementService {
         return "/files/player-photos/" + photoKey;
     }
 
+    /**
+     * Records that this player is down to keep goal in this tournament, once.
+     * <p>
+     * The guard matters because the goalkeeper priority queue counts these rows to work out who has
+     * already served their turn, and a player can reach this method more than once for the same
+     * tournament - rebuilding a team after {@link #deleteTeam(Long)} being the usual route. A
+     * spurious second row makes someone look like they kept goal twice and quietly pushes them down
+     * the queue. Removal is by player and tournament, so that pair is already the unit this history
+     * is keyed on.
+     */
     private void trackGoalKeeperRound(Player player, Tournament tournament) {
-        Integer lastRoundInPreviousTournaments =
-                goalkeepingHistoryRepository.findMaxRoundByPlayerId(player.getId()).orElse(0);
+        if (goalkeepingHistoryRepository.countByPlayerAndTournament(player.getId(), tournament.getId()) > 0) {
+            return;
+        }
 
-        int nextGoalKeepingRound = lastRoundInPreviousTournaments + 1;
+        // A per-player lifetime ordinal ("their Nth time in goal"), not a round within the
+        // tournament and not a running total: deletions never rewind it, so it drifts above the
+        // real number of turns served. Count the rows to get that.
+        Integer previousGoalKeepingOrdinal =
+                goalkeepingHistoryRepository.findMaxRoundByPlayerId(player.getId()).orElse(0);
 
         PlayerGoalkeepingHistory playerGoalkeepingHistory = PlayerGoalkeepingHistory.builder()
                 .player(player)
                 .tournament(tournament)
-                .roundNumber(nextGoalKeepingRound)
+                .roundNumber(previousGoalKeepingOrdinal + 1)
                 .playedDate(tournament.getTournamentDate())
                 .build();
 

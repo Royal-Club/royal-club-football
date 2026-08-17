@@ -1,5 +1,6 @@
 package com.bjit.royalclub.royalclubfootball.service;
 
+import com.bjit.royalclub.royalclubfootball.config.GoalKeeperQueueProperties;
 import com.bjit.royalclub.royalclubfootball.config.PlayerProperties;
 import com.bjit.royalclub.royalclubfootball.util.PaginationUtil;
 import com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail;
@@ -8,6 +9,7 @@ import com.bjit.royalclub.royalclubfootball.entity.PlayerGoalkeepingHistory;
 import com.bjit.royalclub.royalclubfootball.entity.Role;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipant;
+import com.bjit.royalclub.royalclubfootball.enums.GoalKeeperQueueTier;
 import com.bjit.royalclub.royalclubfootball.enums.PlayerRole;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.SecurityException;
@@ -25,6 +27,7 @@ import com.bjit.royalclub.royalclubfootball.repository.TournamentRepository;
 import com.bjit.royalclub.royalclubfootball.storage.StorageProvider;
 import com.bjit.royalclub.royalclubfootball.storage.playerphoto.PlayerPhotoStorageProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -34,6 +37,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +64,7 @@ public class PlayerServiceImpl implements PlayerService {
     private final RoleRepository roleRepository;
     private final PlayerGoalkeepingHistoryRepository goalkeepingHistoryRepository;
     private final PlayerProperties playerProperties;
+    private final GoalKeeperQueueProperties goalKeeperQueueProperties;
     private final TournamentRepository tournamentRepository;
     private final TournamentParticipantRepository tournamentParticipantRepository;
     private final StorageProvider storageProvider;
@@ -175,6 +180,9 @@ public class PlayerServiceImpl implements PlayerService {
         player.setMobileNo(normalizeString(updateRequest.getMobileNo()));
         player.setSkypeId(updateRequest.getSkypeId());
         player.setPosition(updateRequest.getPlayingPosition());
+        if (updateRequest.getGkEligible() != null) {
+            player.setGkEligible(updateRequest.getGkEligible());
+        }
         if (updateRequest.getProfilePhoto() != null && !updateRequest.getProfilePhoto().isBlank()) {
             String oldKey = player.getProfilePhoto();
             if (oldKey != null && !oldKey.isBlank() && !oldKey.equals(updateRequest.getProfilePhoto())) {
@@ -298,6 +306,7 @@ public class PlayerServiceImpl implements PlayerService {
                 .fullName(player.getName() + "[" + player.getEmployeeId() + "]")
                 .profilePhoto(player.getProfilePhoto())
                 .playingPosition(player.getPosition())
+                .gkEligible(player.isGkEligible())
                 .isActive(player.isActive())
                 .roles(roleResponses)
                 .photoKey(player.getPhotoKey())
@@ -334,19 +343,36 @@ public class PlayerServiceImpl implements PlayerService {
                 .toList();
     }
 
+    /**
+     * Suggests who should keep goal next, as a ranking of the players confirmed for this tournament.
+     * <p>
+     * The ranking is a ledger, not a counter. Every tournament creates a fixed amount of goalkeeping
+     * work, shared equally between the people who turned up for it, so each appearance accrues a
+     * fraction of a turn; each turn actually served pays one off. Ranking by what remains
+     * ({@code accrued - served}) is what makes a newcomer, a returning member and a ten-year veteran
+     * comparable at all: a raw count of turns cannot tell "has been unfairly skipped" apart from
+     * "has not been here long enough to be asked", and rewards both alike.
+     * <p>
+     * Obligation accrues only for tournaments a player attended, so an absence neither builds up a
+     * debt they never had the chance to pay nor flatters them for a low count they only have because
+     * they were not there to be picked.
+     * <p>
+     * Held separately from that is whether someone can reasonably take a turn <em>now</em>: anyone
+     * who kept goal within the cooldown window drops below everyone who did not, and anyone who has
+     * opted out is shown but not ranked. Both bands are applied before the ledger sorts within them,
+     * because folding fairness and rotation into one ordering lets whichever comes first silently
+     * override the other.
+     *
+     * @see GoalKeeperQueueProperties
+     * @see GoalKeeperQueueTier
+     */
     @Override
     public GoalKeeperQueueResponseDto getGoalKeeperPriorityQueue(Long tournamentId) {
-        // Fetch the current tournament
         Tournament tournament = tournamentRepository.findById(tournamentId)
                 .orElseThrow(() -> new PlayerServiceException("Tournament not found", HttpStatus.NOT_FOUND));
 
-        // Get the most recent tournament before current one
-        Tournament mostRecentTournament = tournamentRepository
-                .findMostRecentTournamentBefore(tournament.getTournamentDate());
-
-        // Get all active participants in the current tournament
         List<TournamentParticipant> participants = tournamentParticipantRepository
-                .findAllByTournamentIdAndParticipationStatusTrue(tournamentId);
+                .findAllByTournamentIdAndParticipationStatusTrueWithPlayer(tournamentId);
 
         if (participants.isEmpty()) {
             return GoalKeeperQueueResponseDto.builder()
@@ -354,89 +380,158 @@ public class PlayerServiceImpl implements PlayerService {
                     .tournamentName(tournament.getName())
                     .tournamentDate(tournament.getTournamentDate())
                     .goalKeeperPriorityQueue(new ArrayList<>())
+                    .cooldownTournaments(goalKeeperQueueProperties.getCooldownTournaments())
                     .build();
         }
 
-        // Get total active tournaments for frequency calculation
         Integer activeTournamentCount = goalkeepingHistoryRepository.countActiveTournaments();
         if (activeTournamentCount == null || activeTournamentCount == 0) {
             activeTournamentCount = 1; // Prevent division by zero
         }
 
-        // Build list of players with scores
-        List<PlayerWithMetadata> playersWithMetadata = new ArrayList<>();
-
-        // ===== BATCH PRE-FETCH ALL DATA =====
         List<Long> playerIds = participants.stream()
                 .map(p -> p.getPlayer().getId())
                 .toList();
 
-        // 1. All GK histories excluding current tournament (batch)
+        // ===== LEDGER INPUTS (all batched) =====
+
+        // Every past tournament each player actually turned up to. Obligation accrues per
+        // appearance, so this is the ledger's spine rather than a statistic on the side.
+        Map<Long, List<Long>> attendedByPlayer = new HashMap<>();
+        tournamentParticipantRepository.findAttendedTournamentIdsBatch(playerIds, tournamentId)
+                .forEach(row -> attendedByPlayer
+                        .computeIfAbsent(((Number) row[0]).longValue(), key -> new ArrayList<>())
+                        .add(((Number) row[1]).longValue()));
+
+        Set<Long> ledgerTournamentIds = attendedByPlayer.values().stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toSet());
+
+        // What one appearance at each of those tournaments asked of an attendee: the keeper slots
+        // it had to fill, shared between everyone who turned up for it. Normalising by head count
+        // is what stops a thin turnout and a full one being treated as equal burdens.
+        Map<Long, Double> accrualRateByTournament = new HashMap<>();
+        int tournamentsWithRecordedKeepers = 0;
+        int tournamentsEstimated = 0;
+        if (!ledgerTournamentIds.isEmpty()) {
+            Map<Long, Integer> slotsByTournament = new HashMap<>();
+            goalkeepingHistoryRepository.countGoalKeeperSlotsByTournamentIds(ledgerTournamentIds)
+                    .forEach(row -> slotsByTournament.put(
+                            ((Number) row[0]).longValue(), ((Number) row[1]).intValue()));
+
+            Map<Long, Integer> headCountByTournament = new HashMap<>();
+            tournamentParticipantRepository.countParticipantsByTournamentIds(ledgerTournamentIds)
+                    .forEach(row -> headCountByTournament.put(
+                            ((Number) row[0]).longValue(), ((Number) row[1]).intValue()));
+
+            boolean estimating = goalKeeperQueueProperties.isEstimateMissingSlots();
+            for (Long ledgerTournamentId : ledgerTournamentIds) {
+                Integer recordedSlots = slotsByTournament.get(ledgerTournamentId);
+                int slots;
+                if (recordedSlots != null) {
+                    tournamentsWithRecordedKeepers++;
+                    slots = recordedSlots;
+                } else if (estimating) {
+                    // A tournament whose keepers were never entered looks exactly like one that
+                    // genuinely needed none. Counted and reported rather than quietly absorbed.
+                    tournamentsEstimated++;
+                    slots = goalKeeperQueueProperties.getDefaultSlotsPerTournament();
+                } else {
+                    slots = 0;
+                }
+                // With no recorded head count there is nobody to share the work between.
+                int headCount = headCountByTournament.getOrDefault(ledgerTournamentId, 0);
+                accrualRateByTournament.put(ledgerTournamentId,
+                        headCount > 0 ? (double) slots / headCount : 0.0);
+            }
+        }
+
+        // Turns actually served, counting shifts rather than tournament days.
+        Map<Long, Integer> stintsByPlayer = new HashMap<>();
+        goalkeepingHistoryRepository
+                .countGoalKeeperStintsBatch(playerIds, tournamentId, tournament.getTournamentDate())
+                .forEach(row -> stintsByPlayer.put(
+                        ((Number) row[0]).longValue(), ((Number) row[1]).intValue()));
+
+        // Who is resting, and how far back their turn was. Index 0 is the tournament just gone.
+        Map<Long, Integer> cooldownIndexByPlayer = new HashMap<>();
+        int cooldownWindow = Math.max(0, goalKeeperQueueProperties.getCooldownTournaments());
+        if (cooldownWindow > 0) {
+            List<Long> recentTournamentIds = tournamentRepository.findRecentTournamentIdsBefore(
+                    tournament.getTournamentDate(), PageRequest.of(0, cooldownWindow));
+            if (!recentTournamentIds.isEmpty()) {
+                Map<Long, Integer> cooldownPositions = new HashMap<>();
+                for (int index = 0; index < recentTournamentIds.size(); index++) {
+                    cooldownPositions.put(recentTournamentIds.get(index), index);
+                }
+                goalkeepingHistoryRepository
+                        .findGoalKeeperAssignmentsInTournaments(playerIds, recentTournamentIds)
+                        .forEach(row -> {
+                            Integer index = cooldownPositions.get(((Number) row[1]).longValue());
+                            if (index != null) {
+                                // Their most recent turn is the one that sets the rest period.
+                                cooldownIndexByPlayer.merge(
+                                        ((Number) row[0]).longValue(), index, Math::min);
+                            }
+                        });
+            }
+        }
+
+        // ===== DISPLAY DATA =====
+
         List<PlayerGoalkeepingHistory> allGkHistories = goalkeepingHistoryRepository
                 .findGoalKeeperHistoryByPlayerIdsExcludingTournament(playerIds, tournamentId);
         Map<Long, List<PlayerGoalkeepingHistory>> gkHistoryByPlayer = allGkHistories.stream()
                 .collect(Collectors.groupingBy(h -> h.getPlayer().getId()));
 
-        // 2. Participation counts (batch)
-        Map<Long, Integer> participationCountMap = new java.util.HashMap<>();
+        Map<Long, Integer> participationCountMap = new HashMap<>();
         goalkeepingHistoryRepository.countPlayerTournamentParticipationsBatch(playerIds)
                 .forEach(row -> participationCountMap.put((Long) row[0], ((Long) row[1]).intValue()));
 
-        // 3. Most recent GK dates (batch)
-        Map<Long, LocalDateTime> mostRecentGkDateMap = new java.util.HashMap<>();
-        goalkeepingHistoryRepository.findMostRecentGoalKeeperDateBatch(playerIds)
-                .forEach(row -> mostRecentGkDateMap.put((Long) row[0], (LocalDateTime) row[1]));
-
-        // 4. Consecutive missed tournaments (batch) - players with no missed run produce no row
-        Map<Long, Integer> consecutiveMissedMap = new java.util.HashMap<>();
-        tournamentParticipantRepository.countConsecutiveMissedTournamentsBatch(playerIds, tournamentId)
-                .forEach(row -> consecutiveMissedMap.put(
-                        ((Number) row[0]).longValue(), ((Number) row[1]).intValue()));
-
-        // 5. GK in most recent tournament (batch)
-        java.util.Set<Long> gkInMostRecentTournament = new java.util.HashSet<>();
-        if (mostRecentTournament != null) {
-            gkInMostRecentTournament.addAll(goalkeepingHistoryRepository
-                    .findPlayerIdsWhoWereGoalKeeperInTournament(playerIds, mostRecentTournament.getId()));
-        }
-
-        // 6. Last participation dates (batch)
-        Map<Long, LocalDateTime> lastParticipationMap = new java.util.HashMap<>();
+        Map<Long, LocalDateTime> lastParticipationMap = new HashMap<>();
         tournamentParticipantRepository.findMostRecentParticipationDateBatch(playerIds, tournamentId)
                 .forEach(row -> lastParticipationMap.put((Long) row[0], (LocalDateTime) row[1]));
 
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yy");
 
+        List<GoalKeeperPriorityDto> eligible = new ArrayList<>();
+        List<GoalKeeperPriorityDto> cooldown = new ArrayList<>();
+        List<GoalKeeperPriorityDto> exempt = new ArrayList<>();
+
         for (TournamentParticipant participant : participants) {
             Player player = participant.getPlayer();
             Long playerId = player.getId();
 
-            // Derive stats from pre-fetched data
-            List<PlayerGoalkeepingHistory> playerGkHistory = gkHistoryByPlayer.getOrDefault(playerId, List.of());
+            List<PlayerGoalkeepingHistory> playerGkHistory =
+                    gkHistoryByPlayer.getOrDefault(playerId, List.of());
+
+            // Keeper rows are written when a team sheet is filled in, which can happen before the
+            // day itself, so anything not strictly in the past is excluded - a queue must never
+            // read an assignment already pencilled in for the tournament it is ranking.
+            List<LocalDateTime> pastGkDates = playerGkHistory.stream()
+                    .map(PlayerGoalkeepingHistory::getPlayedDate)
+                    .filter(playedDate -> playedDate.isBefore(tournament.getTournamentDate()))
+                    .toList();
+
             Integer totalGKTournaments = (int) playerGkHistory.stream()
+                    .filter(h -> h.getPlayedDate().isBefore(tournament.getTournamentDate()))
                     .map(h -> h.getTournament().getId())
                     .distinct()
                     .count();
 
+            LocalDateTime lastGoalKeeperDate = pastGkDates.stream()
+                    .max(LocalDateTime::compareTo)
+                    .orElse(null);
+
+            List<Long> attended = attendedByPlayer.getOrDefault(playerId, List.of());
+            double accruedObligation = attended.stream()
+                    .mapToDouble(attendedId -> accrualRateByTournament.getOrDefault(attendedId, 0.0))
+                    .sum();
+            int stints = stintsByPlayer.getOrDefault(playerId, 0);
+
             Integer totalTournamentParticipations = participationCountMap.getOrDefault(playerId, 0);
-
-            LocalDateTime lastGoalKeeperDate = mostRecentGkDateMap.get(playerId);
-            Integer daysSinceLastGoalkeeping = lastGoalKeeperDate != null
-                    ? (int) java.time.temporal.ChronoUnit.DAYS.between(lastGoalKeeperDate.toLocalDate(), tournament.getTournamentDate().toLocalDate())
-                    : Integer.MAX_VALUE;
-            if (daysSinceLastGoalkeeping < 0) {
-                daysSinceLastGoalkeeping = 0;
-            }
-
-            Integer consecutiveMissedTournaments = consecutiveMissedMap.getOrDefault(playerId, 0);
-
-            List<String> formattedGoalKeeperDates = playerGkHistory.stream()
-                    .map(PlayerGoalkeepingHistory::getPlayedDate)
-                    .filter(playedDate -> playedDate.isBefore(tournament.getTournamentDate()))
-                    .map(dateTime -> dateTime.format(dateFormatter))
-                    .toList();
-
-            boolean wasGKInMostRecent = gkInMostRecentTournament.contains(playerId);
+            double participationFrequency =
+                    (totalTournamentParticipations * 100.0) / activeTournamentCount;
 
             String lastPlayedTournamentDate = null;
             LocalDateTime lastParticipationDate = lastParticipationMap.get(playerId);
@@ -444,86 +539,67 @@ public class PlayerServiceImpl implements PlayerService {
                 lastPlayedTournamentDate = lastParticipationDate.format(dateFormatter);
             }
 
-            // Basic frequency metrics
-            Double participationFrequency = activeTournamentCount > 0
-                    ? (totalTournamentParticipations * 100.0) / activeTournamentCount
-                    : 0.0;
-            Double gkExperienceFrequency = totalTournamentParticipations > 0
-                    ? (totalGKTournaments * 100.0) / totalTournamentParticipations
-                    : 0.0;
+            Integer cooldownIndex = cooldownIndexByPlayer.get(playerId);
+            GoalKeeperQueueTier tier;
+            if (!player.isGkEligible()) {
+                tier = GoalKeeperQueueTier.EXEMPT;
+            } else if (cooldownIndex != null) {
+                tier = GoalKeeperQueueTier.COOLDOWN;
+            } else {
+                tier = GoalKeeperQueueTier.ELIGIBLE;
+            }
 
-            // Build DTO
             GoalKeeperPriorityDto dto = GoalKeeperPriorityDto.builder()
-                    .playerId(player.getId())
+                    .category(tier.name())
+                    .playerId(playerId)
                     .playerName(player.getName())
                     .employeeId(player.getEmployeeId())
-                    .playAsGkDates(formattedGoalKeeperDates)
+                    .playAsGkDates(pastGkDates.stream()
+                            .map(playedDate -> playedDate.format(dateFormatter))
+                            .toList())
                     .totalTournamentParticipations(totalTournamentParticipations)
                     .activeTournamentCount(activeTournamentCount)
-                    .participationFrequency(Math.round(participationFrequency * 100.0) / 100.0)
+                    .participationFrequency(roundToTwoPlaces(participationFrequency))
                     .lastPlayedTournamentDate(lastPlayedTournamentDate)
                     .totalGoalKeeperTournaments(totalGKTournaments)
                     .lastGoalKeeperDate(lastGoalKeeperDate)
+                    .accruedObligation(roundToTwoPlaces(accruedObligation))
+                    .goalKeeperStints(stints)
+                    .goalKeeperDebt(roundToTwoPlaces(accruedObligation - stints))
+                    .attendedTournaments(attended.size())
+                    .cooldownRemaining(cooldownIndex == null ? null : cooldownWindow - cooldownIndex)
                     .build();
 
-            // Store DTO with internal metadata
-            playersWithMetadata.add(new PlayerWithMetadata(dto, wasGKInMostRecent, consecutiveMissedTournaments));
-        }
-
-        // CATEGORY-BASED ORDERING
-        List<PlayerWithMetadata> regularPlayers = new ArrayList<>();
-        List<PlayerWithMetadata> lastTournamentGK = new ArrayList<>();
-        List<PlayerWithMetadata> brandNewPlayers = new ArrayList<>();
-
-        for (PlayerWithMetadata metadata : playersWithMetadata) {
-            GoalKeeperPriorityDto dto = metadata.dto;
-            // Brand new player: ONLY if participating in current tournament AND never participated before in any tournament
-            // Check: totalTournamentParticipations == 1 means only current tournament
-            // consecutiveMissedTournaments == (activeTournamentCount - 1) means missed ALL previous tournaments (truly new)
-            boolean isBrandNew = dto.getTotalTournamentParticipations() == 1
-                    && metadata.consecutiveMissedTournaments == (dto.getActiveTournamentCount() - 1);
-
-            if (isBrandNew) {
-                dto.setCategory("NEW");
-                brandNewPlayers.add(metadata);
-            } else if (metadata.wasGKInMostRecent) {
-                dto.setCategory("LAST_GK");
-                lastTournamentGK.add(metadata);
+            if (tier == GoalKeeperQueueTier.EXEMPT) {
+                exempt.add(dto);
+            } else if (tier == GoalKeeperQueueTier.COOLDOWN) {
+                cooldown.add(dto);
             } else {
-                // Regular players (includes irregular/returning players who participated before)
-                dto.setCategory("REGULAR");
-                regularPlayers.add(metadata);
+                eligible.add(dto);
             }
         }
 
-        // Comparator for regular players:
-        // 1. Never GK first
-        // 2. Fewer consecutive missed tournaments (more regular attendance)
-        // 3. Fewer total GK times (less burden)
-        // 4. Older lastGoalKeeperDate
-        // 5. PlayerId tiebreaker
-        Comparator<PlayerWithMetadata> regularComparator = Comparator
-                .comparing((PlayerWithMetadata m) -> m.dto.getLastGoalKeeperDate() == null ? 0 : 1) // never GK first
-                .thenComparing(m -> m.consecutiveMissedTournaments) // fewer missed = higher priority (regular attendance)
-                .thenComparing(m -> m.dto.getTotalGoalKeeperTournaments()) // fewer GK times = higher priority (fair burden distribution)
-                .thenComparing(m -> m.dto.getLastGoalKeeperDate(), Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(m -> m.dto.getPlayerId());
+        // Most owed first. A player who has never kept goal edges out an equal debt who has, and
+        // player id only ever settles a genuine dead heat.
+        Comparator<GoalKeeperPriorityDto> byDebtOwed =
+                Comparator.comparingDouble((GoalKeeperPriorityDto dto) -> dto.getGoalKeeperDebt())
+                        .reversed()
+                        .thenComparing(GoalKeeperPriorityDto::getLastGoalKeeperDate,
+                                Comparator.nullsFirst(Comparator.naturalOrder()))
+                        .thenComparing(GoalKeeperPriorityDto::getPlayerId);
 
-        // Comparator for last tournament GK group: prioritize LESS experienced GK first (fewer times played GK)
-        // Then by older lastGoalKeeperDate, then by playerId
-        Comparator<PlayerWithMetadata> lastGKComparator = Comparator
-                .comparing((PlayerWithMetadata m) -> m.dto.getTotalGoalKeeperTournaments()) // fewer GK times = higher priority
-                .thenComparing(m -> m.dto.getLastGoalKeeperDate(), Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(m -> m.dto.getPlayerId());
+        eligible.sort(byDebtOwed);
+        // Within the rest band, the further back someone's turn was the sooner they come back up.
+        cooldown.sort(Comparator
+                .comparingInt((GoalKeeperPriorityDto dto) -> dto.getCooldownRemaining())
+                .thenComparing(byDebtOwed));
+        exempt.sort(Comparator.comparing(GoalKeeperPriorityDto::getPlayerName,
+                String.CASE_INSENSITIVE_ORDER));
 
-        regularPlayers.sort(regularComparator);
-        lastTournamentGK.sort(lastGKComparator);
-        brandNewPlayers.sort(regularComparator); // treat brand new similar to regular (will be placed last anyway)
-
-        List<GoalKeeperPriorityDto> finalQueue = new ArrayList<>();
-        finalQueue.addAll(regularPlayers.stream().map(m -> m.dto).toList());
-        finalQueue.addAll(lastTournamentGK.stream().map(m -> m.dto).toList());
-        finalQueue.addAll(brandNewPlayers.stream().map(m -> m.dto).toList());
+        List<GoalKeeperPriorityDto> finalQueue = new ArrayList<>(participants.size());
+        finalQueue.addAll(eligible);
+        finalQueue.addAll(cooldown);
+        finalQueue.addAll(exempt);
 
         int priority = 1;
         for (GoalKeeperPriorityDto dto : finalQueue) {
@@ -535,19 +611,18 @@ public class PlayerServiceImpl implements PlayerService {
                 .tournamentName(tournament.getName())
                 .tournamentDate(tournament.getTournamentDate())
                 .goalKeeperPriorityQueue(finalQueue)
+                .cooldownTournaments(cooldownWindow)
+                .ledgerCoverage(GoalKeeperQueueResponseDto.LedgerCoverage.builder()
+                        .tournamentsConsidered(ledgerTournamentIds.size())
+                        .tournamentsWithRecordedKeepers(tournamentsWithRecordedKeepers)
+                        .tournamentsEstimated(tournamentsEstimated)
+                        .estimatingMissingSlots(goalKeeperQueueProperties.isEstimateMissingSlots())
+                        .build())
                 .build();
     }
 
-    // Inner class to hold DTO with internal metadata (not exposed in API response)
-    private static class PlayerWithMetadata {
-        final GoalKeeperPriorityDto dto;
-        final boolean wasGKInMostRecent;
-        final int consecutiveMissedTournaments;
-
-        PlayerWithMetadata(GoalKeeperPriorityDto dto, boolean wasGKInMostRecent, int consecutiveMissedTournaments) {
-            this.dto = dto;
-            this.wasGKInMostRecent = wasGKInMostRecent;
-            this.consecutiveMissedTournaments = consecutiveMissedTournaments;
-        }
+    /** Ledger figures are read by people arguing about their place in a queue, so keep them legible. */
+    private static double roundToTwoPlaces(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 }

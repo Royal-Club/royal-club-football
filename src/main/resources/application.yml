@@ -114,6 +114,18 @@ player:
   default-password: JaniNa@123 # Configurable default password assigned at registration
   superadmin-email: rakibccj@gmail.com # Email of the player to assign SUPERADMIN role on application startup. Service will automatically assign this role when app starts. Leave empty to skip.
 
+# Who should keep goal next. The queue ranks confirmed participants by how much goalkeeping they
+# owe (obligation accrued from turning up, minus turns actually served), then holds back anyone who
+# kept goal in the last few tournaments.
+goalkeeper-queue:
+  # Tournaments counted as a rest period. 1 only stops back-to-back; 2 also spares the week after.
+  cooldown-tournaments: ${GK_QUEUE_COOLDOWN_TOURNAMENTS:2}
+  # Assumed keeper count for a tournament with no goalkeeping history recorded against it.
+  default-slots-per-tournament: ${GK_QUEUE_DEFAULT_SLOTS:2}
+  # Set false to treat tournaments with no recorded keepers as creating no obligation, rather than
+  # estimating one. Safer if the early history is patchy - see ledgerCoverage in the response.
+  estimate-missing-slots: ${GK_QUEUE_ESTIMATE_MISSING_SLOTS:true}
+
 # Firebase Cloud Messaging (push notifications). Defaults to the git-ignored service-account JSON in ./secret.
 # Set both blank (or point elsewhere via the env vars) to disable/relocate; app still boots if the file is missing.
 firebase:

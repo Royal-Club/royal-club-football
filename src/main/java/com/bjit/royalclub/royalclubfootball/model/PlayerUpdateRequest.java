@@ -32,5 +32,12 @@ public class PlayerUpdateRequest {
     @NotNull(message = "Position is mandatory")
     private FootballPosition playingPosition;
 
+    /**
+     * Whether this player takes part in the goalkeeper rotation. Nullable on purpose: an update
+     * that does not mention it leaves the current setting alone, so a client that predates the
+     * field cannot silently opt someone back into keeping goal.
+     */
+    private Boolean gkEligible;
+
     private String photoKey;
 }

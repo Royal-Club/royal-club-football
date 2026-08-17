@@ -20,6 +20,8 @@ public class PlayerResponse {
     private String profilePhoto;
     private boolean isActive;
     private FootballPosition playingPosition;
+    /** Whether this player takes part in the goalkeeper rotation. */
+    private boolean gkEligible;
     private Set<RoleResponse> roles;
     private String photoKey;
     private String photoUrl;
