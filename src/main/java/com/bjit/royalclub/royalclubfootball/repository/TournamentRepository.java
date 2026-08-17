@@ -66,6 +66,19 @@ public interface TournamentRepository extends JpaRepository<Tournament, Long>, J
     Tournament findMostRecentTournamentBefore(@Param("currentTournamentDate") java.time.LocalDateTime currentTournamentDate);
 
     /**
+     * Ids of the tournaments immediately preceding the given date, most recent first.
+     * <p>
+     * Backs the goalkeeper cooldown, which rests anyone who kept goal in the last few tournaments.
+     * The ordering carries meaning to the caller: index 0 is the tournament just gone, so a lower
+     * index means a more recent turn in goal and a longer wait before coming back up the queue.
+     */
+    @Query("SELECT t.id FROM Tournament t WHERE t.tournamentDate < :currentTournamentDate " +
+            "ORDER BY t.tournamentDate DESC")
+    List<Long> findRecentTournamentIdsBefore(
+            @Param("currentTournamentDate") java.time.LocalDateTime currentTournamentDate,
+            org.springframework.data.domain.Pageable pageable);
+
+    /**
      * Find all tournaments ordered by tournament date descending
      */
     @Query("SELECT t FROM Tournament t ORDER BY t.tournamentDate DESC")

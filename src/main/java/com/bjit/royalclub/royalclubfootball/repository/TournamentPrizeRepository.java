@@ -33,6 +33,22 @@ public interface TournamentPrizeRepository extends JpaRepository<TournamentPrize
             @Param("playerId") Long playerId
     );
 
+    /**
+     * Everything a player has ever won, newest tournament first - the honours board.
+     * <p>
+     * Every other query here is scoped to one tournament, which answers "who won this competition"
+     * but never "what has this member won". Building the latter from the former would mean one call
+     * per tournament the club has ever run.
+     */
+    @Query("SELECT tp FROM TournamentPrize tp JOIN FETCH tp.tournament t "
+            + "WHERE tp.player.id = :playerId ORDER BY t.tournamentDate DESC")
+    List<TournamentPrize> findAllByPlayerId(@Param("playerId") Long playerId);
+
+    /** Every prize a team has ever won, newest first. */
+    @Query("SELECT tp FROM TournamentPrize tp JOIN FETCH tp.tournament t "
+            + "WHERE tp.team.id = :teamId ORDER BY t.tournamentDate DESC")
+    List<TournamentPrize> findAllByTeamId(@Param("teamId") Long teamId);
+
     @Query("SELECT tp FROM TournamentPrize tp WHERE tp.tournament.id = :tournamentId AND tp.team.id = :teamId AND tp.prizeCategory = :prizeCategory")
     Optional<TournamentPrize> findByTournamentIdAndTeamIdAndPrizeCategory(
             @Param("tournamentId") Long tournamentId,

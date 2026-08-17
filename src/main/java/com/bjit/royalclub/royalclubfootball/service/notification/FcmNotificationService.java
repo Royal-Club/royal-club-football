@@ -16,8 +16,11 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Firebase Cloud Messaging implementation of {@link NotificationService}.
@@ -36,30 +39,64 @@ public class FcmNotificationService implements NotificationService {
     private final PlayerDeviceTokenRepository deviceTokenRepository;
 
     @Override
-    public void sendToPlayers(List<Player> players, String title, String body, Map<String, String> data) {
+    public Set<Long> sendToPlayers(List<Player> players, String title, String body, Map<String, String> data) {
         if (players == null || players.isEmpty()) {
-            return;
+            return Set.of();
         }
         List<Long> playerIds = players.stream().map(Player::getId).toList();
-        List<String> tokens = deviceTokenRepository.findAllByPlayerIdIn(playerIds).stream()
-                .map(PlayerDeviceToken::getToken)
-                .toList();
-        sendToTokens(tokens, title, body, data);
+        List<PlayerDeviceToken> devices = deviceTokenRepository.findAllByPlayerIdIn(playerIds);
+
+        if (devices.isEmpty()) {
+            // Nobody in this batch has the app installed and registered. Saying so plainly matters:
+            // the caller would otherwise record a delivery for every one of them and charge each a
+            // reminder they were never sent.
+            log.warn("Push '{}' not sent: none of the {} player(s) have a registered device.",
+                    title, players.size());
+            return Set.of();
+        }
+
+        // Kept so per-token results from FCM can be attributed back to the player who owns them.
+        Map<String, Long> ownerByToken = devices.stream()
+                .collect(Collectors.toMap(PlayerDeviceToken::getToken,
+                        device -> device.getPlayer().getId(),
+                        (first, second) -> first));
+
+        Set<String> acceptedTokens = sendAndReportAccepted(List.copyOf(ownerByToken.keySet()), title, body, data);
+
+        Set<Long> reached = acceptedTokens.stream().map(ownerByToken::get).collect(Collectors.toSet());
+        int missed = players.size() - reached.size();
+        if (missed > 0) {
+            log.warn("Push '{}': {} of {} player(s) were not reached on any device.",
+                    title, missed, players.size());
+        }
+        return reached;
     }
 
     @Override
     public void sendToTokens(List<String> tokens, String title, String body, Map<String, String> data) {
+        sendAndReportAccepted(tokens, title, body, data);
+    }
+
+    /**
+     * Sends to every token and reports back the ones FCM accepted.
+     *
+     * @return the accepted tokens - empty when Firebase is unconfigured, the batch call failed, or
+     * every token was rejected. Callers must be able to tell "delivered" from "attempted".
+     */
+    private Set<String> sendAndReportAccepted(List<String> tokens, String title, String body,
+                                              Map<String, String> data) {
         if (tokens == null || tokens.isEmpty()) {
-            return;
+            return Set.of();
         }
 
         FirebaseMessaging messaging = firebaseMessagingProvider.getIfAvailable();
         if (messaging == null) {
             log.warn("Firebase not configured; skipping push of '{}' to {} device(s).", title, tokens.size());
-            return;
+            return Set.of();
         }
 
         Map<String, String> payload = data == null ? Map.of() : data;
+        Set<String> accepted = new HashSet<>();
 
         for (int start = 0; start < tokens.size(); start += FCM_MULTICAST_LIMIT) {
             List<String> batch = tokens.subList(start, Math.min(start + FCM_MULTICAST_LIMIT, tokens.size()));
@@ -71,12 +108,21 @@ public class FcmNotificationService implements NotificationService {
             try {
                 BatchResponse response = messaging.sendEachForMulticast(message);
                 cleanupStaleTokens(batch, response);
+
+                List<SendResponse> results = response.getResponses();
+                for (int i = 0; i < results.size() && i < batch.size(); i++) {
+                    if (results.get(i).isSuccessful()) {
+                        accepted.add(batch.get(i));
+                    }
+                }
                 log.info("Push '{}': {} sent, {} failed.", title, response.getSuccessCount(),
                         response.getFailureCount());
             } catch (FirebaseMessagingException e) {
+                // The whole batch is unaccounted for; none of it may be treated as delivered.
                 log.error("Failed to send push '{}' to a batch of {} device(s).", title, batch.size(), e);
             }
         }
+        return accepted;
     }
 
     /**

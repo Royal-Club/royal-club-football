@@ -100,4 +100,58 @@ public interface PlayerGoalkeepingHistoryRepository extends JpaRepository<Player
             @Param("playerIds") Collection<Long> playerIds,
             @Param("tournamentId") Long tournamentId);
 
+    // === Goalkeeping ledger ===
+
+    /**
+     * Keeper slots actually filled per tournament, as {tournamentId, count}. This is the numerator
+     * of the obligation each attendee accrues: the work a tournament created, shared between the
+     * people who turned up for it.
+     * <p>
+     * Counts rows, not distinct players, so a tournament that needed two keepers created twice the
+     * obligation of one that needed a single keeper. Tournaments with no recorded keeper produce no
+     * row - the caller decides whether that means "no obligation" or "not recorded".
+     */
+    @Query("SELECT pgh.tournament.id, COUNT(pgh) FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.tournament.id IN :tournamentIds " +
+            "GROUP BY pgh.tournament.id")
+    List<Object[]> countGoalKeeperSlotsByTournamentIds(@Param("tournamentIds") Collection<Long> tournamentIds);
+
+    /**
+     * Turns each player has actually served before the given date, as {playerId, count}.
+     * <p>
+     * Counts rows rather than distinct tournaments: someone who took two keeper shifts in a day paid
+     * twice. Not MAX(roundNumber) either - that is a per-player lifetime ordinal which never rewinds
+     * when history is deleted, so it drifts above the real total.
+     * <p>
+     * Bounded by date rather than only excluding the current tournament, because keeper rows are
+     * written when a team sheet is filled in: a tournament further out with teams already picked
+     * would otherwise be counted as a turn someone has served.
+     */
+    @Query("SELECT pgh.player.id, COUNT(pgh) FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id IN :playerIds AND pgh.tournament.id != :currentTournamentId " +
+            "AND pgh.playedDate < :currentTournamentDate " +
+            "GROUP BY pgh.player.id")
+    List<Object[]> countGoalKeeperStintsBatch(
+            @Param("playerIds") Collection<Long> playerIds,
+            @Param("currentTournamentId") Long currentTournamentId,
+            @Param("currentTournamentDate") LocalDateTime currentTournamentDate);
+
+    /**
+     * Which of the given players kept goal in any of the given tournaments, as {playerId,
+     * tournamentId}. Feeds the cooldown tier, which needs to know not just whether someone is
+     * resting but how far back their turn was.
+     */
+    @Query("SELECT DISTINCT pgh.player.id, pgh.tournament.id FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id IN :playerIds AND pgh.tournament.id IN :tournamentIds")
+    List<Object[]> findGoalKeeperAssignmentsInTournaments(
+            @Param("playerIds") Collection<Long> playerIds,
+            @Param("tournamentIds") Collection<Long> tournamentIds);
+
+    /** Guards against a second history row for a player who is already recorded as keeper here. */
+    @Query("SELECT COUNT(pgh) FROM PlayerGoalkeepingHistory pgh " +
+            "WHERE pgh.player.id = :playerId AND pgh.tournament.id = :tournamentId")
+    int countByPlayerAndTournament(
+            @Param("playerId") Long playerId,
+            @Param("tournamentId") Long tournamentId);
+
 }

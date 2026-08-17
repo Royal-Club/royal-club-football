@@ -94,4 +94,33 @@ public interface TournamentParticipantRepository extends JpaRepository<Tournamen
             @Param("playerIds") Collection<Long> playerIds,
             @Param("currentTournamentId") Long currentTournamentId);
 
+    // === Goalkeeping ledger ===
+
+    /**
+     * Every past tournament each player actually attended, as {playerId, tournamentId}.
+     * <p>
+     * The goalkeeping ledger accrues obligation per appearance rather than per elapsed tournament,
+     * so absence neither builds up a debt someone never had the chance to pay nor deflates the
+     * turns-served count of a player who was simply not there to be picked. Restricted to dates
+     * before the tournament being ranked so a queue never reads its own result.
+     */
+    @Query("SELECT tp.player.id, tp.tournament.id FROM TournamentParticipant tp " +
+            "JOIN tp.tournament t " +
+            "WHERE tp.player.id IN :playerIds AND tp.participationStatus = true " +
+            "AND tp.tournament.id != :currentTournamentId " +
+            "AND t.tournamentDate < (SELECT td.tournamentDate FROM Tournament td WHERE td.id = :currentTournamentId)")
+    List<Object[]> findAttendedTournamentIdsBatch(
+            @Param("playerIds") Collection<Long> playerIds,
+            @Param("currentTournamentId") Long currentTournamentId);
+
+    /**
+     * Confirmed head count per tournament, as {tournamentId, count}. The denominator of accrued
+     * obligation: a 30-player turnout needing two keepers asks less of each attendee than a
+     * 12-player one needing the same two.
+     */
+    @Query("SELECT tp.tournament.id, COUNT(tp) FROM TournamentParticipant tp " +
+            "WHERE tp.tournament.id IN :tournamentIds AND tp.participationStatus = true " +
+            "GROUP BY tp.tournament.id")
+    List<Object[]> countParticipantsByTournamentIds(@Param("tournamentIds") Collection<Long> tournamentIds);
+
 }

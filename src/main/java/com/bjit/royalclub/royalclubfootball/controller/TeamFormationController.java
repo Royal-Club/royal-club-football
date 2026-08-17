@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -59,6 +60,26 @@ public class TeamFormationController {
                                                        @Valid @RequestBody TeamFormationRequest request) {
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK,
                 teamFormationService.saveDefaultFormation(teamId, request));
+    }
+
+    /**
+     * Announces the team's saved line-up to the players in it.
+     * <p>
+     * Saving is a draft and never notifies anyone; this is the deliberate act of telling the squad.
+     * Idempotent — only placed players with no notification on record are messaged, so pressing it
+     * twice reaches nobody, and swapping a player in then publishing again reaches only them.
+     */
+    @PostMapping("/teams/{teamId}/publish")
+    public ResponseEntity<Object> publishFormation(@PathVariable Long teamId) {
+        return buildSuccessResponse(HttpStatus.OK, UPDATE_OK,
+                teamFormationService.publishDefaultFormation(teamId));
+    }
+
+    /** Draft/published state and how many players are still to be told, for the formation board. */
+    @GetMapping("/teams/{teamId}/publish-status")
+    public ResponseEntity<Object> publishStatus(@PathVariable Long teamId) {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK,
+                teamFormationService.defaultFormationPublishStatus(teamId));
     }
 
     @GetMapping("/matches/{matchId}/teams/{teamId}")
