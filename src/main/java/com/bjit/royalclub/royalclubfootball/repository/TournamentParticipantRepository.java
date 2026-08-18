@@ -1,7 +1,9 @@
 package com.bjit.royalclub.royalclubfootball.repository;
 
 import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipant;
+import com.bjit.royalclub.royalclubfootball.enums.ParticipationSource;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -26,6 +28,18 @@ public interface TournamentParticipantRepository extends JpaRepository<Tournamen
             @Param("tournamentId") Long tournamentId, @Param("playerId") Long playerId);
 
     int countByTournamentIdAndParticipationStatusTrue(Long tournamentId);
+
+    int countByTournamentIdAndParticipationStatusFalse(Long tournamentId);
+
+    /**
+     * Removes the No rows the voting lock wrote, so unlocking restores the players it stamped to
+     * genuinely pending. Answers a manager edited while locked carry ADMIN and survive.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM TournamentParticipant tp WHERE tp.tournament.id = :tournamentId "
+            + "AND tp.participationSource = :participationSource")
+    int deleteByTournamentIdAndSource(@Param("tournamentId") Long tournamentId,
+                                      @Param("participationSource") ParticipationSource participationSource);
 
     /** Backs the one-click RSVP upsert, where the caller has no participant id to work from. */
     Optional<TournamentParticipant> findByTournamentIdAndPlayerId(Long tournamentId, Long playerId);

@@ -47,6 +47,10 @@ public class RestErrorMessageDetail {
     public static final String PARTICIPANT_NOT_FOUND = "Participant is not Found";
     public static final String ALREADY_PARTICIPANT = "Already given vote for participant";
     public static final String TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE = "This Tournament is already past";
+    public static final String VOTING_LOCK_NEEDS_UPCOMING =
+            "Voting can only be locked on an active, upcoming tournament";
+    public static final String LINEUP_NEEDS_VOTING_LOCKED =
+            "Lock the tournament voting before publishing a line-up, so the squad is announced from a settled list";
     public static final String COST_TYPE_ALREADY_EXISTS = "Already a cost type is exists";
     public static final String COST_TYPE_IS_NOT_FOUND = "Cost Type is not found";
     public static final String PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM = "This player is already added another team";

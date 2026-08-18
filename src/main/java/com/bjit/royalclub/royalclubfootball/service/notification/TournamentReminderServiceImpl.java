@@ -143,6 +143,14 @@ public class TournamentReminderServiceImpl implements TournamentReminderService 
      * has email switched off.
      */
     private int contactPendingPlayers(Tournament tournament, String reminderType, ZoneId zone) {
+        // The single funnel for every entry point, which is why the lock check lives here: nudging
+        // someone to answer a closed RSVP would hand them a Yes/No button that is already dead.
+        if (tournament.isVotingLocked()) {
+            log.info("Tournament '{}' ({}): voting is locked; no further reminders.",
+                    tournament.getName(), tournament.getId());
+            return 0;
+        }
+
         List<Player> pending = playerRepository.findActivePlayersWithoutParticipation(tournament.getId());
 
         if (pending.isEmpty()) {

@@ -3,6 +3,7 @@ package com.bjit.royalclub.royalclubfootball.service;
 import com.bjit.royalclub.royalclubfootball.entity.Player;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipant;
+import com.bjit.royalclub.royalclubfootball.enums.ParticipationSource;
 import com.bjit.royalclub.royalclubfootball.enums.RsvpVoteStatus;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
@@ -41,6 +42,7 @@ public class RsvpVoteServiceImpl implements RsvpVoteService {
     private final TournamentRepository tournamentRepository;
     private final PlayerRepository playerRepository;
     private final TournamentParticipantRepository participantRepository;
+    private final TournamentVotingLockService votingLockService;
 
     @Override
     @Transactional(readOnly = true)
@@ -51,7 +53,8 @@ public class RsvpVoteServiceImpl implements RsvpVoteService {
 
         RsvpVoteStatus blocked = checkTournamentOpen(tournament);
         if (blocked != null) {
-            return describe(blocked, player, tournament, payload.attending(), messageFor(blocked, payload.attending()));
+            return describe(blocked, player, tournament, payload.attending(),
+                    messageFor(blocked, payload.attending(), tournament));
         }
 
         return describe(RsvpVoteStatus.RECORDED, player, tournament, payload.attending(),
@@ -67,7 +70,8 @@ public class RsvpVoteServiceImpl implements RsvpVoteService {
 
         RsvpVoteStatus blocked = checkTournamentOpen(tournament);
         if (blocked != null) {
-            return describe(blocked, player, tournament, payload.attending(), messageFor(blocked, payload.attending()));
+            return describe(blocked, player, tournament, payload.attending(),
+                    messageFor(blocked, payload.attending(), tournament));
         }
 
         Optional<TournamentParticipant> existing =
@@ -78,6 +82,7 @@ public class RsvpVoteServiceImpl implements RsvpVoteService {
                 .player(player)
                 .build());
         participant.setParticipationStatus(payload.attending());
+        participant.setParticipationSource(ParticipationSource.SELF_EMAIL);
         participantRepository.save(participant);
 
         // An existing row means they had already answered; the link stays live until kickoff precisely
@@ -87,7 +92,7 @@ public class RsvpVoteServiceImpl implements RsvpVoteService {
                 status, player.getId(), payload.attending() ? "IN" : "OUT", tournament.getId());
 
         return describe(status, player, tournament, payload.attending(),
-                messageFor(status, payload.attending()));
+                messageFor(status, payload.attending(), tournament));
     }
 
     /**
@@ -100,6 +105,12 @@ public class RsvpVoteServiceImpl implements RsvpVoteService {
         // Stored dates are UTC (the JVM default zone is pinned to UTC and clients post UTC).
         if (!tournament.getTournamentDate().isAfter(LocalDateTime.now(ZoneOffset.UTC))) {
             return RsvpVoteStatus.TOURNAMENT_STARTED;
+        }
+        // The coordinator closed the RSVP early to pick teams from it. No manager override here:
+        // this endpoint runs unauthenticated on the strength of the token alone, so the only
+        // caller it can ever have is the member named in that token.
+        if (tournament.isVotingLocked()) {
+            return RsvpVoteStatus.VOTING_LOCKED;
         }
         return null;
     }
@@ -127,7 +138,7 @@ public class RsvpVoteServiceImpl implements RsvpVoteService {
                 .build();
     }
 
-    private String messageFor(RsvpVoteStatus status, boolean attending) {
+    private String messageFor(RsvpVoteStatus status, boolean attending, Tournament tournament) {
         return switch (status) {
             case RECORDED -> attending
                     ? "You are in. See you on the pitch!"
@@ -137,8 +148,17 @@ public class RsvpVoteServiceImpl implements RsvpVoteService {
                     : "Your answer has been changed to No.";
             case TOURNAMENT_CANCELLED -> "This tournament has been cancelled.";
             case TOURNAMENT_STARTED -> "This tournament has already started.";
+            case VOTING_LOCKED -> votingClosedMessage(tournament);
             case EXPIRED -> "This link has expired.";
             case INVALID -> "This link is not valid.";
         };
+    }
+
+    /** Names whoever locked it, because the point of the lock is that they are now the way in. */
+    private String votingClosedMessage(Tournament tournament) {
+        String contact = votingLockService.lockedByName(tournament);
+        return contact == null
+                ? "The team list is locked for this match. Contact a coordinator to change your answer."
+                : "The team list is locked for this match. Contact " + contact + " to change your answer.";
     }
 }

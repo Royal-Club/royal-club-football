@@ -72,6 +72,7 @@ public class TournamentServiceImpl implements TournamentService {
                 .teamSize(tournament.getTeamSize())
                 .auctionMode(tournament.isAuctionMode())
                 .emailNotificationEnabled(tournament.isEmailNotificationEnabled())
+                .votingLocked(tournament.isVotingLocked())
                 .build();
     }
 

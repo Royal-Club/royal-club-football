@@ -7,11 +7,13 @@ import com.bjit.royalclub.royalclubfootball.model.TournamentResponse;
 import com.bjit.royalclub.royalclubfootball.model.TournamentUpdateRequest;
 import com.bjit.royalclub.royalclubfootball.service.TeamManagementService;
 import com.bjit.royalclub.royalclubfootball.service.TournamentService;
+import com.bjit.royalclub.royalclubfootball.service.TournamentVotingLockService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,6 +38,7 @@ public class TournamentController {
 
     private final TournamentService tournamentService;
     private final TeamManagementService teamManagementService;
+    private final TournamentVotingLockService votingLockService;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
     @PostMapping
@@ -83,6 +86,30 @@ public class TournamentController {
     TournamentUpdateRequest tournamentUpdateRequest) {
         TournamentResponse tournamentResponse = tournamentService.updateTournament(id, tournamentUpdateRequest);
         return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, tournamentResponse);
+    }
+
+    /**
+     * Closes the RSVP and records every silent player as a No, so teams are picked from a settled
+     * list. Reversible via the unlock below.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
+    @PutMapping("/{id}/voting-lock")
+    public ResponseEntity<Object> lockVoting(@PathVariable Long id) {
+        return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, votingLockService.lock(id));
+    }
+
+    /** Reopens the RSVP and returns the auto-recorded No's to pending. */
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
+    @DeleteMapping("/{id}/voting-lock")
+    public ResponseEntity<Object> unlockVoting(@PathVariable Long id) {
+        return buildSuccessResponse(HttpStatus.OK, UPDATE_OK, votingLockService.unlock(id));
+    }
+
+    /** Lock state and the Yes/No/pending tallies behind the lock button. */
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN', 'COORDINATOR')")
+    @GetMapping("/{id}/voting-lock")
+    public ResponseEntity<Object> votingLockStatus(@PathVariable Long id) {
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, votingLockService.status(id));
     }
 
     @GetMapping("/details")

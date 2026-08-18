@@ -15,5 +15,7 @@ public enum RsvpVoteStatus {
     /** Tournament was cancelled or deactivated after the email went out. */
     TOURNAMENT_CANCELLED,
     /** Kickoff has passed, so the answer no longer means anything. */
-    TOURNAMENT_STARTED
+    TOURNAMENT_STARTED,
+    /** A coordinator closed the RSVP to pick teams from it; late changes go through them. */
+    VOTING_LOCKED
 }

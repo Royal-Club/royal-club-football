@@ -5,6 +5,7 @@ import com.bjit.royalclub.royalclubfootball.entity.Team;
 import com.bjit.royalclub.royalclubfootball.entity.Tournament;
 import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipant;
 import com.bjit.royalclub.royalclubfootball.entity.TournamentParticipantPlayer;
+import com.bjit.royalclub.royalclubfootball.enums.ParticipationSource;
 import com.bjit.royalclub.royalclubfootball.exception.PlayerServiceException;
 import com.bjit.royalclub.royalclubfootball.exception.TournamentServiceException;
 import com.bjit.royalclub.royalclubfootball.model.GoalkeeperStatsResponse;
@@ -34,7 +35,10 @@ import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDeta
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_DATE_CAT_NOT_BE_PAST_DATE;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.TOURNAMENT_IS_NOT_FOUND;
 import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.UNAUTHORIZED;
+import static com.bjit.royalclub.royalclubfootball.enums.ParticipationSource.ADMIN;
+import static com.bjit.royalclub.royalclubfootball.enums.ParticipationSource.SELF_APP;
 import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.getLoggedInPlayer;
+import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.isTournamentManager;
 import static com.bjit.royalclub.royalclubfootball.security.util.SecurityUtil.isUserAuthorizedForSelf;
 import static com.bjit.royalclub.royalclubfootball.util.StringUtils.normalizeString;
 
@@ -49,27 +53,47 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
     private final TournamentService tournamentService;
     private final PlayerService playerService;
     private final TournamentParticipantPlayerRepository participantPlayerRepository;
+    private final TournamentVotingLockService votingLockService;
 
     @Override
     public void saveOrUpdateTournamentParticipant(TournamentParticipantRequest tournamentParticipantRequest) {
-        /*TODO("This is workable nice but need to develop this below code as standard")*/
-        if (Boolean.TRUE.equals(!isUserAuthorizedForSelf(tournamentParticipantRequest.getPlayerId())) &&
-                getLoggedInPlayer().getRoles().stream()
-                        .noneMatch(role -> "ADMIN".equals(role.getName()))) {
+        boolean actingForSelf = Boolean.TRUE.equals(
+                isUserAuthorizedForSelf(tournamentParticipantRequest.getPlayerId()));
+        boolean manager = isTournamentManager();
+        if (!actingForSelf && !manager) {
             throw new SecurityException(UNAUTHORIZED);
         }
         Tournament tournament = getTournament(tournamentParticipantRequest.getTournamentId());
         Player player = getPlayer(tournamentParticipantRequest.getPlayerId());
 
         validateTournamentDate(tournament.getTournamentDate());
+        // Once the coordinator has closed the RSVP the squad is being picked from it, so only a
+        // manager may still move an answer - on request from the member, who is told who to ask.
+        votingLockService.requireVotingOpen(tournament);
+
+        if (tournamentParticipantRequest.getParticipationStatus() == null) {
+            clearParticipation(tournament, player);
+            return;
+        }
 
         TournamentParticipant tournamentParticipant = tournamentParticipantRequest.getTournamentParticipantId() != null
                 ? getExistingParticipant(tournamentParticipantRequest.getTournamentParticipantId())
                 : createNewParticipant(tournament, player);
 
         updateParticipantDetails(tournamentParticipant, tournament, player,
-                tournamentParticipantRequest.isParticipationStatus(), tournamentParticipantRequest.getComments());
+                tournamentParticipantRequest.getParticipationStatus(), tournamentParticipantRequest.getComments(),
+                actingForSelf ? SELF_APP : ADMIN);
         tournamentParticipantRepository.save(tournamentParticipant);
+    }
+
+    /**
+     * "Clear my answer" removes the row rather than storing a third state: every pending query in
+     * the app - reminders, the pending list, the lock backfill - is expressed as the absence of a
+     * row, so deleting is what actually puts the player back in the queue to be asked.
+     */
+    private void clearParticipation(Tournament tournament, Player player) {
+        tournamentParticipantRepository.findByTournamentIdAndPlayerId(tournament.getId(), player.getId())
+                .ifPresent(tournamentParticipantRepository::delete);
     }
 
     private Tournament getTournament(Long tournamentId) {
@@ -97,11 +121,15 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
     }
 
     private void updateParticipantDetails(TournamentParticipant participant, Tournament tournament, Player player,
-                                          boolean participationStatus, String newComments) {
+                                          boolean participationStatus, String newComments,
+                                          ParticipationSource source) {
         participant.setTournament(tournament);
         participant.setPlayer(player);
         participant.setParticipationStatus(participationStatus);
         participant.setComments(normalizeString(newComments));
+        // Overwriting the source matters on an auto-recorded No: once a manager has deliberately
+        // set it, unlocking must leave it alone rather than reverting it to pending.
+        participant.setParticipationSource(source);
     }
 
     private void validateTournamentDate(LocalDateTime tournamentDate) {
@@ -197,6 +225,19 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
                 participantPlayer.getParticipationStatus();
         Long tournamentParticipantId = participantPlayer != null ? participantPlayer.getTournamentParticipantId() : null;
 
+        // Only worth a lookup once locked; while voting is open there is nobody to name.
+        String lockedByName = latestTournament.isVotingLocked()
+                ? votingLockService.lockedByName(getTournament(latestTournament.getId()))
+                : null;
+
+        // Read off the table rather than the tournament_participant_players view, which does not
+        // carry the source. Only fetched when there is an answer to explain.
+        ParticipationSource source = participantPlayer == null ? null
+                : tournamentParticipantRepository
+                        .findByTournamentIdAndPlayerId(latestTournament.getId(), getLoggedInPlayer().getId())
+                        .map(TournamentParticipant::getParticipationSource)
+                        .orElse(null);
+
         return LatestTournamentWithUserParticipantsResponse.builder()
                 .tournament(latestTournament)
                 .totalParticipant(totalParticipants)
@@ -204,6 +245,8 @@ public class TournamentParticipantServiceImpl implements TournamentParticipantSe
                 .remainParticipant(totalPlayers - totalParticipants)
                 .isUserParticipated(isUserParticipated)
                 .tournamentParticipantId(tournamentParticipantId)
+                .votingLockedByName(lockedByName)
+                .participationSource(source)
                 .build();
     }
 }

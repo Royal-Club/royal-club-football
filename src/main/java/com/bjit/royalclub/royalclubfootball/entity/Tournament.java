@@ -90,6 +90,22 @@ public class Tournament extends AuditBase {
     @Column(name = "email_notification_enabled", nullable = false)
     private boolean emailNotificationEnabled;
 
+    /**
+     * Closed RSVP: players can no longer set or change their own Yes/No, and reminders stop going
+     * out. Set deliberately by a coordinator once the responses are settled enough to pick teams
+     * from. Managers can still edit an individual answer - that is what "contact the coordinator"
+     * means in practice.
+     */
+    @Column(name = "voting_locked", nullable = false)
+    private boolean votingLocked;
+
+    /** Player id of whoever locked it: the person a member is told to contact. */
+    @Column(name = "voting_locked_by")
+    private Long votingLockedBy;
+
+    @Column(name = "voting_locked_at")
+    private LocalDateTime votingLockedAt;
+
     @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Team> teams;
 }

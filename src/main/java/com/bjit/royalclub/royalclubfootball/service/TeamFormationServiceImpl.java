@@ -37,6 +37,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.bjit.royalclub.royalclubfootball.constant.RestErrorMessageDetail.LINEUP_NEEDS_VOTING_LOCKED;
+
 @Service
 @RequiredArgsConstructor
 public class TeamFormationServiceImpl implements TeamFormationService {
@@ -168,6 +170,11 @@ public class TeamFormationServiceImpl implements TeamFormationService {
         Team team = findTeam(teamId);
         // Same gate as editing: only the captain or a tournament admin decides when the squad hears.
         requireEditable(team, null);
+        // Announcing a line-up is the point of no return, so it is where the intended order is
+        // enforced: close the RSVP, then pick and publish. Drafting a team earlier stays free.
+        if (!team.getTournament().isVotingLocked()) {
+            throw new TeamServiceException(LINEUP_NEEDS_VOTING_LOCKED, HttpStatus.CONFLICT);
+        }
 
         TeamFormation formation = teamFormationRepository.findDefaultByTeamId(teamId)
                 .orElseThrow(() -> new TeamServiceException(

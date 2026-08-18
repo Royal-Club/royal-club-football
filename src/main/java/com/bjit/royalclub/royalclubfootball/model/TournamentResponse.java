@@ -40,4 +40,14 @@ public class TournamentResponse {
     // Same reason: the edit form must see an explicit false, not a missing field.
     @JsonInclude(JsonInclude.Include.ALWAYS)
     private boolean emailNotificationEnabled;
+
+    /**
+     * RSVP closed for team selection. Same reason as above for ALWAYS - the dashboard has to be able
+     * to tell "open" from "field absent", or it would leave the Yes/No buttons live on a locked match.
+     * <p>
+     * The flag only; the name of whoever locked it is resolved where a single tournament is being
+     * shown, so the paginated list does not turn into one player lookup per row.
+     */
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    private boolean votingLocked;
 }
