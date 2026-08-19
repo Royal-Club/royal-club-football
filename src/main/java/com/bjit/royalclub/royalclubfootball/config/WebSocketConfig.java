@@ -14,6 +14,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final TeamChatChannelInterceptor teamChatChannelInterceptor;
+    private final TeamChatOutboundInterceptor teamChatOutboundInterceptor;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -45,5 +46,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(teamChatChannelInterceptor);
+    }
+
+    /**
+     * Re-checks each broadcast against the room it is bound for, on its way to one client.
+     *
+     * <p>The inbound check above runs when a client subscribes and never again, but a subscription
+     * lives as long as the browser tab. Without this, removing a player from a squad would take away
+     * their history, their ability to post and any future subscription, while the live feed carried
+     * on into a session that had already lost the right to it.
+     */
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
+        registration.interceptors(teamChatOutboundInterceptor);
     }
 }

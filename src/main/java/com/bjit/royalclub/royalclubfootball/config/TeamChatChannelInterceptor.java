@@ -3,6 +3,7 @@ package com.bjit.royalclub.royalclubfootball.config;
 import com.bjit.royalclub.royalclubfootball.security.CustomUserDetailsService;
 import com.bjit.royalclub.royalclubfootball.security.UserPrinciple;
 import com.bjit.royalclub.royalclubfootball.service.TeamChatAccessService;
+import com.bjit.royalclub.royalclubfootball.service.TeamChatSessionRegistry;
 import com.bjit.royalclub.royalclubfootball.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,14 @@ import java.util.List;
  *       frame instead. A connection without a good one is refused outright.</li>
  *   <li><b>SUBSCRIBE</b> is where membership is checked, per destination. It cannot be done once at
  *       connect time: one connection may subscribe to any number of destinations.</li>
+ *   <li><b>UNSUBSCRIBE</b> carries no destination, only the subscription id, which is why the
+ *       registry keys rooms by subscription rather than holding a bare set of team ids.</li>
  * </ul>
+ *
+ * <p>Passing here is not the end of it. A subscription lasts as long as the tab does, so an
+ * authorised one is recorded in {@link TeamChatSessionRegistry} and re-checked on the way out by
+ * {@link TeamChatOutboundInterceptor} - otherwise a player removed from the squad would go on
+ * receiving the room live, having been locked out of every other way into it.
  */
 @Slf4j
 @Component
@@ -45,6 +53,7 @@ public class TeamChatChannelInterceptor implements ChannelInterceptor {
     private final JWTUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
     private final TeamChatAccessService accessService;
+    private final TeamChatSessionRegistry sessionRegistry;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -58,6 +67,8 @@ public class TeamChatChannelInterceptor implements ChannelInterceptor {
             authenticate(accessor);
         } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
             authorizeSubscription(accessor);
+        } else if (StompCommand.UNSUBSCRIBE.equals(accessor.getCommand())) {
+            sessionRegistry.unsubscribed(accessor.getSessionId(), accessor.getSubscriptionId());
         }
         return message;
     }
@@ -92,6 +103,12 @@ public class TeamChatChannelInterceptor implements ChannelInterceptor {
             log.warn("Refused team chat subscription to {} for player {}.", destination, playerId);
             throw new IllegalArgumentException("This chat is only open to the players in this team");
         }
+
+        // Recorded only once the check above has passed, and before the broker can fan anything out
+        // to this subscription, so the outbound interceptor never sees an authorised listener it
+        // does not know about.
+        sessionRegistry.subscribed(
+                accessor.getSessionId(), playerId, accessor.getSubscriptionId(), teamId);
     }
 
     private Long teamIdFrom(String destination) {

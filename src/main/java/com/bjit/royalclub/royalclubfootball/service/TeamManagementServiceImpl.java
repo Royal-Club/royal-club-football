@@ -58,6 +58,7 @@ public class TeamManagementServiceImpl implements TeamManagementService {
     private final PlayerGoalkeepingHistoryRepository goalkeepingHistoryRepository;
     private final MatchRepository matchRepository;
     private final TeamLogoStorageProvider teamLogoStorageProvider;
+    private final TeamChatSessionRegistry teamChatSessionRegistry;
 
     @Override
     public TeamResponse createOrUpdateTeam(TeamRequest teamRequest) {
@@ -158,6 +159,13 @@ public class TeamManagementServiceImpl implements TeamManagementService {
                 new TournamentServiceException(PLAYER_IS_NOT_PART_OF_THIS_TEAM, HttpStatus.NOT_FOUND)
         );
         teamPlayerRepository.delete(teamPlayer);
+
+        // Deleting the row locks them out of everything that asks the database - history,
+        // posting, files, any new subscription. It does not reach a socket they already have
+        // open, which would otherwise keep feeding them the room until they happened to
+        // reload the page.
+        teamChatSessionRegistry.revoke(
+                playerRemoveRequest.getPlayerId(), playerRemoveRequest.getTeamId());
     }
 
     @Override
