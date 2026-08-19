@@ -61,6 +61,28 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
             """)
     List<Team> findTeamsWithChatToPurge();
 
+    /**
+     * Ids of the teams whose open room this player is in, newest room first.
+     *
+     * <p>Backs the dock that follows the player around the site, which has no tournament in its URL
+     * to scope by. Concluded tournaments are excluded here rather than left to the access service:
+     * this asks "is there anything to open", so a room the purge is about to destroy must not count.
+     *
+     * <p>A list rather than a single id, even though one open room at a time is the normal case -
+     * two tournaments can overlap, and silently picking one of them inside a query would make the
+     * dock point at the wrong squad with nothing to explain why.
+     */
+    @Query("""
+            select t.id from Team t
+            join t.teamPlayers tp
+            join t.tournament tr
+            where tp.player.id = :playerId
+              and t.chatOpenedAt is not null
+              and tr.tournamentStatus <> com.bjit.royalclub.royalclubfootball.enums.TournamentStatus.CONCLUDED
+            order by t.chatOpenedAt desc
+            """)
+    List<Long> findOpenChatTeamIdsOfPlayer(@Param("playerId") Long playerId);
+
     /** Open rooms belonging to one tournament, for the purge that runs the moment it is concluded. */
     @Query("select t from Team t where t.tournament.id = :tournamentId and t.chatOpenedAt is not null")
     List<Team> findTeamsWithOpenChatByTournamentId(@Param("tournamentId") Long tournamentId);

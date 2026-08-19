@@ -129,6 +129,21 @@ public class TeamChatServiceImpl implements TeamChatService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<TeamChatRoomResponse> getMyOpenRooms() {
+        Optional<Long> playerId = CurrentUserUtil.currentPlayerId();
+        if (playerId.isEmpty()) {
+            return List.of();
+        }
+        // requireMembership rather than a plain load, so the room is described by exactly the code
+        // path every other call uses. The ids came from a query already filtered to this player, so
+        // the check cannot fail - it is here to keep one way of building a room, not two.
+        return teamRepository.findOpenChatTeamIdsOfPlayer(playerId.get()).stream()
+                .map(teamId -> describe(accessService.requireMembership(teamId)))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<TeamChatMessageResponse> getMessages(Long teamId, Long beforeId, int limit) {
         accessService.requireOpenRoom(teamId);
 

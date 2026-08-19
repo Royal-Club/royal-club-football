@@ -73,6 +73,20 @@ public class TeamChatController {
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
+    /**
+     * Every open room the signed-in player is in.
+     *
+     * <p>What the dock asks on load, from whatever page it happens to be on. Always 200 with a list,
+     * empty included: "you have no open room" is the normal answer for most of the week and is not a
+     * condition the caller should have to tell apart from an error.
+     */
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/my-open-rooms")
+    public ResponseEntity<Object> myOpenRooms() {
+        List<TeamChatRoomResponse> rooms = teamChatService.getMyOpenRooms();
+        return buildSuccessResponse(HttpStatus.OK, FETCH_OK, rooms, rooms.size());
+    }
+
     /** A specific room, for a member of it. Answers with a reason when the room is closed. */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/{teamId}")

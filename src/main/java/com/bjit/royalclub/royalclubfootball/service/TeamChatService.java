@@ -32,6 +32,17 @@ public interface TeamChatService {
     Optional<TeamChatRoomResponse> getMyRoom(Long tournamentId);
 
     /**
+     * Every open room the signed-in player is in, newest first.
+     *
+     * <p>For the dock, which is on screen everywhere and so has no tournament to scope by. Returns
+     * the list rather than one room because two tournaments can be live at once, and choosing
+     * between them is the caller's to make visible, not this method's to make silently.
+     *
+     * @return empty when they are in no open room, which is the ordinary case most of the week
+     */
+    List<TeamChatRoomResponse> getMyOpenRooms();
+
+    /**
      * A page of history, newest first.
      *
      * @param beforeId only messages older than this one, for scrolling back; null for the latest page
