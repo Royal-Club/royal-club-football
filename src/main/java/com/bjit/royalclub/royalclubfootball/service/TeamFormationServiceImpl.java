@@ -56,6 +56,7 @@ public class TeamFormationServiceImpl implements TeamFormationService {
     private final TeamPlayerRepository teamPlayerRepository;
     private final MatchRepository matchRepository;
     private final LineupPublishedNotifier lineupPublishedNotifier;
+    private final TeamChatService teamChatService;
 
     /* ---------------------------------------------------------------- */
     /* Reads                                                             */
@@ -180,7 +181,14 @@ public class TeamFormationServiceImpl implements TeamFormationService {
                 .orElseThrow(() -> new TeamServiceException(
                         "There is no saved line-up to publish yet", HttpStatus.NOT_FOUND));
 
-        return lineupPublishedNotifier.publish(formation, team);
+        LineupPublishResponse published = lineupPublishedNotifier.publish(formation, team);
+
+        // Publishing is what turns a draft into a squad, so it is also what gives that squad somewhere
+        // to talk. Done here rather than inside the notifier because opening a room is not a
+        // notification, and a captain who publishes with push disabled still gets the chat.
+        teamChatService.openRoomOnLineupPublished(team);
+
+        return published;
     }
 
     @Override

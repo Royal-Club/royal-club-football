@@ -18,6 +18,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -45,4 +46,14 @@ public class Team extends AuditBase {
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TeamPlayer> teamPlayers;
 
+    /**
+     * When this team's private chat room opened - set the first time its line-up is published.
+     *
+     * <p>Null means there is no room, which covers both "not published yet" and "purged after the
+     * tournament concluded". A caller cannot tell those apart, and does not need to: either way
+     * there is nothing left to show. Storing the moment rather than a boolean also lets the room
+     * say how long it has been open without a second column.
+     */
+    @Column(name = "chat_opened_at")
+    private LocalDateTime chatOpenedAt;
 }

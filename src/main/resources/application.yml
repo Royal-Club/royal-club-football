@@ -216,6 +216,25 @@ app:
       access-key: ${RESOURCE_FILE_R2_ACCESS_KEY:${TEAM_LOGO_R2_ACCESS_KEY:}}
       secret-key: ${RESOURCE_FILE_R2_SECRET_KEY:${TEAM_LOGO_R2_SECRET_KEY:}}
       presign-duration-minutes: ${RESOURCE_FILE_R2_PRESIGN_MINUTES:${TEAM_LOGO_R2_PRESIGN_MINUTES:60}}
+  # Files shared inside a team chat room, destroyed wholesale when a tournament concludes.
+  #
+  # The purge sweeps by key prefix (`team-chat-{teamId}-`) rather than by the keys recorded in the
+  # attachment table, so that files uploaded but never actually sent are cleaned up too.
+  #
+  # Sharing the team-logo bucket is safe precisely because of that prefix: every other store writes
+  # under `team-logo-`, `resource-` or `player-photo-`, so the sweep cannot reach any of them. The
+  # inheritance matters operationally too - deployment sets one provider variable and every store
+  # follows it, so a bucket left unset here would fail startup rather than quietly fall back.
+  team-chat-file:
+    storage-provider: ${TEAM_CHAT_FILE_STORAGE_PROVIDER:${TEAM_LOGO_STORAGE_PROVIDER:local}}
+    upload-dir: ${TEAM_CHAT_FILE_UPLOAD_DIR:uploads/team-chat}
+    base-url: ${TEAM_CHAT_FILE_BASE_URL:${TEAM_LOGO_BASE_URL:http://localhost:9191}}
+    r2:
+      endpoint: ${TEAM_CHAT_FILE_R2_ENDPOINT:${TEAM_LOGO_R2_ENDPOINT:}}
+      bucket: ${TEAM_CHAT_FILE_R2_BUCKET:${TEAM_LOGO_R2_BUCKET:}}
+      access-key: ${TEAM_CHAT_FILE_R2_ACCESS_KEY:${TEAM_LOGO_R2_ACCESS_KEY:}}
+      secret-key: ${TEAM_CHAT_FILE_R2_SECRET_KEY:${TEAM_LOGO_R2_SECRET_KEY:}}
+      presign-duration-minutes: ${TEAM_CHAT_FILE_R2_PRESIGN_MINUTES:${TEAM_LOGO_R2_PRESIGN_MINUTES:60}}
   player-photo:
     storage-provider: ${PLAYER_PHOTO_STORAGE_PROVIDER:${TEAM_LOGO_STORAGE_PROVIDER:local}}
     upload-dir: ${PLAYER_PHOTO_UPLOAD_DIR:uploads/player-photos}

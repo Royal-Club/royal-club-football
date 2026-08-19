@@ -51,6 +51,7 @@ public class TournamentServiceImpl implements TournamentService {
     private final TournamentSpecification tournamentSpecification;
     private final MatchRepository matchRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final TeamChatPurgeService teamChatPurgeService;
 
     private TournamentResponse convertToDto(Tournament tournament) {
         return TournamentResponse.builder()
@@ -295,6 +296,12 @@ public class TournamentServiceImpl implements TournamentService {
         tournament.setTournamentStatus(CONCLUDED);
         tournament.setActive(false);
         tournamentRepository.save(tournament);
+
+        // The tournament is over the moment this returns, so its team chat rooms go with it rather
+        // than surviving until the nightly sweep. Members were told the chat disappears when the
+        // tournament ends; leaving it readable and writable for another few hours would make that
+        // untrue in exactly the window people would notice.
+        teamChatPurgeService.purgeRoomsOfTournament(tournamentId);
     }
 
     @Override

@@ -55,6 +55,29 @@ public class RestErrorMessageDetail {
     public static final String COST_TYPE_IS_NOT_FOUND = "Cost Type is not found";
     public static final String PLAYER_IS_ALREADY_ADDED_ANOTHER_TEAM = "This player is already added another team";
     public static final String PLAYER_IS_NOT_PART_OF_THIS_TEAM = "Player is not part of the specified team";
+    /**
+     * Said to anyone who is not in the squad, whatever the room's real state. A message that
+     * distinguished "no such room" from "a room you are not in" would let an outsider map which
+     * teams are talking, which is the first thing a private room should not give away.
+     */
+    public static final String TEAM_CHAT_NOT_A_MEMBER =
+            "This chat is only open to the players in this team";
+    public static final String TEAM_CHAT_NOT_OPEN =
+            "The team chat opens once the line-up has been published";
+    public static final String TEAM_CHAT_CONCLUDED =
+            "This tournament has finished and the team chat, along with everything shared in it, has been deleted";
+    public static final String TEAM_CHAT_EMPTY_MESSAGE = "Write something or attach a file before sending";
+    public static final String TEAM_CHAT_INVALID_ATTACHMENT =
+            "That file was not uploaded to this chat. Attach it again";
+    public static final String TEAM_CHAT_ATTACHMENT_NOT_FOUND = "That file is no longer available";
+    public static final String TEAM_CHAT_FILE_TOO_LARGE =
+            "Files must be 3MB or smaller. Photos are shrunk automatically - try re-picking the image";
+    /**
+     * Names the shared budget explicitly. "Upload failed" would send a member hunting for a problem
+     * with their own file, when the real answer is that the room is full and someone has to clear it.
+     */
+    public static final String TEAM_CHAT_ROOM_STORAGE_FULL =
+            "This team chat has used its 10MB file limit for the tournament. Older files free up space when the tournament ends";
     public static final String INVALID_TOKEN = "Invalid token";
     /** Deliberately vague: the client only needs to know it must sign in again, not why. */
     public static final String SESSION_EXPIRED = "Your session has expired. Please sign in again.";
