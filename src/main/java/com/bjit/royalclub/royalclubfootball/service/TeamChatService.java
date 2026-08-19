@@ -44,10 +44,10 @@ public interface TeamChatService {
     /**
      * An upload slot for a file destined for this room.
      *
-     * @param sizeBytes the file's size, so a file that would overflow the room's shared budget is
-     *                  refused before it is uploaded rather than after. Optional: the post-time
-     *                  check is the authoritative one either way.
+     * @param sizeBytes exact size of the file. Required, and not merely so an over-budget upload can
+     *                  be refused before it happens: the size is signed into the upload URL, so a
+     *                  file that does not match the size budgeted for is rejected by storage itself.
      */
     TeamLogoUploadResponse presignAttachment(Long teamId, String fileName, String contentType,
-                                             Long sizeBytes);
+                                             long sizeBytes);
 }

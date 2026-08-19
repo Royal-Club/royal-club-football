@@ -31,6 +31,24 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     Optional<Team> findByIdWithPlayersAndTournament(@Param("teamId") Long teamId);
 
     /**
+     * The id of the team this player is on in this tournament, if any.
+     *
+     * <p>Returns the id rather than the entity, and joins nothing, on purpose. The caller needs the
+     * full fetch graph anyway and re-reads it through the access service; the alternative -
+     * loading every team in the tournament with its squad and filtering in memory - costs a query
+     * per squad member, because {@code TeamPlayer.player} is a plain {@code @ManyToOne} and so
+     * eager. That is a lot of round trips to answer "which team am I on".
+     */
+    @Query("""
+            select t.id from Team t
+            join t.teamPlayers tp
+            where t.tournament.id = :tournamentId
+              and tp.player.id = :playerId
+            """)
+    Optional<Long> findTeamIdOfPlayerInTournament(@Param("tournamentId") Long tournamentId,
+                                                  @Param("playerId") Long playerId);
+
+    /**
      * Teams whose chat room is still open but whose tournament has finished - exactly the rooms the
      * purge has to destroy. Driven off the tournament status rather than a date so that concluding a
      * tournament early, by hand, tears the rooms down at the same moment.

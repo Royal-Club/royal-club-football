@@ -113,7 +113,7 @@ public class TeamChatController {
     public ResponseEntity<Object> presign(@PathVariable Long teamId,
                                           @RequestParam String fileName,
                                           @RequestParam String contentType,
-                                          @RequestParam(required = false) Long sizeBytes) {
+                                          @RequestParam long sizeBytes) {
         TeamLogoUploadResponse response =
                 teamChatService.presignAttachment(teamId, fileName, contentType, sizeBytes);
         return buildSuccessResponse(HttpStatus.OK, "Presigned URL generated", response);

@@ -25,7 +25,15 @@ public interface TeamChatFileStorageProvider {
     /** Prefix every key this provider issues carries, so a foreign key can be rejected on sight. */
     String KEY_PREFIX = "team-chat-";
 
-    TeamLogoUploadResponse generateUploadUrl(Long teamId, String fileName, String contentType);
+    /**
+     * An upload slot for one file in one room.
+     *
+     * @param sizeBytes exact size of the file about to be uploaded. Enforced by the provider where
+     *                  it can be - the S3 provider signs it into the URL - because the bytes never
+     *                  pass through this application, so an unenforced size is only ever a claim.
+     */
+    TeamLogoUploadResponse generateUploadUrl(Long teamId, String fileName, String contentType,
+                                             long sizeBytes);
 
     InputStream load(String key) throws IOException;
 

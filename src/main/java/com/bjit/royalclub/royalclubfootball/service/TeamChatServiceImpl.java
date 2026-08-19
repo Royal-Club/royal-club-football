@@ -25,6 +25,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -118,12 +120,11 @@ public class TeamChatServiceImpl implements TeamChatService {
         if (playerId.isEmpty()) {
             return Optional.empty();
         }
-        return teamRepository.findTeamsWithPlayersByTournamentId(tournamentId).stream()
-                .filter(team -> accessService.isMember(team, playerId.get()))
-                .findFirst()
-                // Re-read through the access service so the response is built from the same fetch
-                // graph as every other call, rather than from a partially loaded team.
-                .map(team -> describe(accessService.requireMembership(team.getId())));
+        // One narrow query for "which team am I on", then the full graph through the access service
+        // so the response is built the same way as every other call. Scanning every team in the
+        // tournament instead would fire a query per squad member before throwing the result away.
+        return teamRepository.findTeamIdOfPlayerInTournament(tournamentId, playerId.get())
+                .map(teamId -> describe(accessService.requireMembership(teamId)));
     }
 
     @Override
@@ -188,27 +189,29 @@ public class TeamChatServiceImpl implements TeamChatService {
         TeamChatMessage saved = messageRepository.save(message);
         TeamChatMessageResponse response = toResponse(saved);
 
-        // Broadcast after the save, so a subscriber cannot receive a message that a rolled-back
-        // transaction then un-writes. The socket is a convenience; the REST history is the record.
-        messagingTemplate.convertAndSend(topicFor(teamId), response);
+        // Broadcast after the transaction commits, not merely after the save. save() only stages the
+        // insert - the commit happens when this method returns, and if it fails every subscriber
+        // would already be showing a message that is in nobody's history and never will be. The
+        // socket is a convenience; the REST history is the record, and the two must not disagree.
+        broadcastAfterCommit(teamId, response);
         return response;
     }
 
     @Override
     @Transactional(readOnly = true)
     public TeamLogoUploadResponse presignAttachment(Long teamId, String fileName,
-                                                    String contentType, Long sizeBytes) {
+                                                    String contentType, long sizeBytes) {
         accessService.requireOpenRoom(teamId);
         validateUploadMeta(fileName, contentType);
 
-        if (sizeBytes != null && sizeBytes > MAX_FILE_BYTES) {
+        if (sizeBytes <= 0 || sizeBytes > MAX_FILE_BYTES) {
             throw new TeamServiceException(TEAM_CHAT_FILE_TOO_LARGE, HttpStatus.BAD_REQUEST);
         }
         // Checked before the URL is handed out, so a member on a phone connection is not made to
         // push 3MB up the wire only to be told the room was already full. Re-checked on post.
-        requireRoomCapacity(teamId, sizeBytes == null ? 0 : sizeBytes);
+        requireRoomCapacity(teamId, sizeBytes);
 
-        return fileStorageProvider.generateUploadUrl(teamId, fileName, contentType);
+        return fileStorageProvider.generateUploadUrl(teamId, fileName, contentType, sizeBytes);
     }
 
     /**
@@ -229,6 +232,25 @@ public class TeamChatServiceImpl implements TeamChatService {
     /** The STOMP destination a room's members subscribe to. */
     public static String topicFor(Long teamId) {
         return "/topic/team-chat/" + teamId;
+    }
+
+    /**
+     * Pushes the message to the room once the surrounding transaction has committed.
+     *
+     * <p>Falls back to sending immediately when there is no transaction to wait on, so this stays
+     * correct if it is ever called outside one rather than silently dropping the broadcast.
+     */
+    private void broadcastAfterCommit(Long teamId, TeamChatMessageResponse response) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            messagingTemplate.convertAndSend(topicFor(teamId), response);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                messagingTemplate.convertAndSend(topicFor(teamId), response);
+            }
+        });
     }
 
     private TeamChatAttachment toAttachment(TeamChatMessage message,

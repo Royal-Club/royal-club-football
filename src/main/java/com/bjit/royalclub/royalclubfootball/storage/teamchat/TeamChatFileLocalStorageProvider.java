@@ -25,7 +25,8 @@ public class TeamChatFileLocalStorageProvider implements TeamChatFileStorageProv
     }
 
     @Override
-    public TeamLogoUploadResponse generateUploadUrl(Long teamId, String fileName, String contentType) {
+    public TeamLogoUploadResponse generateUploadUrl(Long teamId, String fileName,
+                                                    String contentType, long sizeBytes) {
         String key = TeamChatFileStorageProvider.keyFor(teamId, fileName);
         return TeamLogoUploadResponse.builder()
                 .key(key)

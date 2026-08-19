@@ -54,13 +54,20 @@ public class TeamChatFileR2StorageProvider implements TeamChatFileStorageProvide
     }
 
     @Override
-    public TeamLogoUploadResponse generateUploadUrl(Long teamId, String fileName, String contentType) {
+    public TeamLogoUploadResponse generateUploadUrl(Long teamId, String fileName,
+                                                    String contentType, long sizeBytes) {
         String key = TeamChatFileStorageProvider.keyFor(teamId, fileName);
 
+        // Content-Length is signed into the URL, which is what makes the room's byte budget real
+        // rather than advisory. The bytes never pass through this application, so without it the
+        // only statement of a file's size is the one the client made when asking for the URL - and
+        // a client that under-reports could then upload anything it liked straight into the bucket.
+        // Signed, the upload has to match the size that was budgeted for or R2 rejects it outright.
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(key)
                 .contentType(contentType)
+                .contentLength(sizeBytes)
                 .build();
 
         String uploadUrl = presigner.presignPutObject(PutObjectPresignRequest.builder()
